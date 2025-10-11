@@ -2,6 +2,7 @@ import { Link, usePage } from "@inertiajs/react";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import FlashMessage from "@/Components/FlashMessage";
 
 export default function AppLayout({ children }) {
     const user = usePage().props.auth.user;
@@ -73,6 +74,7 @@ export default function AppLayout({ children }) {
 
     return (
         <div className="min-h-screen bg-[#F8FAFC] flex">
+            <FlashMessage />
             {/* Sidebar */}
             <motion.aside
                 initial={{ width: sidebarOpen ? 256 : 64 }}

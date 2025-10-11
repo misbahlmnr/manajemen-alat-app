@@ -14,8 +14,6 @@ import {
 import { motion } from "framer-motion";
 
 export default function Index({ admins }) {
-    const { flash } = usePage().props;
-
     const handleDelete = (id) => {
         if (confirm("Apakah Anda yakin ingin menghapus admin ini?")) {
             router.delete(route("admin.manajemen-user.admins.destroy", id));
@@ -44,13 +42,6 @@ export default function Index({ admins }) {
                         </Link>
                     </Button>
                 </div>
-
-                {/* Flash Message */}
-                {flash?.message && (
-                    <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
-                        {flash.message}
-                    </div>
-                )}
 
                 {/* Table */}
                 <Card>

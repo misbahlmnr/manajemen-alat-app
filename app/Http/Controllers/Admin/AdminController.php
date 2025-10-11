@@ -36,7 +36,7 @@ class AdminController extends Controller
             'role' => 'admin',
         ]);
 
-        return redirect()->route('admin.manajemen-user.admins.index')->with('message', 'Admin created successfully');
+        return redirect()->route('admin.manajemen-user.admins.index')->with('success', 'Admin created successfully');
     }
 
     public function edit(User $admin)
@@ -63,12 +63,12 @@ class AdminController extends Controller
 
         $admin->update($updateData);
 
-        return redirect()->route('admin.manajemen-user.admins.index')->with('message', 'Admin updated successfully');
+        return redirect()->route('admin.manajemen-user.admins.index')->with('success', 'Admin updated successfully');
     }
 
     public function destroy(User $admin)
     {
         $admin->delete();
-        return redirect()->route('admin.manajemen-user.admins.index')->with('message', 'Admin deleted successfully');
+        return redirect()->route('admin.manajemen-user.admins.index')->with('success', 'Admin deleted successfully');
     }
 }
