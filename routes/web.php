@@ -1,10 +1,7 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\Admin\AdminController;
-use App\Http\Controllers\Admin\GuruController;
-use App\Http\Controllers\Admin\SiswaController;
+use App\Http\Controllers\Admin\{DashboardController as AdminDashboardController};
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -20,19 +17,26 @@ Route::get('/', function () {
 
 Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
 
+Route::get('/dashboard', function () {
+    if (auth()->user()->isAdmin()) {
+        return app(AdminDashboardController::class)->index();
+    }
+
+    if (auth()->user()->isGuru()) {
+        return app(GuruDashboardController::class)->index();
+    }
+
+    if (auth()->user()->isSiswa()) {
+        return app(SiswaDashboardController::class)->index();
+    }
+
+    return abort(403, 'Unauthorized action.');
+})->middleware(['auth', 'verified'])->name('dashboard');
+
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-
-    // Admin routes
-    Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {
-        Route::prefix('manajemen-user')->name('manajemen-user.')->group(function () {
-            Route::resource('admins', AdminController::class);
-            Route::resource('gurus', GuruController::class);
-            Route::resource('siswas', SiswaController::class);
-        });
-    });
 });
 
 require __DIR__.'/auth.php';

@@ -11,11 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('mapel', function (Blueprint $table) {
-            $table->id();
-            $table->string('nama');
-            $table->foreignId('guru_id')->nullable()->constrained('users')->onDelete('set null');
-            $table->timestamps();
+        Schema::table('users', function (Blueprint $table) {
+            $table->enum('role', ['admin', 'guru', 'siswa'])->default('siswa')->after('password');
         });
     }
 
@@ -24,6 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('mapel');
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropColumn('role');
+        });
     }
 };

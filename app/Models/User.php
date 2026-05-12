@@ -19,10 +19,10 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'name',
+        'username',
         'email',
         'password',
         'role',
-        'kelas_id',
     ];
 
     /**
@@ -48,41 +48,6 @@ class User extends Authenticatable
         ];
     }
 
-    public function kelas()
-    {
-        return $this->belongsTo(Kelas::class);
-    }
-
-    public function mapel()
-    {
-        return $this->hasMany(Mapel::class, 'guru_id');
-    }
-
-    public function materi()
-    {
-        return $this->hasMany(Materi::class, 'guru_id');
-    }
-
-    public function tugas()
-    {
-        return $this->hasMany(Tugas::class, 'guru_id');
-    }
-
-    public function nilai()
-    {
-        return $this->hasMany(Nilai::class, 'siswa_id');
-    }
-
-    public function absensi()
-    {
-        return $this->hasMany(Absensi::class, 'siswa_id');
-    }
-
-    public function materiRekomendasi()
-    {
-        return $this->hasMany(MateriRekomendasi::class, 'siswa_id');
-    }
-
     public function isAdmin()
     {
         return $this->role === 'admin';
@@ -96,15 +61,5 @@ class User extends Authenticatable
     public function isSiswa()
     {
         return $this->role === 'siswa';
-    }
-
-    public function guruProfile()
-    {
-        return $this->hasOne(GuruProfile::class);
-    }
-
-    public function siswaProfile()
-    {
-        return $this->hasOne(SiswaProfile::class);
     }
 }

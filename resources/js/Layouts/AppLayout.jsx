@@ -24,17 +24,17 @@ export default function AppLayout({ children }) {
                     children: [
                         {
                             name: "Data Admin",
-                            href: route("admin.manajemen-user.admins.index"),
+                            href: "#",
                             icon: "👤",
                         },
                         {
                             name: "Data Guru",
-                            href: route("admin.manajemen-user.gurus.index"),
+                            href: "#",
                             icon: "👨‍🏫",
                         },
                         {
                             name: "Data Siswa",
-                            href: route("admin.manajemen-user.siswas.index"),
+                            href: "#",
                             icon: "👨‍🎓",
                         },
                     ],
