@@ -9,6 +9,6 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        return inertia('Admin/dashboard/index');
+        return inertia('Admin/Dashboard/Index');
     }
 }
