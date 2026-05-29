@@ -2,6 +2,7 @@ import { cn } from '@/lib/utils';
 
 const statusConfig = {
   diminta: { label: 'Diminta', className: 'status-requested' },
+  antrian: { label: 'Antrian', className: 'bg-warning/10 text-warning' },
   disetujui: { label: 'Disetujui', className: 'status-approved' },
   dipinjam: { label: 'Dipinjam', className: 'status-borrowed' },
   terlambat: { label: 'Terlambat', className: 'status-overdue' },

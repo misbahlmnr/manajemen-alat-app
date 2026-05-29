@@ -6,8 +6,11 @@ import DashboardContent from "@/Components/Layout/DashboardContent";
 import { usePage } from "@inertiajs/react";
 
 export default function AppLayout({ children }) {
-    const { auth, unreadNotifications = 0, notifications = [] } =
-        usePage().props;
+    const {
+        auth,
+        unreadNotifications = 0,
+        notifications = [],
+    } = usePage().props;
     const user = auth?.user;
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -20,7 +23,7 @@ export default function AppLayout({ children }) {
                 onClose={() => setSidebarOpen(false)}
             />
 
-            <div className="flex min-w-0 flex-1 flex-col">
+            <div className="flex min-h-screen min-w-0 flex-1 flex-col lg:ml-64">
                 <DashboardHeader
                     user={user}
                     onMenuClick={() => setSidebarOpen(true)}

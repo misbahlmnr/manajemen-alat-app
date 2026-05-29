@@ -13,11 +13,11 @@ export default function DashboardHeader({
     return (
         <header
             className={cn(
-                "flex h-16 shrink-0 items-center justify-end border-b border-border bg-card px-4 lg:px-6",
+                "sticky top-0 z-30 flex h-16 shrink-0 items-center justify-end border-b border-border bg-card px-4 lg:px-6",
                 className,
             )}
         >
-            <div className="flex items-center gap-2 sm:gap-4">
+            <div className="flex shrink-0 items-center gap-2 sm:gap-4">
                 <LiveDate className="hidden text-sm text-muted-foreground sm:block" />
 
                 <NotificationDropdown

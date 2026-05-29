@@ -2,10 +2,15 @@
 
 namespace App\Http\Controllers\Guru;
 
+use App\Http\Controllers\Concerns\LoadsDashboardData;
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
-    //
+    use LoadsDashboardData;
+
+    public function index()
+    {
+        return $this->dashboardIndex('Guru/Dashboard/Index');
+    }
 }

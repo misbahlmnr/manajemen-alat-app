@@ -1,0 +1,24 @@
+import { Button } from "@/Components/ui/button";
+import { Link } from "@inertiajs/react";
+import { Bell } from "lucide-react";
+
+export default function NotificationBanner({ notifications }) {
+    if (!notifications?.length) return null;
+
+    return (
+        <div className="mb-6 flex items-start gap-3 rounded-xl border border-warning/20 bg-warning/10 p-4">
+            <Bell className="mt-0.5 h-5 w-5 shrink-0 text-warning" />
+            <div className="min-w-0 flex-1">
+                <p className="font-medium">
+                    {notifications.length} notifikasi belum dibaca
+                </p>
+                <p className="mt-0.5 line-clamp-1 text-sm text-muted-foreground">
+                    {notifications[0]?.message}
+                </p>
+            </div>
+            <Button asChild variant="outline" size="sm">
+                <Link href="#">Buka</Link>
+            </Button>
+        </div>
+    );
+}

@@ -1,26 +1,33 @@
 import AppLayout from "@/Layouts/AppLayout";
 import { DashboardPageHeader } from "@/Components/Dashboard/DashboardPageHeader";
 import { Head, usePage } from "@inertiajs/react";
-import AdminDashboard from "./Components/AdminDashboard";
+import SiswaDashboard from "./Components/SiswaDashboard";
 
-export default function Index({ loans = [], equipment = [], stats = {} }) {
+export default function Index({
+    loans = [],
+    equipment = [],
+    notifications = [],
+    upcomingSchedules = [],
+}) {
     const user = usePage().props.auth?.user;
     const firstName = user?.name?.split(" ")[0] ?? "Pengguna";
 
     return (
         <AppLayout>
-            <Head title="Dashboard Admin" />
+            <Head title="Dashboard Siswa" />
 
-            <div className="animate-fade-in mx-auto">
+            <div className="animate-fade-in mx-auto max-w-7xl">
                 <DashboardPageHeader
                     title={`Halo, ${firstName}`}
-                    subtitle="Ringkasan operasional laboratorium hari ini."
+                    subtitle="Apa yang ingin kamu lakukan hari ini?"
                 />
 
-                <AdminDashboard
+                <SiswaDashboard
+                    user={user}
                     loans={loans}
                     equipment={equipment}
-                    stats={stats}
+                    notifications={notifications}
+                    upcomingSchedules={upcomingSchedules}
                 />
             </div>
         </AppLayout>

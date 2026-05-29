@@ -1,11 +1,19 @@
 import { StatusBadge } from '@/Components/ui/StatusBadge';
 
-export function RecentLoansTable({ loans, showActions = false, onApprove, onReject }) {
+export function RecentLoansTable({ loans = [], showActions = false, onApprove, onReject }) {
   const formatDate = (dateString) => {
     if (!dateString) return '-';
     const date = new Date(dateString);
     return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
   };
+
+  if (!loans.length) {
+    return (
+      <p className="py-8 text-center text-sm text-muted-foreground">
+        Belum ada data peminjaman
+      </p>
+    );
+  }
 
   return (
     <div className="data-table overflow-hidden">

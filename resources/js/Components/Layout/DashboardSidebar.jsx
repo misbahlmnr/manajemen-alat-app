@@ -1,4 +1,4 @@
-import { Link, router, usePage } from "@inertiajs/react";
+import { Link, usePage } from "@inertiajs/react";
 import { Camera, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isNavItemActive, resolveMenuItems } from "@/Constant";
@@ -14,10 +14,6 @@ export default function DashboardSidebar({
     const currentUrl = usePage().url;
     const menuItems = resolveMenuItems(user?.role);
 
-    const handleLogout = () => {
-        router.post(route("logout"));
-    };
-
     return (
         <>
             {isOpen && (
@@ -31,8 +27,8 @@ export default function DashboardSidebar({
 
             <aside
                 className={cn(
-                    "fixed inset-y-0 left-0 z-50 flex w-64 flex-col gradient-hero",
-                    "transform transition-transform duration-300 ease-in-out lg:static",
+                    "fixed inset-y-0 left-0 z-50 flex h-screen w-64 flex-col gradient-hero",
+                    "transform transition-transform duration-300 ease-in-out",
                     isOpen
                         ? "translate-x-0"
                         : "-translate-x-full lg:translate-x-0",
