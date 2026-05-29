@@ -14,11 +14,13 @@ export default {
     theme: {
     	extend: {
     		fontFamily: {
-    			sans: [
-    				'Figtree',
-                    ...defaultTheme.fontFamily.sans
-                ],
-                display: ['Poppins', 'Figtree', ...defaultTheme.fontFamily.sans],
+    			sans: ['Inter', 'Figtree', ...defaultTheme.fontFamily.sans],
+                display: ['Poppins', 'Inter', ...defaultTheme.fontFamily.sans],
+    		},
+    		boxShadow: {
+    			card: 'var(--shadow-card)',
+    			elevated: 'var(--shadow-md)',
+    			floating: 'var(--shadow-lg)',
     		},
     		borderRadius: {
     			lg: 'var(--radius)',
@@ -71,6 +73,16 @@ export default {
     			border: 'hsl(var(--border))',
     			input: 'hsl(var(--input))',
     			ring: 'hsl(var(--ring))',
+    			sidebar: {
+    				DEFAULT: 'hsl(var(--sidebar-background))',
+    				foreground: 'hsl(var(--sidebar-foreground))',
+    				primary: 'hsl(var(--sidebar-primary))',
+    				'primary-foreground': 'hsl(var(--sidebar-primary-foreground))',
+    				accent: 'hsl(var(--sidebar-accent))',
+    				'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
+    				border: 'hsl(var(--sidebar-border))',
+    				ring: 'hsl(var(--sidebar-ring))',
+    			},
     			chart: {
     				'1': 'hsl(var(--chart-1))',
     				'2': 'hsl(var(--chart-2))',

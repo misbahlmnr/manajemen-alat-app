@@ -178,7 +178,6 @@ export default function Login({ status, canResetPassword }) {
                                             "border-destructive ring-destructive/20",
                                     )}
                                     required
-                                    autoFocus
                                 />
                             </div>
                             <InputError
@@ -288,7 +287,7 @@ export default function Login({ status, canResetPassword }) {
                                     Memproses...
                                 </>
                             ) : (
-                                "Masuk ke Sistem"
+                                "Masuk"
                             )}
                         </button>
                     </form>

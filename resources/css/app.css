@@ -1,8 +1,8 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap');
 
 @layer base {
     :root {
@@ -49,6 +49,16 @@
 
         --radius: 0.625rem;
 
+        /* Sidebar */
+        --sidebar-background: 213 56% 20%;
+        --sidebar-foreground: 210 20% 96%;
+        --sidebar-primary: 45 93% 47%;
+        --sidebar-primary-foreground: 215 25% 15%;
+        --sidebar-accent: 213 56% 28%;
+        --sidebar-accent-foreground: 0 0% 100%;
+        --sidebar-border: 213 56% 28%;
+        --sidebar-ring: 45 93% 47%;
+
         /* Custom Gradients */
         --gradient-primary: linear-gradient(135deg, hsl(213 56% 24%) 0%, hsl(213 56% 32%) 100%);
         --gradient-accent: linear-gradient(135deg, hsl(45 93% 47%) 0%, hsl(38 92% 50%) 100%);
@@ -89,6 +99,15 @@
         --border: 215 25% 22%;
         --input: 215 25% 22%;
         --ring: 45 93% 47%;
+
+        --sidebar-background: 215 25% 8%;
+        --sidebar-foreground: 210 20% 96%;
+        --sidebar-primary: 45 93% 47%;
+        --sidebar-primary-foreground: 215 25% 10%;
+        --sidebar-accent: 215 25% 15%;
+        --sidebar-accent-foreground: 0 0% 100%;
+        --sidebar-border: 215 25% 18%;
+        --sidebar-ring: 45 93% 47%;
     }
 }
 
@@ -106,6 +125,14 @@
 }
 
 @layer components {
+    .nav-link {
+        @apply flex items-center gap-3 px-4 py-3 rounded-lg text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-all duration-200;
+    }
+
+    .nav-link-active {
+        @apply bg-sidebar-accent text-sidebar-foreground border-l-4 border-sidebar-primary;
+    }
+
     .form-input {
         @apply w-full px-4 py-2.5 rounded-lg border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all duration-200;
     }

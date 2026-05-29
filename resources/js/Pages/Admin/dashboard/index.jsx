@@ -355,7 +355,7 @@ export default function Dashboard() {
     };
 
     return (
-        <AppLayout title="Dashboard" subtitle="Ringkasan aktivitas peminjaman & peralatan">
+        <AppLayout>
             <Head title="Dashboard" />
 
             <div className="animate-fade-in max-w-7xl mx-auto">

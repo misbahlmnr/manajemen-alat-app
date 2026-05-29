@@ -1,7 +1,9 @@
 <?php
 
+use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Guru\DashboardController as GuruDashboardController;
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\Admin\{DashboardController as AdminDashboardController};
+use App\Http\Controllers\Siswa\DashboardController as SiswaDashboardController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
