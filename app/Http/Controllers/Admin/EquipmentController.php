@@ -1,0 +1,153 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\StoreEquipmentRequest;
+use App\Http\Requests\Admin\UpdateEquipmentRequest;
+use App\Models\Equipment;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
+
+class EquipmentController extends Controller
+{
+    public function index(Request $request): Response
+    {
+        $this->authorize('viewAny', Equipment::class);
+
+        $search = $request->string('search')->trim();
+        $category = $request->string('category')->toString() ?: 'all';
+        $status = $request->string('status')->toString() ?: 'all';
+        $condition = $request->string('condition')->toString() ?: 'all';
+
+        $equipment = Equipment::query()
+            ->alat()
+            ->when($search->isNotEmpty(), function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('code', 'like', "%{$search}%")
+                        ->orWhere('category', 'like', "%{$search}%")
+                        ->orWhere('location', 'like', "%{$search}%")
+                        ->orWhere('description', 'like', "%{$search}%");
+                });
+            })
+            ->when($category !== 'all', fn ($q) => $q->where('category', $category))
+            ->when($status !== 'all', fn ($q) => $q->where('status', $status))
+            ->when($condition !== 'all', fn ($q) => $q->where('condition', $condition))
+            ->latest()
+            ->paginate(10)
+            ->withQueryString()
+            ->through(fn (Equipment $item) => $this->formatEquipment($item));
+
+        $categories = Equipment::alat()
+            ->select('category')
+            ->distinct()
+            ->orderBy('category')
+            ->pluck('category');
+
+        return Inertia::render('Admin/Equipment/Index', [
+            'equipment' => $equipment,
+            'filters' => [
+                'search' => $search->toString(),
+                'category' => $category,
+                'status' => $status,
+                'condition' => $condition,
+            ],
+            'categories' => $categories,
+            'categoryOptions' => config('lab.equipment_categories'),
+        ]);
+    }
+
+    public function create(): Response
+    {
+        $this->authorize('create', Equipment::class);
+
+        return Inertia::render('Admin/Equipment/Create', [
+            'categoryOptions' => config('lab.equipment_categories'),
+        ]);
+    }
+
+    public function store(StoreEquipmentRequest $request): RedirectResponse
+    {
+        Equipment::create([
+            ...$request->validated(),
+            'code' => Equipment::generateCode('alat'),
+            'item_type' => 'alat',
+        ]);
+
+        return redirect()
+            ->route('admin.equipment.index')
+            ->with('success', 'Alat berhasil ditambahkan.');
+    }
+
+    public function show(Equipment $equipment): Response
+    {
+        $this->authorize('view', $equipment);
+        $this->ensureAlat($equipment);
+
+        return Inertia::render('Admin/Equipment/Show', [
+            'equipment' => $this->formatEquipment($equipment),
+        ]);
+    }
+
+    public function edit(Equipment $equipment): Response
+    {
+        $this->authorize('update', $equipment);
+        $this->ensureAlat($equipment);
+
+        return Inertia::render('Admin/Equipment/Edit', [
+            'equipment' => $this->formatEquipment($equipment),
+            'categoryOptions' => config('lab.equipment_categories'),
+        ]);
+    }
+
+    public function update(UpdateEquipmentRequest $request, Equipment $equipment): RedirectResponse
+    {
+        $this->ensureAlat($equipment);
+        $equipment->update($request->validated());
+
+        return redirect()
+            ->route('admin.equipment.show', $equipment)
+            ->with('success', 'Alat berhasil diperbarui.');
+    }
+
+    public function destroy(Equipment $equipment): RedirectResponse
+    {
+        $this->authorize('delete', $equipment);
+        $this->ensureAlat($equipment);
+
+        $equipment->delete();
+
+        return redirect()
+            ->route('admin.equipment.index')
+            ->with('success', 'Alat berhasil dihapus.');
+    }
+
+    private function ensureAlat(Equipment $equipment): void
+    {
+        if ($equipment->item_type !== 'alat') {
+            abort(404);
+        }
+    }
+
+    private function formatEquipment(Equipment $equipment): array
+    {
+        return [
+            'id' => $equipment->id,
+            'code' => $equipment->code,
+            'name' => $equipment->name,
+            'category' => $equipment->category,
+            'stock' => $equipment->stock,
+            'available' => $equipment->available,
+            'condition' => $equipment->condition,
+            'location' => $equipment->location,
+            'description' => $equipment->description,
+            'status' => $equipment->status,
+            'availability_label' => $equipment->availability_label,
+            'created_at_formatted' => $equipment->created_at?->translatedFormat('d M Y'),
+            'updated_at_formatted' => $equipment->updated_at?->translatedFormat('d M Y H:i'),
+        ];
+    }
+}

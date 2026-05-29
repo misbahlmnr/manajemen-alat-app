@@ -1,6 +1,19 @@
 <?php
 
 return [
+    'equipment_categories' => [
+        'Kamera',
+        'Mikrofon',
+        'Tripod',
+        'Mixer',
+        'Lighting',
+        'Headphone',
+        'Stabilizer',
+        'Alat Elektro',
+        'Tools',
+        'Kabel',
+    ],
+
     'class_options' => [
         'X TAV 1',
         'X TAV 2',

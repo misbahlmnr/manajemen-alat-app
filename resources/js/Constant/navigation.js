@@ -31,9 +31,7 @@ const adminMenuItems = [
     {
         icon: Wrench,
         label: "Kelola Alat",
-        routeName: null,
-        href: "#",
-        query: { tab: "alat" },
+        routeName: "admin.equipment.index",
     },
     {
         icon: Package,
