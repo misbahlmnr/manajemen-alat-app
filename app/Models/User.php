@@ -2,44 +2,38 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Str;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
     protected $fillable = [
         'name',
         'username',
         'email',
         'password',
         'role',
+        'status',
+        'phone',
+        'nisn',
+        'nip',
+        'class',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
+    protected $appends = [
+        'identifier_label',
+    ];
+
     protected function casts(): array
     {
         return [
@@ -48,18 +42,50 @@ class User extends Authenticatable
         ];
     }
 
-    public function isAdmin()
+    public function isAdmin(): bool
     {
         return $this->role === 'admin';
     }
 
-    public function isGuru()
+    public function isGuru(): bool
     {
         return $this->role === 'guru';
     }
 
-    public function isSiswa()
+    public function isSiswa(): bool
     {
         return $this->role === 'siswa';
+    }
+
+    public function isActive(): bool
+    {
+        return $this->status === 'active';
+    }
+
+    public function getIdentifierLabelAttribute(): ?string
+    {
+        return match ($this->role) {
+            'siswa' => $this->nisn,
+            'guru', 'admin' => $this->nip,
+            default => null,
+        };
+    }
+
+    public static function generateUsername(string $email, ?string $name = null): string
+    {
+        $base = Str::slug(Str::before($email, '@'), '_');
+        if ($base === '') {
+            $base = Str::slug($name ?? 'user', '_');
+        }
+
+        $username = $base;
+        $counter = 1;
+
+        while (static::where('username', $username)->exists()) {
+            $username = $base.'_'.$counter;
+            $counter++;
+        }
+
+        return $username;
     }
 }

@@ -26,8 +26,7 @@ const adminMenuItems = [
     {
         icon: Users,
         label: "Kelola Pengguna",
-        routeName: null,
-        href: "#",
+        routeName: "admin.users.index",
     },
     {
         icon: Wrench,
