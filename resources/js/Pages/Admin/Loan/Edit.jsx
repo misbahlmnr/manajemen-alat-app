@@ -19,6 +19,7 @@ export default function Edit({
             ? String(loan.practicum_schedule_id)
             : "",
         item_type: loan.item_type,
+        borrow_scope: loan.borrow_scope ?? "lab",
         request_date: loan.request_date,
         due_at: loan.due_at ?? "",
         purpose: loan.purpose ?? "",

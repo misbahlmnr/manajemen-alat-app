@@ -119,6 +119,9 @@ class LoanController extends Controller
             'schedule:id,code,title,mata_kuliah,tanggal',
             'items.equipment:id,code,name,item_type,category',
             'statusLogs.user:id,name',
+            'collateral',
+            'inspection',
+            'compensation',
         ]);
 
         return Inertia::render('Admin/Loan/Show', [
@@ -331,7 +334,12 @@ class LoanController extends Controller
             'can_reject' => in_array($loan->status, ['diminta', 'antrian', 'disetujui'], true),
             'can_mark_borrowed' => $loan->isAlat() && $loan->status === 'disetujui',
             'can_return' => $loan->isAlat() && in_array($loan->status, ['dipinjam', 'terlambat'], true),
+            'can_inspect' => $loan->status === 'menunggu_inspeksi',
             'can_edit' => in_array($loan->status, ['diminta', 'antrian'], true),
+            'requires_collateral' => $loan->requiresCollateral(),
+            'collateral_id' => $loan->collateral?->id,
+            'collateral_code' => $loan->collateral?->code,
+            'collateral_status' => $loan->collateral?->status,
         ];
 
         if ($detailed) {

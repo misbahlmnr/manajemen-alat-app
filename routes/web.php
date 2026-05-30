@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\EquipmentController;
+use App\Http\Controllers\Admin\LoanCollateralController;
 use App\Http\Controllers\Admin\LoanController;
 use App\Http\Controllers\Admin\PracticumScheduleController;
 use App\Http\Controllers\Admin\SupplyController;
@@ -43,6 +44,11 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
     Route::post('loans/{loan}/reject', [LoanController::class, 'reject'])->name('loans.reject');
     Route::post('loans/{loan}/mark-borrowed', [LoanController::class, 'markBorrowed'])->name('loans.mark-borrowed');
     Route::post('loans/{loan}/return', [LoanController::class, 'processReturn'])->name('loans.return');
+    Route::resource('collaterals', LoanCollateralController::class);
+    Route::post('collaterals/{collateral}/hold', [LoanCollateralController::class, 'hold'])->name('collaterals.hold');
+    Route::post('collaterals/{collateral}/return-card', [LoanCollateralController::class, 'returnCard'])->name('collaterals.return-card');
+    Route::post('collaterals/{collateral}/complete-compensation', [LoanCollateralController::class, 'completeCompensation'])->name('collaterals.complete-compensation');
+    Route::post('loans/{loan}/inspect', [LoanCollateralController::class, 'inspect'])->name('loans.inspect');
 });
 
 Route::middleware('auth')->group(function () {

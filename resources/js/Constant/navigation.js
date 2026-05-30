@@ -51,8 +51,7 @@ const adminMenuItems = [
     {
         icon: CreditCard,
         label: "Jaminan Kartu",
-        routeName: null,
-        href: "#",
+        routeName: "admin.collaterals.index",
     },
     {
         icon: Bell,

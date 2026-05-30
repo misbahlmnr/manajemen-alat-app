@@ -76,6 +76,10 @@ class LoanWorkflowService
                 'borrowed_at' => $loan->borrowed_at ?? now(),
             ]);
             $this->logStatus($loan, 'dipinjam', 'Alat diserahkan ke peminjam.', $actor);
+
+            if ($loan->requiresCollateral()) {
+                app(CollateralWorkflowService::class)->ensureCollateralForBawaPulangLoan($loan, $actor);
+            }
         });
     }
 
@@ -85,6 +89,12 @@ class LoanWorkflowService
             throw ValidationException::withMessages([
                 'status' => 'Pengembalian hanya untuk peminjaman alat yang sedang dipinjam.',
             ]);
+        }
+
+        if ($loan->requiresCollateral()) {
+            app(CollateralWorkflowService::class)->requestReturnInspection($loan, $note, $actor);
+
+            return;
         }
 
         DB::transaction(function () use ($loan, $note, $actor) {

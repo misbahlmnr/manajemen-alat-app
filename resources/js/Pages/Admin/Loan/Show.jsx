@@ -21,11 +21,15 @@ import { useState } from "react";
 import DeleteLoanDialog from "./Components/DeleteLoanDialog";
 import RejectLoanDialog from "./Components/RejectLoanDialog";
 import ReturnLoanDialog from "./Components/ReturnLoanDialog";
+import InspectReturnDialog from "../Collateral/Components/InspectReturnDialog";
+import CollateralStatusBadge from "@/Components/CollateralStatusBadge";
 
 export default function Show({ loan }) {
     const [deleteOpen, setDeleteOpen] = useState(false);
     const [rejectOpen, setRejectOpen] = useState(false);
     const [returnOpen, setReturnOpen] = useState(false);
+    const [inspectOpen, setInspectOpen] = useState(false);
+    const [inspecting, setInspecting] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [rejecting, setRejecting] = useState(false);
     const [returning, setReturning] = useState(false);
@@ -65,6 +69,16 @@ export default function Show({ loan }) {
                 },
             },
         );
+    };
+
+    const handleInspect = (payload) => {
+        setInspecting(true);
+        router.post(route("admin.loans.inspect", loan.id), payload, {
+            onFinish: () => {
+                setInspecting(false);
+                setInspectOpen(false);
+            },
+        });
     };
 
     const timeline = loan.timeline ?? [];
@@ -113,10 +127,17 @@ export default function Show({ loan }) {
                             Tandai Dipinjam
                         </Button>
                     )}
+                    {loan.can_inspect && (
+                        <Button onClick={() => setInspectOpen(true)}>
+                            Inspeksi Pengembalian
+                        </Button>
+                    )}
                     {loan.can_return && (
                         <Button onClick={() => setReturnOpen(true)}>
                             <RotateCcw className="mr-2 h-4 w-4" />
-                            Proses Pengembalian
+                            {loan.requires_collateral
+                                ? "Ajukan Inspeksi"
+                                : "Proses Pengembalian"}
                         </Button>
                     )}
                     <Button
@@ -179,6 +200,16 @@ export default function Show({ loan }) {
                                     label="Dikembalikan"
                                     value={loan.returned_at_formatted}
                                 />
+                                {loan.item_type === "alat" && (
+                                    <Info
+                                        label="Lokasi"
+                                        value={
+                                            loan.borrow_scope === "bawa_pulang"
+                                                ? "Bawa Pulang"
+                                                : "Pakai di Lab"
+                                        }
+                                    />
+                                )}
                                 {loan.schedule_title && (
                                     <Info
                                         label="Jadwal"
@@ -229,6 +260,36 @@ export default function Show({ loan }) {
                                 </ul>
                             </CardContent>
                         </Card>
+
+                        {loan.requires_collateral && (
+                            <Card className="rounded-2xl border-border/60 shadow-card">
+                                <CardHeader>
+                                    <CardTitle>Jaminan Kartu</CardTitle>
+                                    <CardDescription>
+                                        {loan.collateral_id ? (
+                                            <Link
+                                                href={route(
+                                                    "admin.collaterals.show",
+                                                    loan.collateral_id,
+                                                )}
+                                                className="text-primary hover:underline"
+                                            >
+                                                {loan.collateral_code}
+                                            </Link>
+                                        ) : (
+                                            "Belum dicatat — akan dibuat saat alat dipinjam"
+                                        )}
+                                    </CardDescription>
+                                </CardHeader>
+                                {loan.collateral_status && (
+                                    <CardContent>
+                                        <CollateralStatusBadge
+                                            status={loan.collateral_status}
+                                        />
+                                    </CardContent>
+                                )}
+                            </Card>
+                        )}
 
                         {timeline.length > 0 && (
                             <Card className="rounded-2xl border-border/60 shadow-card">
@@ -293,6 +354,13 @@ export default function Show({ loan }) {
                 itemName={loan.code}
                 onConfirm={handleReturn}
                 loading={returning}
+            />
+            <InspectReturnDialog
+                open={inspectOpen}
+                onOpenChange={setInspectOpen}
+                loanCode={loan.code}
+                onConfirm={handleInspect}
+                loading={inspecting}
             />
         </AppLayout>
     );

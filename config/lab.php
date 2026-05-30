@@ -43,6 +43,20 @@ return [
 
     'jurusan_default' => 'Audio Video',
 
+    'collateral_statuses' => [
+        'dititipkan' => 'Dititipkan',
+        'ditahan' => 'Digunakan Sebagai Jaminan',
+        'menunggu_kompensasi' => 'Menunggu Kompensasi',
+        'dikembalikan' => 'Sudah Diambil',
+        'dibatalkan' => 'Dibatalkan',
+    ],
+
+    'collateral_card_types' => [
+        'kartu_pelajar' => 'Kartu Pelajar',
+        'kartu_siswa' => 'Kartu Siswa',
+        'lainnya' => 'Lainnya',
+    ],
+
     'loan_statuses' => [
         'diminta' => 'Menunggu Persetujuan',
         'antrian' => 'Antrian',
@@ -50,6 +64,7 @@ return [
         'ditolak' => 'Ditolak',
         'dipinjam' => 'Dipinjam',
         'terlambat' => 'Terlambat',
+        'menunggu_inspeksi' => 'Menunggu Inspeksi',
         'dikembalikan' => 'Dikembalikan',
         'dibatalkan' => 'Dibatalkan',
     ],

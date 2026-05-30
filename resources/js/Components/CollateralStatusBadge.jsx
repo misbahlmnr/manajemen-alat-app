@@ -1,45 +1,25 @@
 import { cn } from "@/lib/utils";
 
 const config = {
-    diminta: {
-        label: "Menunggu Persetujuan",
+    dititipkan: {
+        label: "Dititipkan",
         dot: "bg-blue-500",
         className: "border-blue-500/20 bg-blue-500/10 text-blue-700",
     },
-    antrian: {
-        label: "Antrian",
-        dot: "bg-amber-500",
-        className: "border-amber-500/20 bg-amber-500/10 text-amber-800",
-    },
-    disetujui: {
-        label: "Disetujui",
-        dot: "bg-emerald-500",
-        className: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700",
-    },
-    ditolak: {
-        label: "Ditolak",
-        dot: "bg-red-500",
-        className: "border-red-500/20 bg-red-500/10 text-red-700",
-    },
-    dipinjam: {
-        label: "Dipinjam",
+    ditahan: {
+        label: "Digunakan Sebagai Jaminan",
         dot: "bg-violet-500",
         className: "border-violet-500/20 bg-violet-500/10 text-violet-700",
     },
-    terlambat: {
-        label: "Terlambat",
-        dot: "bg-red-600",
-        className: "border-red-600/20 bg-red-600/10 text-red-800",
-    },
-    menunggu_inspeksi: {
-        label: "Menunggu Inspeksi",
+    menunggu_kompensasi: {
+        label: "Menunggu Kompensasi",
         dot: "bg-amber-500",
         className: "border-amber-500/20 bg-amber-500/10 text-amber-800",
     },
     dikembalikan: {
-        label: "Dikembalikan",
-        dot: "bg-slate-400",
-        className: "border-slate-400/20 bg-slate-500/10 text-slate-600",
+        label: "Sudah Diambil",
+        dot: "bg-emerald-500",
+        className: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700",
     },
     dibatalkan: {
         label: "Dibatalkan",
@@ -48,7 +28,7 @@ const config = {
     },
 };
 
-export default function LoanStatusBadge({ status }) {
+export default function CollateralStatusBadge({ status }) {
     const item = config[status] ?? {
         label: status,
         dot: "bg-muted-foreground",

@@ -43,7 +43,10 @@ class StoreLoanRequest extends FormRequest
             'due_at' => [$isAlat ? 'required' : 'nullable', 'date', 'after_or_equal:request_date'],
             'purpose' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string', 'max:2000'],
-            'borrow_scope' => ['nullable', Rule::in(['lab', 'bawa_pulang'])],
+            'borrow_scope' => [
+                $isAlat ? 'required' : 'nullable',
+                Rule::in(['lab', 'bawa_pulang']),
+            ],
             'items' => ['required', 'array', 'min:1'],
             'items.*.equipment_id' => ['required', 'integer', 'exists:equipment,id'],
             'items.*.quantity' => ['required', 'integer', 'min:1'],

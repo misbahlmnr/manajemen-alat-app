@@ -116,6 +116,29 @@ export default function LoanForm({
 
                     {isAlat && (
                         <>
+                            <div className="space-y-2 sm:col-span-2">
+                                <Label>Lokasi Penggunaan *</Label>
+                                <Select
+                                    value={data.borrow_scope ?? "lab"}
+                                    onChange={(e) =>
+                                        setData("borrow_scope", e.target.value)
+                                    }
+                                    disabled={processing}
+                                >
+                                    <option value="lab">Pakai di Lab</option>
+                                    <option value="bawa_pulang">
+                                        Bawa Pulang (wajib jaminan kartu)
+                                    </option>
+                                </Select>
+                                {data.borrow_scope === "bawa_pulang" && (
+                                    <p className="text-xs text-amber-700">
+                                        Kartu pelajar wajib ditahan sebagai
+                                        jaminan hingga alat dikembalikan lengkap.
+                                    </p>
+                                )}
+                                <InputError message={errors.borrow_scope} />
+                            </div>
+
                             <div className="space-y-2">
                                 <Label>Jadwal Praktikum</Label>
                                 <Select

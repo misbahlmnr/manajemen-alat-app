@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Loan extends Model
 {
@@ -58,6 +59,26 @@ class Loan extends Model
     public function statusLogs(): HasMany
     {
         return $this->hasMany(LoanStatusLog::class)->orderBy('created_at');
+    }
+
+    public function collateral(): HasOne
+    {
+        return $this->hasOne(LoanCollateral::class);
+    }
+
+    public function inspection(): HasOne
+    {
+        return $this->hasOne(LoanReturnInspection::class);
+    }
+
+    public function compensation(): HasOne
+    {
+        return $this->hasOne(LoanCompensation::class);
+    }
+
+    public function requiresCollateral(): bool
+    {
+        return $this->isAlat() && $this->borrow_scope === 'bawa_pulang';
     }
 
     public static function generateCode(): string

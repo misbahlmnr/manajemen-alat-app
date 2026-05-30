@@ -21,6 +21,7 @@ export default function Create({
         supervisor_id: "",
         practicum_schedule_id: "",
         item_type: "alat",
+        borrow_scope: "lab",
         request_date: today,
         due_at: dueDefault,
         purpose: "",
