@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\EquipmentController;
+use App\Http\Controllers\Admin\PracticumScheduleController;
 use App\Http\Controllers\Admin\SupplyController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Guru\DashboardController as GuruDashboardController;
@@ -35,6 +36,7 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
         ->name('users.reset-password');
     Route::resource('equipment', EquipmentController::class);
     Route::resource('supplies', SupplyController::class);
+    Route::resource('schedules', PracticumScheduleController::class);
 });
 
 Route::middleware('auth')->group(function () {

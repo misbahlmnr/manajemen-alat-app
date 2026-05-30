@@ -40,4 +40,16 @@ return [
         'XII TAV 1',
         'XII TAV 2',
     ],
+
+    'jurusan_default' => 'Audio Video',
+
+    'practicum_subjects' => [
+        'Produksi Video',
+        'Produksi Audio',
+        'Penyiaran',
+        'Fotografi',
+        'Editing Video',
+        'Dasar AV',
+        'Elektronika Dasar',
+    ],
 ];

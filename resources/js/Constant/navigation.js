@@ -41,8 +41,7 @@ const adminMenuItems = [
     {
         icon: CalendarDays,
         label: "Jadwal Praktikum",
-        routeName: null,
-        href: "#",
+        routeName: "admin.schedules.index",
     },
     {
         icon: ClipboardList,

@@ -30,7 +30,7 @@ export default function Show({ supply }) {
         <AppLayout>
             <Head title={supply.name} />
 
-            <div className="animate-fade-in mx-auto max-w-5xl">
+            <div className="animate-fade-in">
                 <PageHeader title="Detail Bahan" subtitle={supply.code}>
                     <Button variant="outline" asChild>
                         <Link href={route("admin.supplies.edit", supply.id)}>
