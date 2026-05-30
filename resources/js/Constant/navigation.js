@@ -46,8 +46,7 @@ const adminMenuItems = [
     {
         icon: ClipboardList,
         label: "Peminjaman",
-        routeName: null,
-        href: "#",
+        routeName: "admin.loans.index",
     },
     {
         icon: CreditCard,

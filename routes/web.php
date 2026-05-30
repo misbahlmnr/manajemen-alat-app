@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\EquipmentController;
+use App\Http\Controllers\Admin\LoanController;
 use App\Http\Controllers\Admin\PracticumScheduleController;
 use App\Http\Controllers\Admin\SupplyController;
 use App\Http\Controllers\Admin\UserController;
@@ -37,6 +38,11 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
     Route::resource('equipment', EquipmentController::class);
     Route::resource('supplies', SupplyController::class);
     Route::resource('schedules', PracticumScheduleController::class);
+    Route::resource('loans', LoanController::class);
+    Route::post('loans/{loan}/approve', [LoanController::class, 'approve'])->name('loans.approve');
+    Route::post('loans/{loan}/reject', [LoanController::class, 'reject'])->name('loans.reject');
+    Route::post('loans/{loan}/mark-borrowed', [LoanController::class, 'markBorrowed'])->name('loans.mark-borrowed');
+    Route::post('loans/{loan}/return', [LoanController::class, 'processReturn'])->name('loans.return');
 });
 
 Route::middleware('auth')->group(function () {

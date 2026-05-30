@@ -1,4 +1,4 @@
-import { StatusBadge } from '@/Components/ui/StatusBadge';
+import LoanStatusBadge from '@/Components/LoanStatusBadge';
 
 export function RecentLoansTable({ loans = [], showActions = false, onApprove, onReject }) {
   const formatDate = (dateString) => {
@@ -65,7 +65,7 @@ export function RecentLoansTable({ loans = [], showActions = false, onApprove, o
                   {formatDate(loan.dueDate)}
                 </td>
                 <td className="px-4 py-4">
-                  <StatusBadge status={loan.status} />
+                  <LoanStatusBadge status={loan.status} />
                 </td>
                 {showActions && loan.status === 'diminta' && (
                   <td className="px-4 py-4">

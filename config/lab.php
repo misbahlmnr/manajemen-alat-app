@@ -43,6 +43,17 @@ return [
 
     'jurusan_default' => 'Audio Video',
 
+    'loan_statuses' => [
+        'diminta' => 'Menunggu Persetujuan',
+        'antrian' => 'Antrian',
+        'disetujui' => 'Disetujui',
+        'ditolak' => 'Ditolak',
+        'dipinjam' => 'Dipinjam',
+        'terlambat' => 'Terlambat',
+        'dikembalikan' => 'Dikembalikan',
+        'dibatalkan' => 'Dibatalkan',
+    ],
+
     'practicum_subjects' => [
         'Produksi Video',
         'Produksi Audio',
