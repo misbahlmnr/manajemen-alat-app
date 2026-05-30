@@ -36,9 +36,7 @@ const adminMenuItems = [
     {
         icon: Package,
         label: "Kelola Bahan",
-        routeName: null,
-        href: "#",
-        query: { tab: "bahan" },
+        routeName: "admin.supplies.index",
     },
     {
         icon: CalendarDays,

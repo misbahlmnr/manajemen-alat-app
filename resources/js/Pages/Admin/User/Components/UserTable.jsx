@@ -1,16 +1,7 @@
-import { Link } from "@inertiajs/react";
 import AvatarInitials from "@/Components/AvatarInitials";
+import StatusBadge from "@/Components/StatusBadge";
+import TableRowActions from "@/Components/TableRowActions";
 import RoleBadge from "./RoleBadge";
-import UserStatusBadge from "./UserStatusBadge";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/Components/ui/dropdown-menu";
-import { Button } from "@/Components/ui/button";
-import { Eye, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 
 export default function UserTable({ users, onDelete }) {
     if (!users?.length) return null;
@@ -68,58 +59,23 @@ export default function UserTable({ users, onDelete }) {
                                     <RoleBadge role={user.role} />
                                 </td>
                                 <td className="px-4 py-3">
-                                    <UserStatusBadge status={user.status} />
+                                    <StatusBadge status={user.status} />
                                 </td>
                                 <td className="px-4 py-3 text-muted-foreground">
                                     {user.created_at_formatted}
                                 </td>
                                 <td className="px-4 py-3 text-right">
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-8 w-8"
-                                            >
-                                                <MoreHorizontal className="h-4 w-4" />
-                                                <span className="sr-only">Menu aksi</span>
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end" className="w-44">
-                                            <DropdownMenuItem asChild>
-                                                <Link
-                                                    href={route(
-                                                        "admin.users.show",
-                                                        user.id,
-                                                    )}
-                                                    className="cursor-pointer"
-                                                >
-                                                    <Eye className="mr-2 h-4 w-4" />
-                                                    Detail
-                                                </Link>
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem asChild>
-                                                <Link
-                                                    href={route(
-                                                        "admin.users.edit",
-                                                        user.id,
-                                                    )}
-                                                    className="cursor-pointer"
-                                                >
-                                                    <Pencil className="mr-2 h-4 w-4" />
-                                                    Edit
-                                                </Link>
-                                            </DropdownMenuItem>
-                                            <DropdownMenuSeparator />
-                                            <DropdownMenuItem
-                                                className="cursor-pointer text-destructive focus:text-destructive"
-                                                onClick={() => onDelete(user)}
-                                            >
-                                                <Trash2 className="mr-2 h-4 w-4" />
-                                                Hapus
-                                            </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
+                                    <TableRowActions
+                                        showHref={route(
+                                            "admin.users.show",
+                                            user.id,
+                                        )}
+                                        editHref={route(
+                                            "admin.users.edit",
+                                            user.id,
+                                        )}
+                                        onDelete={() => onDelete(user)}
+                                    />
                                 </td>
                             </tr>
                         ))}

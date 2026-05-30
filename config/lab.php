@@ -14,6 +14,24 @@ return [
         'Kabel',
     ],
 
+    'supply_categories' => [
+        'Komponen Elektro',
+        'Konsumabel',
+        'Kabel & Konektor',
+        'Solder & Flux',
+        'PCB & Prototyping',
+        'Bahan AV',
+    ],
+
+    'supply_units' => [
+        'pcs',
+        'pack',
+        'roll',
+        'meter',
+        'set',
+        'botol',
+    ],
+
     'class_options' => [
         'X TAV 1',
         'X TAV 2',

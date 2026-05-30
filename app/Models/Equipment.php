@@ -44,6 +44,24 @@ class Equipment extends Model
         return $query->where('item_type', 'alat');
     }
 
+    public function scopeBahan($query)
+    {
+        return $query->where('item_type', 'bahan');
+    }
+
+    public function getIsLowStockAttribute(): bool
+    {
+        if ($this->item_type !== 'bahan' || $this->status !== 'active') {
+            return false;
+        }
+
+        if ($this->min_stock === null) {
+            return false;
+        }
+
+        return $this->available <= $this->min_stock;
+    }
+
     public function getAvailabilityLabelAttribute(): string
     {
         if ($this->status === 'inactive') {
