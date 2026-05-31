@@ -49,6 +49,50 @@ class Equipment extends Model
         return $query->where('item_type', 'bahan');
     }
 
+    public function getStockLabelAttribute(): string
+    {
+        if ($this->item_type !== 'bahan') {
+            return '';
+        }
+
+        if ($this->status === 'inactive') {
+            return 'nonaktif';
+        }
+
+        if ($this->available <= 0) {
+            return 'habis';
+        }
+
+        if ($this->is_low_stock) {
+            return 'menipis';
+        }
+
+        return 'tersedia';
+    }
+
+    public function scopeStockStatus($query, string $value): void
+    {
+        if ($value === '' || $value === 'all') {
+            return;
+        }
+
+        match ($value) {
+            'nonaktif' => $query->where('status', 'inactive'),
+            'habis' => $query->where('status', 'active')->where('available', '<=', 0),
+            'menipis' => $query->where('status', 'active')
+                ->where('available', '>', 0)
+                ->whereNotNull('min_stock')
+                ->whereColumn('available', '<=', 'min_stock'),
+            'tersedia' => $query->where('status', 'active')
+                ->where('available', '>', 0)
+                ->where(function ($q) {
+                    $q->whereNull('min_stock')
+                        ->orWhereColumn('available', '>', 'min_stock');
+                }),
+            default => null,
+        };
+    }
+
     public function scopeAvailability($query, string $value): void
     {
         if ($value === '' || $value === 'all') {

@@ -11,6 +11,7 @@ use App\Http\Controllers\Guru\DashboardController as GuruDashboardController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Siswa\DashboardController as SiswaDashboardController;
 use App\Http\Controllers\Siswa\EquipmentController as SiswaEquipmentController;
+use App\Http\Controllers\Siswa\SupplyController as SiswaSupplyController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -55,6 +56,8 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
 Route::middleware(['auth', 'verified', 'role:siswa'])->prefix('siswa')->name('siswa.')->group(function () {
     Route::get('equipment', [SiswaEquipmentController::class, 'index'])->name('equipment.index');
     Route::get('equipment/{equipment}', [SiswaEquipmentController::class, 'show'])->name('equipment.show');
+    Route::get('supplies', [SiswaSupplyController::class, 'index'])->name('supplies.index');
+    Route::get('supplies/{supply}', [SiswaSupplyController::class, 'show'])->name('supplies.show');
 });
 
 Route::middleware('auth')->group(function () {

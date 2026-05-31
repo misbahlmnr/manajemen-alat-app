@@ -68,7 +68,7 @@ export default function SiswaDashboard({
                     accent="primary"
                 />
                 <QuickActionCard
-                    href="#"
+                    href={route("siswa.supplies.index")}
                     icon={Package}
                     title="Ambil Bahan"
                     description="Komponen elektro, kabel, timah, dan bahan habis pakai."

@@ -119,9 +119,7 @@ const siswaMenuItems = [
     {
         icon: Package,
         label: "Bahan Lab",
-        routeName: null,
-        href: "#",
-        query: { tab: "bahan" },
+        routeName: "siswa.supplies.index",
     },
     {
         icon: FileText,
