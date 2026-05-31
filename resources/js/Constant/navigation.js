@@ -114,9 +114,7 @@ const siswaMenuItems = [
     {
         icon: Wrench,
         label: "Alat Lab",
-        routeName: null,
-        href: "#",
-        query: { tab: "alat" },
+        routeName: "siswa.equipment.index",
     },
     {
         icon: Package,

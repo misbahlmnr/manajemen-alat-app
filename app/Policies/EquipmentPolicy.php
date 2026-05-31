@@ -9,12 +9,16 @@ class EquipmentPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->isAdmin();
+        return $user->isAdmin() || $user->isSiswa();
     }
 
     public function view(User $user, Equipment $equipment): bool
     {
-        return $user->isAdmin();
+        if ($user->isAdmin()) {
+            return true;
+        }
+
+        return $user->isSiswa() && $equipment->item_type === 'alat';
     }
 
     public function create(User $user): bool

@@ -49,6 +49,27 @@ class Equipment extends Model
         return $query->where('item_type', 'bahan');
     }
 
+    public function scopeAvailability($query, string $value): void
+    {
+        if ($value === '' || $value === 'all') {
+            return;
+        }
+
+        match ($value) {
+            'nonaktif' => $query->where('status', 'inactive'),
+            'habis' => $query->where('status', 'active')->where('available', '<=', 0),
+            'rusak' => $query->where('status', 'active')->where('condition', 'rusak_berat'),
+            'dipinjam' => $query->where('status', 'active')
+                ->where('available', '>', 0)
+                ->whereColumn('available', '<', 'stock'),
+            'tersedia' => $query->where('status', 'active')
+                ->where('available', '>', 0)
+                ->where('condition', '!=', 'rusak_berat')
+                ->whereColumn('available', '=', 'stock'),
+            default => null,
+        };
+    }
+
     public function getIsLowStockAttribute(): bool
     {
         if ($this->item_type !== 'bahan' || $this->status !== 'active') {

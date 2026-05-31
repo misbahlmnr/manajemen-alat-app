@@ -104,7 +104,7 @@ export default function SiswaDashboard({
                         Peralatan Tersedia
                     </h2>
                     <Link
-                        href="#"
+                        href={route("siswa.equipment.index")}
                         className="flex items-center gap-1 text-sm text-primary hover:underline"
                     >
                         Lihat semua
