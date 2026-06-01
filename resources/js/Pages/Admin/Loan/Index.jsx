@@ -1,7 +1,7 @@
 import AppLayout from "@/Layouts/AppLayout";
 import PageHeader from "@/Components/PageHeader";
 import EmptyState from "@/Components/EmptyState";
-import DataPagination from "@/Components/DataPagination";
+import { paginatorTotal } from "@/lib/paginator";
 import { Button } from "@/Components/ui/button";
 import { Input } from "@/Components/ui/input";
 import { Select } from "@/Components/ui/select";
@@ -109,6 +109,7 @@ export default function Index({
     };
 
     const list = loans.data ?? [];
+    const total = paginatorTotal(loans);
 
     return (
         <AppLayout>
@@ -117,7 +118,7 @@ export default function Index({
             <div className="animate-fade-in">
                 <PageHeader
                     title="Peminjaman"
-                    subtitle={`${loans.meta?.total ?? 0} pengajuan terdaftar`}
+                    subtitle={`${total} pengajuan terdaftar`}
                 >
                     <Button asChild>
                         <Link href={route("admin.loans.create")}>
@@ -219,19 +220,14 @@ export default function Index({
                     </div>
                 </div>
 
-                {list.length > 0 ? (
-                    <>
-                        <LoanTable
-                            items={list}
-                            onDelete={setDeleteTarget}
-                            onReject={setRejectTarget}
-                            onReturn={setReturnTarget}
-                        />
-                        <DataPagination
-                            links={loans.links}
-                            meta={loans.meta}
-                        />
-                    </>
+                {total > 0 ? (
+                    <LoanTable
+                        items={list}
+                        pagination={loans}
+                        onDelete={setDeleteTarget}
+                        onReject={setRejectTarget}
+                        onReturn={setReturnTarget}
+                    />
                 ) : (
                     <EmptyState
                         icon={ClipboardList}

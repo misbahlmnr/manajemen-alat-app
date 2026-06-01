@@ -1,7 +1,7 @@
 import AppLayout from "@/Layouts/AppLayout";
 import PageHeader from "@/Components/PageHeader";
 import EmptyState from "@/Components/EmptyState";
-import DataPagination from "@/Components/DataPagination";
+import { paginatorTotal } from "@/lib/paginator";
 import { Button } from "@/Components/ui/button";
 import { Input } from "@/Components/ui/input";
 import { Select } from "@/Components/ui/select";
@@ -52,6 +52,7 @@ export default function Index({ supplies, filters, categories }) {
     };
 
     const list = supplies.data ?? [];
+    const total = paginatorTotal(supplies);
 
     return (
         <AppLayout>
@@ -60,7 +61,7 @@ export default function Index({ supplies, filters, categories }) {
             <div className="animate-fade-in">
                 <PageHeader
                     title="Kelola Bahan"
-                    subtitle={`${supplies.meta?.total ?? 0} bahan terdaftar`}
+                    subtitle={`${total} bahan terdaftar`}
                 >
                     <Button asChild>
                         <Link href={route("admin.supplies.create")}>
@@ -103,17 +104,12 @@ export default function Index({ supplies, filters, categories }) {
                     </Select>
                 </div>
 
-                {list.length > 0 ? (
-                    <>
-                        <SupplyTable
-                            items={list}
-                            onDelete={setDeleteTarget}
-                        />
-                        <DataPagination
-                            links={supplies.links}
-                            meta={supplies.meta}
-                        />
-                    </>
+                {total > 0 ? (
+                    <SupplyTable
+                        items={list}
+                        pagination={supplies}
+                        onDelete={setDeleteTarget}
+                    />
                 ) : (
                     <EmptyState
                         icon={Package}

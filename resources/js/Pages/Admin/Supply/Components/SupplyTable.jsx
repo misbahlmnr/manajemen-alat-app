@@ -3,7 +3,7 @@ import StatusBadge from "@/Components/StatusBadge";
 import TableRowActions from "@/Components/TableRowActions";
 import { cn } from "@/lib/utils";
 
-export default function SupplyTable({ items, onDelete }) {
+export default function SupplyTable({ items, pagination, onDelete }) {
     const columns = [
         {
             accessorKey: "code",
@@ -72,10 +72,10 @@ export default function SupplyTable({ items, onDelete }) {
         <DataTable
             data={items ?? []}
             columns={columns}
+            pagination={pagination}
             tableClassName="min-w-[800px]"
             getRowId={(row) => String(row.id)}
             emptyState="Tidak ada bahan ditemukan"
-            pageSize={10}
             initialSorting={[{ id: "name", desc: false }]}
         />
     );

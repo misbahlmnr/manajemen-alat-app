@@ -3,7 +3,7 @@ import SchedulePriorityBadge from "@/Components/SchedulePriorityBadge";
 import ScheduleStatusBadge from "@/Components/ScheduleStatusBadge";
 import TableRowActions from "@/Components/TableRowActions";
 
-export default function ScheduleTable({ items, onDelete }) {
+export default function ScheduleTable({ items, pagination, onDelete }) {
     const columns = [
         {
             accessorKey: "code",
@@ -84,10 +84,10 @@ export default function ScheduleTable({ items, onDelete }) {
         <DataTable
             data={items ?? []}
             columns={columns}
+            pagination={pagination}
             tableClassName="min-w-[960px]"
             getRowId={(row) => String(row.id)}
             emptyState="Tidak ada jadwal ditemukan"
-            pageSize={10}
             initialSorting={[{ id: "tanggal_formatted", desc: true }]}
         />
     );

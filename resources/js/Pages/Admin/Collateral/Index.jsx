@@ -1,7 +1,7 @@
 import AppLayout from "@/Layouts/AppLayout";
 import PageHeader from "@/Components/PageHeader";
 import EmptyState from "@/Components/EmptyState";
-import DataPagination from "@/Components/DataPagination";
+import { paginatorTotal } from "@/lib/paginator";
 import { Button } from "@/Components/ui/button";
 import { Input } from "@/Components/ui/input";
 import { Select } from "@/Components/ui/select";
@@ -80,6 +80,7 @@ export default function Index({
     };
 
     const list = collaterals.data ?? [];
+    const total = paginatorTotal(collaterals);
 
     return (
         <AppLayout>
@@ -88,7 +89,7 @@ export default function Index({
             <div className="animate-fade-in">
                 <PageHeader
                     title="Jaminan Kartu"
-                    subtitle={`${collaterals.meta?.total ?? 0} jaminan terdaftar`}
+                    subtitle={`${total} jaminan terdaftar`}
                 >
                     <Button asChild>
                         <Link href={route("admin.collaterals.create")}>
@@ -163,18 +164,13 @@ export default function Index({
                     />
                 </div>
 
-                {list.length > 0 ? (
-                    <>
-                        <CollateralTable
-                            items={list}
-                            onDelete={setDeleteTarget}
-                            onInspect={setInspectTarget}
-                        />
-                        <DataPagination
-                            links={collaterals.links}
-                            meta={collaterals.meta}
-                        />
-                    </>
+                {total > 0 ? (
+                    <CollateralTable
+                        items={list}
+                        pagination={collaterals}
+                        onDelete={setDeleteTarget}
+                        onInspect={setInspectTarget}
+                    />
                 ) : (
                     <EmptyState
                         icon={CreditCard}

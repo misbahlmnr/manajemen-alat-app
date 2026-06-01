@@ -1,23 +1,14 @@
 import DataPagination from "@/Components/DataPagination";
+import { normalizePaginator } from "@/lib/paginator";
 import { cn } from "@/lib/utils";
-import {
-    Pagination,
-    PaginationContent,
-    PaginationEllipsis,
-    PaginationItem,
-    PaginationLink,
-    PaginationNext,
-    PaginationPrevious,
-} from "@/Components/ui/pagination";
 import {
     flexRender,
     getCoreRowModel,
-    getPaginationRowModel,
     getSortedRowModel,
     useReactTable,
 } from "@tanstack/react-table";
 import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
-import { Fragment, useState } from "react";
+import { useState } from "react";
 
 function SortIcon({ column }) {
     const direction = column.getIsSorted();
@@ -34,71 +25,27 @@ export default function DataTable({
     tableClassName,
     containerClassName,
     initialSorting = [],
-    pageSize = 10,
+    pagination: rawPagination,
     enablePagination = true,
-    pagination: serverPagination,
 }) {
-    const isServerPagination = Boolean(serverPagination?.meta);
+    const pagination = normalizePaginator(rawPagination);
     const [sorting, setSorting] = useState(initialSorting);
-    const [clientPagination, setClientPagination] = useState({
-        pageIndex: 0,
-        pageSize,
-    });
 
     const table = useReactTable({
         data,
         columns,
         getRowId,
-        state: {
-            sorting,
-            ...(isServerPagination
-                ? {}
-                : { pagination: clientPagination }),
-        },
+        state: { sorting },
         onSortingChange: setSorting,
-        onPaginationChange: isServerPagination ? undefined : setClientPagination,
         getCoreRowModel: getCoreRowModel(),
         getSortedRowModel: getSortedRowModel(),
-        ...(isServerPagination
-            ? {
-                  manualPagination: true,
-                  pageCount: serverPagination.meta?.last_page ?? 0,
-              }
-            : { getPaginationRowModel: getPaginationRowModel() }),
+        manualPagination: true,
+        pageCount: pagination?.meta?.last_page ?? 0,
     });
 
-    const rows = isServerPagination
-        ? table.getRowModel().rows
-        : enablePagination
-          ? table.getPaginationRowModel().rows
-          : table.getRowModel().rows;
+    const rows = table.getRowModel().rows;
 
-    const pageCount = table.getPageCount();
-    const currentPage = table.getState().pagination.pageIndex + 1;
-    const totalRows = table.getRowModel().rows.length;
-    const from =
-        totalRows === 0
-            ? 0
-            : clientPagination.pageIndex * clientPagination.pageSize + 1;
-    const to = Math.min(
-        (clientPagination.pageIndex + 1) * clientPagination.pageSize,
-        totalRows,
-    );
-
-    const visiblePages = () => {
-        const maxVisible = 5;
-        if (pageCount <= maxVisible) {
-            return Array.from({ length: pageCount }, (_, i) => i + 1);
-        }
-        if (currentPage <= 3) return [1, 2, 3, 4, pageCount];
-        if (currentPage >= pageCount - 2) {
-            return [1, pageCount - 3, pageCount - 2, pageCount - 1, pageCount];
-        }
-        return [1, currentPage - 1, currentPage, currentPage + 1, pageCount];
-    };
-
-    const showClientPaginationFooter =
-        enablePagination && !isServerPagination && pageCount > 1;
+    console.log({ enablePagination, pagination });
 
     return (
         <div className="space-y-3">
@@ -204,81 +151,11 @@ export default function DataTable({
                 </div>
             </div>
 
-            {enablePagination && isServerPagination && (
+            {enablePagination && pagination && (
                 <DataPagination
-                    links={serverPagination.links}
-                    meta={serverPagination.meta}
+                    links={pagination.links}
+                    meta={pagination.meta}
                 />
-            )}
-
-            {showClientPaginationFooter && (
-                <div className="flex flex-col items-center justify-between gap-3 px-2 py-2 sm:flex-row">
-                    <p className="text-sm text-muted-foreground">
-                        Menampilkan {from}–{to} dari {totalRows} data
-                    </p>
-                    <Pagination className="mx-0 w-auto justify-end">
-                        <PaginationContent>
-                            <PaginationItem>
-                                <PaginationPrevious
-                                    href="#"
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        if (table.getCanPreviousPage()) {
-                                            table.previousPage();
-                                        }
-                                    }}
-                                    className={cn(
-                                        !table.getCanPreviousPage() &&
-                                            "pointer-events-none opacity-50",
-                                    )}
-                                />
-                            </PaginationItem>
-                            {visiblePages().map((page, index, arr) => {
-                                const prev = arr[index - 1];
-                                const showEllipsis = prev && page - prev > 1;
-
-                                return (
-                                    <Fragment key={page}>
-                                        {showEllipsis && (
-                                            <PaginationItem>
-                                                <PaginationEllipsis />
-                                            </PaginationItem>
-                                        )}
-                                        <PaginationItem>
-                                            <PaginationLink
-                                                href="#"
-                                                isActive={page === currentPage}
-                                                onClick={(e) => {
-                                                    e.preventDefault();
-                                                    table.setPageIndex(
-                                                        page - 1,
-                                                    );
-                                                }}
-                                            >
-                                                {page}
-                                            </PaginationLink>
-                                        </PaginationItem>
-                                    </Fragment>
-                                );
-                            })}
-                            <PaginationItem>
-                                <PaginationNext
-                                    href="#"
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        if (table.getCanNextPage()) {
-                                            table.nextPage();
-                                        }
-                                    }}
-                                    className={cn(
-                                        !table.getCanNextPage() &&
-                                            "pointer-events-none opacity-50",
-                                    )}
-                                />
-                            </PaginationItem>
-                        </PaginationContent>
-                    </Pagination>
-                </div>
             )}
         </div>
     );

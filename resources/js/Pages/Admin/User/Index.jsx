@@ -1,7 +1,7 @@
 import AppLayout from "@/Layouts/AppLayout";
 import PageHeader from "@/Components/PageHeader";
 import EmptyState from "@/Components/EmptyState";
-import DataPagination from "@/Components/DataPagination";
+import { paginatorTotal } from "@/lib/paginator";
 import { Button } from "@/Components/ui/button";
 import { Input } from "@/Components/ui/input";
 import { Head, Link, router, useForm } from "@inertiajs/react";
@@ -51,6 +51,7 @@ export default function Index({ users, filters, roleCounts }) {
     };
 
     const list = users.data ?? [];
+    const total = paginatorTotal(users);
 
     return (
         <AppLayout>
@@ -59,7 +60,7 @@ export default function Index({ users, filters, roleCounts }) {
             <div className="animate-fade-in mx-auto">
                 <PageHeader
                     title="Kelola Pengguna"
-                    subtitle={`${users.meta?.total ?? 0} pengguna terdaftar`}
+                    subtitle={`${total} pengguna terdaftar`}
                 >
                     <Button asChild>
                         <Link href={route("admin.users.create")}>
@@ -85,11 +86,12 @@ export default function Index({ users, filters, roleCounts }) {
                     />
                 </div>
 
-                {list.length > 0 ? (
-                    <>
-                        <UserTable users={list} onDelete={setDeleteTarget} />
-                        <DataPagination links={users.links} meta={users.meta} />
-                    </>
+                {total > 0 ? (
+                    <UserTable
+                        users={list}
+                        pagination={users}
+                        onDelete={setDeleteTarget}
+                    />
                 ) : (
                     <EmptyState
                         icon={Users}

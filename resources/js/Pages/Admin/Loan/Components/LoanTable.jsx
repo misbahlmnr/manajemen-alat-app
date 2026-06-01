@@ -2,7 +2,13 @@ import DataTable from "@/Components/DataTable";
 import LoanStatusBadge from "@/Components/LoanStatusBadge";
 import LoanTableActions from "./LoanTableActions";
 
-export default function LoanTable({ items, onDelete, onReject, onReturn }) {
+export default function LoanTable({
+    items,
+    pagination,
+    onDelete,
+    onReject,
+    onReturn,
+}) {
     const columns = [
         {
             accessorKey: "code",
@@ -97,10 +103,10 @@ export default function LoanTable({ items, onDelete, onReject, onReturn }) {
         <DataTable
             data={items ?? []}
             columns={columns}
+            pagination={pagination}
             tableClassName="min-w-[1000px]"
             getRowId={(row) => String(row.id)}
             emptyState="Tidak ada peminjaman ditemukan"
-            pageSize={10}
             initialSorting={[{ id: "created_at_formatted", desc: true }]}
         />
     );

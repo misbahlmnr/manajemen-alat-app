@@ -1,7 +1,7 @@
 import AppLayout from "@/Layouts/AppLayout";
 import PageHeader from "@/Components/PageHeader";
 import EmptyState from "@/Components/EmptyState";
-import DataPagination from "@/Components/DataPagination";
+import { paginatorTotal } from "@/lib/paginator";
 import { Button } from "@/Components/ui/button";
 import { Input } from "@/Components/ui/input";
 import { Select } from "@/Components/ui/select";
@@ -72,6 +72,7 @@ export default function Index({
     };
 
     const list = schedules.data ?? [];
+    const total = paginatorTotal(schedules);
 
     return (
         <AppLayout>
@@ -80,7 +81,7 @@ export default function Index({
             <div className="animate-fade-in">
                 <PageHeader
                     title="Jadwal Praktikum"
-                    subtitle={`${schedules.meta?.total ?? 0} jadwal terdaftar`}
+                    subtitle={`${total} jadwal terdaftar`}
                 >
                     <Button asChild>
                         <Link href={route("admin.schedules.create")}>
@@ -170,17 +171,12 @@ export default function Index({
                     />
                 </div>
 
-                {list.length > 0 ? (
-                    <>
-                        <ScheduleTable
-                            items={list}
-                            onDelete={setDeleteTarget}
-                        />
-                        <DataPagination
-                            links={schedules.links}
-                            meta={schedules.meta}
-                        />
-                    </>
+                {total > 0 ? (
+                    <ScheduleTable
+                        items={list}
+                        pagination={schedules}
+                        onDelete={setDeleteTarget}
+                    />
                 ) : (
                     <EmptyState
                         icon={CalendarDays}

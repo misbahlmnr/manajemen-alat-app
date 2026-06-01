@@ -2,7 +2,12 @@ import DataTable from "@/Components/DataTable";
 import CollateralStatusBadge from "@/Components/CollateralStatusBadge";
 import CollateralTableActions from "./CollateralTableActions";
 
-export default function CollateralTable({ items, onDelete, onInspect }) {
+export default function CollateralTable({
+    items,
+    pagination,
+    onDelete,
+    onInspect,
+}) {
     const columns = [
         {
             accessorKey: "code",
@@ -83,10 +88,10 @@ export default function CollateralTable({ items, onDelete, onInspect }) {
         <DataTable
             data={items ?? []}
             columns={columns}
+            pagination={pagination}
             tableClassName="min-w-[1050px]"
             getRowId={(row) => String(row.id)}
             emptyState="Tidak ada jaminan kartu ditemukan"
-            pageSize={10}
             initialSorting={[{ id: "created_at_formatted", desc: true }]}
         />
     );

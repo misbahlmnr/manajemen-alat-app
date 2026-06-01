@@ -1,10 +1,12 @@
 import { Link } from "@inertiajs/react";
 import { Button } from "@/Components/ui/button";
+import { normalizePaginator } from "@/lib/paginator";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function DataPagination({
-    links,
-    meta,
+    links: linksProp,
+    meta: metaProp,
+    paginator,
     currentPage,
     lastPage,
     from,
@@ -12,6 +14,10 @@ export default function DataPagination({
     total,
     onPageChange,
 }) {
+    const normalized = paginator ? normalizePaginator(paginator) : null;
+    const links = normalized?.links ?? linksProp;
+    const meta = normalized?.meta ?? metaProp;
+
     const isLocalPagination =
         typeof currentPage === "number" &&
         typeof lastPage === "number" &&
@@ -25,7 +31,7 @@ export default function DataPagination({
     const resolvedTo = isLocalPagination ? to : meta?.to;
     const resolvedTotal = isLocalPagination ? total : meta?.total;
 
-    if (!resolvedLastPage || resolvedLastPage <= 1) return null;
+    if (!resolvedLastPage) return null;
 
     const prev = links?.find(
         (l) => l.label.includes("Previous") || l.label === "&laquo; Previous",
@@ -48,7 +54,9 @@ export default function DataPagination({
                         variant="outline"
                         size="sm"
                         disabled={!hasPrev}
-                        onClick={() => hasPrev && onPageChange(resolvedCurrentPage - 1)}
+                        onClick={() =>
+                            hasPrev && onPageChange(resolvedCurrentPage - 1)
+                        }
                     >
                         <ChevronLeft className="h-4 w-4" />
                         Sebelumnya
@@ -57,7 +65,11 @@ export default function DataPagination({
                     <>
                         {prev?.url ? (
                             <Button variant="outline" size="sm" asChild>
-                                <Link href={prev.url} preserveState preserveScroll>
+                                <Link
+                                    href={prev.url}
+                                    preserveState
+                                    preserveScroll
+                                >
                                     <ChevronLeft className="h-4 w-4" />
                                     Sebelumnya
                                 </Link>
@@ -78,7 +90,9 @@ export default function DataPagination({
                         variant="outline"
                         size="sm"
                         disabled={!hasNext}
-                        onClick={() => hasNext && onPageChange(resolvedCurrentPage + 1)}
+                        onClick={() =>
+                            hasNext && onPageChange(resolvedCurrentPage + 1)
+                        }
                     >
                         Berikutnya
                         <ChevronRight className="h-4 w-4" />
@@ -87,7 +101,11 @@ export default function DataPagination({
                     <>
                         {next?.url ? (
                             <Button variant="outline" size="sm" asChild>
-                                <Link href={next.url} preserveState preserveScroll>
+                                <Link
+                                    href={next.url}
+                                    preserveState
+                                    preserveScroll
+                                >
                                     Berikutnya
                                     <ChevronRight className="h-4 w-4" />
                                 </Link>

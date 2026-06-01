@@ -7,6 +7,7 @@ import { Select } from "@/Components/ui/select";
 import { Head, Link, router, useForm } from "@inertiajs/react";
 import { Plus, Search, Wrench } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { paginatorTotal } from "@/lib/paginator";
 import EquipmentTable from "./Components/EquipmentTable";
 import DeleteEquipmentDialog from "./Components/DeleteEquipmentDialog";
 
@@ -52,6 +53,7 @@ export default function Index({ equipment, filters, categories }) {
     };
 
     const list = equipment.data ?? [];
+    const total = paginatorTotal(equipment);
 
     return (
         <AppLayout>
@@ -60,7 +62,7 @@ export default function Index({ equipment, filters, categories }) {
             <div className="animate-fade-in">
                 <PageHeader
                     title="Kelola Alat"
-                    subtitle={`${equipment.meta?.total ?? 0} alat terdaftar`}
+                    subtitle={`${total} alat terdaftar`}
                 >
                     <Button asChild>
                         <Link href={route("admin.equipment.create")}>
@@ -117,13 +119,10 @@ export default function Index({ equipment, filters, categories }) {
                     </div>
                 </div>
 
-                {(equipment.meta?.total ?? 0) > 0 ? (
+                {total > 0 ? (
                     <EquipmentTable
                         items={list}
-                        pagination={{
-                            links: equipment.links,
-                            meta: equipment.meta,
-                        }}
+                        pagination={equipment}
                         onDelete={setDeleteTarget}
                     />
                 ) : (

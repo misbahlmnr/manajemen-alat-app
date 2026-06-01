@@ -5,7 +5,7 @@ import TableRowActions from "@/Components/TableRowActions";
 import { useMemo } from "react";
 import RoleBadge from "./RoleBadge";
 
-export default function UserTable({ users, onDelete }) {
+export default function UserTable({ users, pagination, onDelete }) {
     const columns = useMemo(
         () => [
             {
@@ -77,6 +77,7 @@ export default function UserTable({ users, onDelete }) {
         <DataTable
             data={users ?? []}
             columns={columns}
+            pagination={pagination}
             getRowId={(row) => String(row.id)}
             initialSorting={[{ id: "created_at_formatted", desc: true }]}
             emptyState="Tidak ada pengguna ditemukan"
