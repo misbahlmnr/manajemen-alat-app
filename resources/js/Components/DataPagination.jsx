@@ -2,46 +2,103 @@ import { Link } from "@inertiajs/react";
 import { Button } from "@/Components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-export default function DataPagination({ links, meta }) {
-    if (!meta || meta.last_page <= 1) return null;
+export default function DataPagination({
+    links,
+    meta,
+    currentPage,
+    lastPage,
+    from,
+    to,
+    total,
+    onPageChange,
+}) {
+    const isLocalPagination =
+        typeof currentPage === "number" &&
+        typeof lastPage === "number" &&
+        typeof onPageChange === "function";
 
-    const prev = links?.find((l) => l.label.includes("Previous") || l.label === "&laquo; Previous");
-    const next = links?.find((l) => l.label.includes("Next") || l.label === "Next &raquo;");
+    const resolvedCurrentPage = isLocalPagination
+        ? currentPage
+        : meta?.current_page;
+    const resolvedLastPage = isLocalPagination ? lastPage : meta?.last_page;
+    const resolvedFrom = isLocalPagination ? from : meta?.from;
+    const resolvedTo = isLocalPagination ? to : meta?.to;
+    const resolvedTotal = isLocalPagination ? total : meta?.total;
+
+    if (!resolvedLastPage || resolvedLastPage <= 1) return null;
+
+    const prev = links?.find(
+        (l) => l.label.includes("Previous") || l.label === "&laquo; Previous",
+    );
+    const next = links?.find(
+        (l) => l.label.includes("Next") || l.label === "Next &raquo;",
+    );
+    const hasPrev = resolvedCurrentPage > 1;
+    const hasNext = resolvedCurrentPage < resolvedLastPage;
 
     return (
         <div className="flex flex-col items-center justify-between gap-3 border-t border-border px-4 py-4 sm:flex-row">
             <p className="text-sm text-muted-foreground">
-                Menampilkan {meta.from}–{meta.to} dari {meta.total} data
+                Menampilkan {resolvedFrom ?? 0}–{resolvedTo ?? 0} dari{" "}
+                {resolvedTotal ?? 0} data
             </p>
             <div className="flex items-center gap-2">
-                {prev?.url ? (
-                    <Button variant="outline" size="sm" asChild>
-                        <Link href={prev.url} preserveState preserveScroll>
-                            <ChevronLeft className="h-4 w-4" />
-                            Sebelumnya
-                        </Link>
-                    </Button>
-                ) : (
-                    <Button variant="outline" size="sm" disabled>
+                {isLocalPagination ? (
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={!hasPrev}
+                        onClick={() => hasPrev && onPageChange(resolvedCurrentPage - 1)}
+                    >
                         <ChevronLeft className="h-4 w-4" />
                         Sebelumnya
                     </Button>
+                ) : (
+                    <>
+                        {prev?.url ? (
+                            <Button variant="outline" size="sm" asChild>
+                                <Link href={prev.url} preserveState preserveScroll>
+                                    <ChevronLeft className="h-4 w-4" />
+                                    Sebelumnya
+                                </Link>
+                            </Button>
+                        ) : (
+                            <Button variant="outline" size="sm" disabled>
+                                <ChevronLeft className="h-4 w-4" />
+                                Sebelumnya
+                            </Button>
+                        )}
+                    </>
                 )}
                 <span className="px-2 text-sm text-muted-foreground">
-                    {meta.current_page} / {meta.last_page}
+                    {resolvedCurrentPage} / {resolvedLastPage}
                 </span>
-                {next?.url ? (
-                    <Button variant="outline" size="sm" asChild>
-                        <Link href={next.url} preserveState preserveScroll>
-                            Berikutnya
-                            <ChevronRight className="h-4 w-4" />
-                        </Link>
-                    </Button>
-                ) : (
-                    <Button variant="outline" size="sm" disabled>
+                {isLocalPagination ? (
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={!hasNext}
+                        onClick={() => hasNext && onPageChange(resolvedCurrentPage + 1)}
+                    >
                         Berikutnya
                         <ChevronRight className="h-4 w-4" />
                     </Button>
+                ) : (
+                    <>
+                        {next?.url ? (
+                            <Button variant="outline" size="sm" asChild>
+                                <Link href={next.url} preserveState preserveScroll>
+                                    Berikutnya
+                                    <ChevronRight className="h-4 w-4" />
+                                </Link>
+                            </Button>
+                        ) : (
+                            <Button variant="outline" size="sm" disabled>
+                                Berikutnya
+                                <ChevronRight className="h-4 w-4" />
+                            </Button>
+                        )}
+                    </>
                 )}
             </div>
         </div>

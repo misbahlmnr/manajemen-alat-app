@@ -1,7 +1,6 @@
 import AppLayout from "@/Layouts/AppLayout";
 import PageHeader from "@/Components/PageHeader";
 import EmptyState from "@/Components/EmptyState";
-import DataPagination from "@/Components/DataPagination";
 import { Button } from "@/Components/ui/button";
 import { Input } from "@/Components/ui/input";
 import { Select } from "@/Components/ui/select";
@@ -118,17 +117,15 @@ export default function Index({ equipment, filters, categories }) {
                     </div>
                 </div>
 
-                {list.length > 0 ? (
-                    <>
-                        <EquipmentTable
-                            items={list}
-                            onDelete={setDeleteTarget}
-                        />
-                        <DataPagination
-                            links={equipment.links}
-                            meta={equipment.meta}
-                        />
-                    </>
+                {(equipment.meta?.total ?? 0) > 0 ? (
+                    <EquipmentTable
+                        items={list}
+                        pagination={{
+                            links: equipment.links,
+                            meta: equipment.meta,
+                        }}
+                        onDelete={setDeleteTarget}
+                    />
                 ) : (
                     <EmptyState
                         icon={Wrench}

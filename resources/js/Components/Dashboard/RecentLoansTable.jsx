@@ -1,11 +1,30 @@
 import LoanStatusBadge from '@/Components/LoanStatusBadge';
+import DataPagination from "@/Components/DataPagination";
+import { useState } from "react";
 
-export function RecentLoansTable({ loans = [], showActions = false, onApprove, onReject }) {
+export function RecentLoansTable({
+  loans = [],
+  showActions = false,
+  onApprove,
+  onReject,
+  pageSize = 5,
+}) {
+  const [page, setPage] = useState(1);
+
   const formatDate = (dateString) => {
     if (!dateString) return '-';
     const date = new Date(dateString);
     return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
   };
+
+  const total = loans.length;
+  const lastPage = Math.max(1, Math.ceil(total / pageSize));
+  const safePage = Math.min(page, lastPage);
+  const start = (safePage - 1) * pageSize;
+  const pagedLoans = loans.slice(start, start + pageSize);
+
+  const from = total ? (safePage - 1) * pageSize + 1 : 0;
+  const to = total ? Math.min(safePage * pageSize, total) : 0;
 
   if (!loans.length) {
     return (
@@ -44,7 +63,7 @@ export function RecentLoansTable({ loans = [], showActions = false, onApprove, o
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {loans.map((loan) => (
+            {pagedLoans.map((loan) => (
               <tr key={loan.id} className="hover:bg-secondary/30 transition-colors">
                 <td className="px-4 py-4">
                   <div>
@@ -90,6 +109,14 @@ export function RecentLoansTable({ loans = [], showActions = false, onApprove, o
           </tbody>
         </table>
       </div>
+      <DataPagination
+        currentPage={safePage}
+        lastPage={lastPage}
+        from={from}
+        to={to}
+        total={total}
+        onPageChange={setPage}
+      />
     </div>
   );
 }

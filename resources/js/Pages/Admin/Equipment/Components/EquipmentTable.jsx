@@ -1,92 +1,78 @@
+import DataTable from "@/Components/DataTable";
 import StatusBadge from "@/Components/StatusBadge";
 import TableRowActions from "@/Components/TableRowActions";
 import ConditionBadge from "./ConditionBadge";
 
-export default function EquipmentTable({ items, onDelete }) {
-    if (!items?.length) return null;
+export default function EquipmentTable({ items, pagination, onDelete }) {
+    const columns = [
+        {
+            accessorKey: "code",
+            header: "Kode",
+            cell: ({ getValue }) => (
+                <span className="font-mono text-xs text-muted-foreground">
+                    {getValue()}
+                </span>
+            ),
+        },
+        {
+            id: "name",
+            header: "Nama Alat",
+            accessorFn: (row) => row.name,
+            cell: ({ row }) => (
+                <div>
+                    <p className="font-medium text-foreground">{row.original.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                        {row.original.location}
+                    </p>
+                </div>
+            ),
+        },
+        { accessorKey: "category", header: "Kategori" },
+        {
+            id: "stock",
+            header: "Stok",
+            accessorFn: (row) => row.available,
+            cell: ({ row }) => (
+                <>
+                    <span className="font-medium">{row.original.available}</span>
+                    <span className="text-muted-foreground"> / {row.original.stock}</span>
+                </>
+            ),
+        },
+        {
+            accessorKey: "condition",
+            header: "Kondisi",
+            cell: ({ getValue }) => <ConditionBadge condition={getValue()} />,
+        },
+        {
+            accessorKey: "status",
+            header: "Status",
+            cell: ({ getValue }) => <StatusBadge status={getValue()} />,
+        },
+        {
+            id: "actions",
+            header: "Aksi",
+            enableSorting: false,
+            meta: { align: "right", cellClassName: "text-right" },
+            cell: ({ row }) => (
+                <TableRowActions
+                    showHref={route("admin.equipment.show", row.original.id)}
+                    editHref={route("admin.equipment.edit", row.original.id)}
+                    onDelete={() => onDelete(row.original)}
+                />
+            ),
+        },
+    ];
 
     return (
-        <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-card">
-            <div className="overflow-x-auto">
-                <table className="w-full min-w-[720px] text-sm">
-                    <thead className="sticky top-0 z-10 border-b border-border bg-muted/50 backdrop-blur">
-                        <tr>
-                            <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                                Kode
-                            </th>
-                            <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                                Nama Alat
-                            </th>
-                            <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                                Kategori
-                            </th>
-                            <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                                Stok
-                            </th>
-                            <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                                Kondisi
-                            </th>
-                            <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                                Status
-                            </th>
-                            <th className="px-4 py-3 text-right font-medium text-muted-foreground">
-                                Aksi
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                        {items.map((item) => (
-                            <tr
-                                key={item.id}
-                                className="transition-colors hover:bg-muted/30"
-                            >
-                                <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
-                                    {item.code}
-                                </td>
-                                <td className="px-4 py-3">
-                                    <p className="font-medium text-foreground">
-                                        {item.name}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                        {item.location}
-                                    </p>
-                                </td>
-                                <td className="px-4 py-3 text-muted-foreground">
-                                    {item.category}
-                                </td>
-                                <td className="px-4 py-3">
-                                    <span className="font-medium">
-                                        {item.available}
-                                    </span>
-                                    <span className="text-muted-foreground">
-                                        {" "}
-                                        / {item.stock}
-                                    </span>
-                                </td>
-                                <td className="px-4 py-3">
-                                    <ConditionBadge condition={item.condition} />
-                                </td>
-                                <td className="px-4 py-3">
-                                    <StatusBadge status={item.status} />
-                                </td>
-                                <td className="px-4 py-3 text-right">
-                                    <TableRowActions
-                                        showHref={route(
-                                            "admin.equipment.show",
-                                            item.id,
-                                        )}
-                                        editHref={route(
-                                            "admin.equipment.edit",
-                                            item.id,
-                                        )}
-                                        onDelete={() => onDelete(item)}
-                                    />
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-        </div>
+        <DataTable
+            data={items ?? []}
+            columns={columns}
+            pagination={pagination}
+            tableClassName="min-w-[720px]"
+            getRowId={(row) => String(row.id)}
+            emptyState="Tidak ada alat ditemukan"
+            initialSorting={[{ id: "name", desc: false }]}
+        />
     );
 }

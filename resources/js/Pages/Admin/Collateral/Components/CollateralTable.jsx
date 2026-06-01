@@ -1,102 +1,93 @@
+import DataTable from "@/Components/DataTable";
 import CollateralStatusBadge from "@/Components/CollateralStatusBadge";
 import CollateralTableActions from "./CollateralTableActions";
 
 export default function CollateralTable({ items, onDelete, onInspect }) {
-    if (!items?.length) return null;
+    const columns = [
+        {
+            accessorKey: "code",
+            header: "No. Jaminan",
+            cell: ({ getValue }) => (
+                <span className="font-mono text-xs text-muted-foreground">
+                    {getValue()}
+                </span>
+            ),
+        },
+        {
+            id: "student",
+            header: "Siswa",
+            accessorFn: (row) => row.student_name,
+            cell: ({ row }) => (
+                <div>
+                    <p className="font-medium text-foreground">{row.original.student_name}</p>
+                    <p className="text-xs text-muted-foreground">{row.original.student_class}</p>
+                </div>
+            ),
+        },
+        { accessorKey: "card_type_label", header: "Jenis Kartu" },
+        {
+            id: "card_no",
+            header: "No. Kartu",
+            accessorFn: (row) => row.card_number || row.student_nisn || "—",
+            cell: ({ getValue }) => <span className="font-mono text-xs">{getValue()}</span>,
+        },
+        {
+            id: "loan",
+            header: "Peminjaman",
+            accessorFn: (row) => row.loan_code,
+            cell: ({ row }) => (
+                <div>
+                    <p className="font-mono text-xs">{row.original.loan_code}</p>
+                    <p className="line-clamp-1 text-xs text-muted-foreground">
+                        {row.original.equipment_summary}
+                    </p>
+                </div>
+            ),
+        },
+        {
+            accessorKey: "held_at_formatted",
+            header: "Dititipkan",
+            meta: { cellClassName: "whitespace-nowrap text-muted-foreground" },
+        },
+        {
+            accessorKey: "returned_at_formatted",
+            header: "Diambil Kembali",
+            meta: { cellClassName: "whitespace-nowrap text-muted-foreground" },
+        },
+        {
+            accessorKey: "status",
+            header: "Status",
+            cell: ({ getValue }) => <CollateralStatusBadge status={getValue()} />,
+        },
+        {
+            accessorKey: "created_at_formatted",
+            header: "Dibuat",
+            meta: { cellClassName: "whitespace-nowrap text-muted-foreground" },
+        },
+        {
+            id: "actions",
+            header: "Aksi",
+            enableSorting: false,
+            meta: { align: "right", cellClassName: "text-right" },
+            cell: ({ row }) => (
+                <CollateralTableActions
+                    item={row.original}
+                    onDelete={onDelete}
+                    onInspect={onInspect}
+                />
+            ),
+        },
+    ];
 
     return (
-        <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-card">
-            <div className="overflow-x-auto">
-                <table className="w-full min-w-[1050px] text-sm">
-                    <thead className="sticky top-0 z-10 border-b border-border bg-muted/50 backdrop-blur">
-                        <tr>
-                            <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                                No. Jaminan
-                            </th>
-                            <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                                Siswa
-                            </th>
-                            <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                                Jenis Kartu
-                            </th>
-                            <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                                No. Kartu
-                            </th>
-                            <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                                Peminjaman
-                            </th>
-                            <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                                Dititipkan
-                            </th>
-                            <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                                Diambil Kembali
-                            </th>
-                            <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                                Status
-                            </th>
-                            <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                                Dibuat
-                            </th>
-                            <th className="px-4 py-3 text-right font-medium text-muted-foreground">
-                                Aksi
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                        {items.map((item) => (
-                            <tr
-                                key={item.id}
-                                className="transition-colors hover:bg-muted/30"
-                            >
-                                <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
-                                    {item.code}
-                                </td>
-                                <td className="px-4 py-3">
-                                    <p className="font-medium text-foreground">
-                                        {item.student_name}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                        {item.student_class}
-                                    </p>
-                                </td>
-                                <td className="px-4 py-3 text-muted-foreground">
-                                    {item.card_type_label}
-                                </td>
-                                <td className="px-4 py-3 font-mono text-xs">
-                                    {item.card_number || item.student_nisn || "—"}
-                                </td>
-                                <td className="px-4 py-3">
-                                    <p className="font-mono text-xs">
-                                        {item.loan_code}
-                                    </p>
-                                    <p className="line-clamp-1 text-xs text-muted-foreground">
-                                        {item.equipment_summary}
-                                    </p>
-                                </td>
-                                <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">
-                                    {item.held_at_formatted}
-                                </td>
-                                <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">
-                                    {item.returned_at_formatted}
-                                </td>
-                                <td className="px-4 py-3">
-                                    <CollateralStatusBadge status={item.status} />
-                                </td>
-                                <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">
-                                    {item.created_at_formatted}
-                                </td>
-                                <td className="px-4 py-3 text-right">
-                                    <CollateralTableActions
-                                        item={item}
-                                        onDelete={onDelete}
-                                        onInspect={onInspect}
-                                    />
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-        </div>
+        <DataTable
+            data={items ?? []}
+            columns={columns}
+            tableClassName="min-w-[1050px]"
+            getRowId={(row) => String(row.id)}
+            emptyState="Tidak ada jaminan kartu ditemukan"
+            pageSize={10}
+            initialSorting={[{ id: "created_at_formatted", desc: true }]}
+        />
     );
 }

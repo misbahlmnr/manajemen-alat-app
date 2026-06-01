@@ -1,110 +1,107 @@
+import DataTable from "@/Components/DataTable";
 import LoanStatusBadge from "@/Components/LoanStatusBadge";
 import LoanTableActions from "./LoanTableActions";
 
 export default function LoanTable({ items, onDelete, onReject, onReturn }) {
-    if (!items?.length) return null;
+    const columns = [
+        {
+            accessorKey: "code",
+            header: "Kode",
+            cell: ({ getValue }) => (
+                <span className="font-mono text-xs text-muted-foreground">
+                    {getValue()}
+                </span>
+            ),
+        },
+        {
+            id: "borrower",
+            header: "Peminjam",
+            accessorFn: (row) => row.borrower_name,
+            cell: ({ row }) => (
+                <div>
+                    <p className="font-medium text-foreground">
+                        {row.original.borrower_name}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                        {row.original.borrower_class || row.original.borrower_role}
+                    </p>
+                </div>
+            ),
+        },
+        {
+            accessorKey: "items_summary",
+            header: "Item",
+            meta: { cellClassName: "max-w-[200px]" },
+            cell: ({ getValue }) => (
+                <p className="line-clamp-2 text-muted-foreground">{getValue()}</p>
+            ),
+        },
+        {
+            accessorKey: "item_type",
+            header: "Jenis",
+            cell: ({ row }) => (
+                <span
+                    className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-medium ${
+                        row.original.item_type === "alat"
+                            ? "border-violet-500/20 bg-violet-500/10 text-violet-700"
+                            : "border-amber-500/20 bg-amber-500/10 text-amber-800"
+                    }`}
+                >
+                    {row.original.item_type_label}
+                </span>
+            ),
+        },
+        { accessorKey: "supervisor_name", header: "Guru" },
+        {
+            accessorKey: "request_date_formatted",
+            header: "Tanggal",
+            meta: { cellClassName: "whitespace-nowrap" },
+        },
+        {
+            id: "due",
+            header: "Batas Kembali",
+            accessorFn: (row) => row.due_at_formatted,
+            meta: { cellClassName: "whitespace-nowrap text-muted-foreground" },
+            cell: ({ row }) =>
+                row.original.item_type === "alat"
+                    ? row.original.due_at_formatted
+                    : "—",
+        },
+        {
+            accessorKey: "status",
+            header: "Status",
+            cell: ({ getValue }) => <LoanStatusBadge status={getValue()} />,
+        },
+        {
+            accessorKey: "created_at_formatted",
+            header: "Dibuat",
+            meta: { cellClassName: "whitespace-nowrap text-muted-foreground" },
+        },
+        {
+            id: "actions",
+            header: "Aksi",
+            enableSorting: false,
+            meta: { align: "right", cellClassName: "text-right" },
+            cell: ({ row }) => (
+                <LoanTableActions
+                    loan={row.original}
+                    onDelete={onDelete}
+                    onReject={onReject}
+                    onReturn={onReturn}
+                />
+            ),
+        },
+    ];
 
     return (
-        <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-card">
-            <div className="overflow-x-auto">
-                <table className="w-full min-w-[1000px] text-sm">
-                    <thead className="sticky top-0 z-10 border-b border-border bg-muted/50 backdrop-blur">
-                        <tr>
-                            <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                                Kode
-                            </th>
-                            <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                                Peminjam
-                            </th>
-                            <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                                Item
-                            </th>
-                            <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                                Jenis
-                            </th>
-                            <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                                Guru
-                            </th>
-                            <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                                Tanggal
-                            </th>
-                            <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                                Batas Kembali
-                            </th>
-                            <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                                Status
-                            </th>
-                            <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                                Dibuat
-                            </th>
-                            <th className="px-4 py-3 text-right font-medium text-muted-foreground">
-                                Aksi
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                        {items.map((loan) => (
-                            <tr
-                                key={loan.id}
-                                className="transition-colors hover:bg-muted/30"
-                            >
-                                <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
-                                    {loan.code}
-                                </td>
-                                <td className="px-4 py-3">
-                                    <p className="font-medium text-foreground">
-                                        {loan.borrower_name}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                        {loan.borrower_class || loan.borrower_role}
-                                    </p>
-                                </td>
-                                <td className="max-w-[200px] px-4 py-3">
-                                    <p className="line-clamp-2 text-muted-foreground">
-                                        {loan.items_summary}
-                                    </p>
-                                </td>
-                                <td className="px-4 py-3">
-                                    <span
-                                        className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-medium ${
-                                            loan.item_type === "alat"
-                                                ? "border-violet-500/20 bg-violet-500/10 text-violet-700"
-                                                : "border-amber-500/20 bg-amber-500/10 text-amber-800"
-                                        }`}
-                                    >
-                                        {loan.item_type_label}
-                                    </span>
-                                </td>
-                                <td className="px-4 py-3 text-muted-foreground">
-                                    {loan.supervisor_name}
-                                </td>
-                                <td className="whitespace-nowrap px-4 py-3">
-                                    {loan.request_date_formatted}
-                                </td>
-                                <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">
-                                    {loan.item_type === "alat"
-                                        ? loan.due_at_formatted
-                                        : "—"}
-                                </td>
-                                <td className="px-4 py-3">
-                                    <LoanStatusBadge status={loan.status} />
-                                </td>
-                                <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">
-                                    {loan.created_at_formatted}
-                                </td>
-                                <td className="px-4 py-3 text-right">
-                                    <LoanTableActions
-                                        loan={loan}
-                                        onDelete={onDelete}
-                                        onReject={onReject}
-                                        onReturn={onReturn}
-                                    />
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-        </div>
+        <DataTable
+            data={items ?? []}
+            columns={columns}
+            tableClassName="min-w-[1000px]"
+            getRowId={(row) => String(row.id)}
+            emptyState="Tidak ada peminjaman ditemukan"
+            pageSize={10}
+            initialSorting={[{ id: "created_at_formatted", desc: true }]}
+        />
     );
 }

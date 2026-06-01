@@ -1,106 +1,82 @@
+import DataTable from "@/Components/DataTable";
 import StatusBadge from "@/Components/StatusBadge";
 import TableRowActions from "@/Components/TableRowActions";
 import { cn } from "@/lib/utils";
 
 export default function SupplyTable({ items, onDelete }) {
-    if (!items?.length) return null;
+    const columns = [
+        {
+            accessorKey: "code",
+            header: "Kode",
+            cell: ({ getValue }) => (
+                <span className="font-mono text-xs text-muted-foreground">
+                    {getValue()}
+                </span>
+            ),
+        },
+        {
+            id: "name",
+            header: "Nama Bahan",
+            accessorFn: (row) => row.name,
+            cell: ({ row }) => (
+                <div>
+                    <p className="font-medium text-foreground">{row.original.name}</p>
+                    {row.original.is_low_stock && (
+                        <p className="text-xs text-warning">Stok menipis</p>
+                    )}
+                </div>
+            ),
+        },
+        { accessorKey: "category", header: "Kategori" },
+        {
+            id: "stock",
+            header: "Stok",
+            accessorFn: (row) => row.available,
+            cell: ({ row }) => (
+                <>
+                    <span
+                        className={cn(
+                            "font-medium tabular-nums",
+                            row.original.is_low_stock && "text-warning",
+                        )}
+                    >
+                        {row.original.available}
+                    </span>
+                    <span className="text-muted-foreground"> / {row.original.stock}</span>
+                </>
+            ),
+        },
+        { accessorKey: "unit", header: "Satuan" },
+        {
+            accessorKey: "status",
+            header: "Status",
+            cell: ({ getValue }) => <StatusBadge status={getValue()} />,
+        },
+        { accessorKey: "created_at_formatted", header: "Dibuat" },
+        {
+            id: "actions",
+            header: "Aksi",
+            enableSorting: false,
+            meta: { align: "right", cellClassName: "text-right" },
+            cell: ({ row }) => (
+                <TableRowActions
+                    showHref={route("admin.supplies.show", row.original.id)}
+                    editHref={route("admin.supplies.edit", row.original.id)}
+                    onDelete={() => onDelete(row.original)}
+                />
+            ),
+        },
+    ];
 
     return (
-        <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-card">
-            <div className="overflow-x-auto">
-                <table className="w-full min-w-[800px] text-sm">
-                    <thead className="sticky top-0 z-10 border-b border-border bg-muted/50 backdrop-blur">
-                        <tr>
-                            <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                                Kode
-                            </th>
-                            <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                                Nama Bahan
-                            </th>
-                            <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                                Kategori
-                            </th>
-                            <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                                Stok
-                            </th>
-                            <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                                Satuan
-                            </th>
-                            <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                                Status
-                            </th>
-                            <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                                Dibuat
-                            </th>
-                            <th className="px-4 py-3 text-right font-medium text-muted-foreground">
-                                Aksi
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                        {items.map((item) => (
-                            <tr
-                                key={item.id}
-                                className="transition-colors hover:bg-muted/30"
-                            >
-                                <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
-                                    {item.code}
-                                </td>
-                                <td className="px-4 py-3">
-                                    <p className="font-medium text-foreground">
-                                        {item.name}
-                                    </p>
-                                    {item.is_low_stock && (
-                                        <p className="text-xs text-warning">
-                                            Stok menipis
-                                        </p>
-                                    )}
-                                </td>
-                                <td className="px-4 py-3 text-muted-foreground">
-                                    {item.category}
-                                </td>
-                                <td className="px-4 py-3">
-                                    <span
-                                        className={cn(
-                                            "font-medium tabular-nums",
-                                            item.is_low_stock &&
-                                                "text-warning",
-                                        )}
-                                    >
-                                        {item.available}
-                                    </span>
-                                    <span className="text-muted-foreground">
-                                        {" "}
-                                        / {item.stock}
-                                    </span>
-                                </td>
-                                <td className="px-4 py-3 text-muted-foreground">
-                                    {item.unit}
-                                </td>
-                                <td className="px-4 py-3">
-                                    <StatusBadge status={item.status} />
-                                </td>
-                                <td className="px-4 py-3 text-muted-foreground">
-                                    {item.created_at_formatted}
-                                </td>
-                                <td className="px-4 py-3 text-right">
-                                    <TableRowActions
-                                        showHref={route(
-                                            "admin.supplies.show",
-                                            item.id,
-                                        )}
-                                        editHref={route(
-                                            "admin.supplies.edit",
-                                            item.id,
-                                        )}
-                                        onDelete={() => onDelete(item)}
-                                    />
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-        </div>
+        <DataTable
+            data={items ?? []}
+            columns={columns}
+            tableClassName="min-w-[800px]"
+            getRowId={(row) => String(row.id)}
+            emptyState="Tidak ada bahan ditemukan"
+            pageSize={10}
+            initialSorting={[{ id: "name", desc: false }]}
+        />
     );
 }

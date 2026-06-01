@@ -53,7 +53,7 @@ export default function GuruDashboard({
                 actionHref="#"
                 actionVariant="outline"
             >
-                <RecentLoansTable loans={loans.slice(0, 5)} />
+                <RecentLoansTable loans={loans} />
             </DashboardSection>
 
             <UpcomingSchedules schedules={upcomingSchedules} />

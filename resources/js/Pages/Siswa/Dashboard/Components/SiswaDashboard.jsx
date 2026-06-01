@@ -94,7 +94,7 @@ export default function SiswaDashboard({
                     <h2 className="mb-4 text-lg font-semibold">
                         Riwayat Pengembalian
                     </h2>
-                    <RecentLoansTable loans={returnedLoans.slice(0, 5)} />
+                    <RecentLoansTable loans={returnedLoans} />
                 </div>
             )}
 

@@ -89,7 +89,7 @@ export default function AdminDashboard({ loans, equipment, stats }) {
                 actionHref="#"
             >
                 {pendingAlat.length > 0 ? (
-                    <RecentLoansTable loans={pendingAlat.slice(0, 5)} />
+                    <RecentLoansTable loans={pendingAlat} />
                 ) : (
                     <EmptyState
                         icon={CheckCircle2}
@@ -105,7 +105,7 @@ export default function AdminDashboard({ loans, equipment, stats }) {
                     className="mb-0"
                 >
                     {activeAlat.length > 0 ? (
-                        <RecentLoansTable loans={activeAlat.slice(0, 5)} />
+                        <RecentLoansTable loans={activeAlat} />
                     ) : (
                         <EmptyState description="Tidak ada peminjaman aktif" />
                     )}
