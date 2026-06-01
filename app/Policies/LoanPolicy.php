@@ -9,7 +9,7 @@ class LoanPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->isAdmin() || $user->isGuru();
+        return $user->isAdmin() || $user->isGuru() || $user->isSiswa();
     }
 
     public function view(User $user, Loan $loan): bool
@@ -58,5 +58,20 @@ class LoanPolicy
     public function processReturn(User $user, Loan $loan): bool
     {
         return $user->isAdmin();
+    }
+
+    public function cancel(User $user, Loan $loan): bool
+    {
+        return $user->isSiswa()
+            && $loan->borrower_id === $user->id
+            && in_array($loan->status, ['diminta', 'antrian', 'disetujui'], true);
+    }
+
+    public function requestReturn(User $user, Loan $loan): bool
+    {
+        return $user->isSiswa()
+            && $loan->borrower_id === $user->id
+            && $loan->isAlat()
+            && in_array($loan->status, ['dipinjam', 'terlambat'], true);
     }
 }

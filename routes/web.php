@@ -11,6 +11,7 @@ use App\Http\Controllers\Guru\DashboardController as GuruDashboardController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Siswa\DashboardController as SiswaDashboardController;
 use App\Http\Controllers\Siswa\EquipmentController as SiswaEquipmentController;
+use App\Http\Controllers\Siswa\LoanController as SiswaLoanController;
 use App\Http\Controllers\Siswa\SupplyController as SiswaSupplyController;
 use Illuminate\Support\Facades\Route;
 
@@ -58,6 +59,24 @@ Route::middleware(['auth', 'verified', 'role:siswa'])->prefix('siswa')->name('si
     Route::get('equipment/{equipment}', [SiswaEquipmentController::class, 'show'])->name('equipment.show');
     Route::get('supplies', [SiswaSupplyController::class, 'index'])->name('supplies.index');
     Route::get('supplies/{supply}', [SiswaSupplyController::class, 'show'])->name('supplies.show');
+    Route::get('loans', [SiswaLoanController::class, 'index'])->name('loans.index');
+    Route::get('loans/create', [SiswaLoanController::class, 'create'])->name('loans.create');
+    Route::post('loans', [SiswaLoanController::class, 'store'])->name('loans.store');
+    Route::get('loans/{loan}', [SiswaLoanController::class, 'show'])->name('loans.show');
+    Route::post('loans/{loan}/cancel', [SiswaLoanController::class, 'cancel'])->name('loans.cancel');
+    Route::post('loans/{loan}/request-return', [SiswaLoanController::class, 'requestReturn'])->name('loans.request-return');
+    Route::get('ajukan-peminjaman', function () {
+        return redirect()->route('siswa.loans.create', array_merge(
+            ['type' => 'alat'],
+            request()->query(),
+        ));
+    });
+    Route::get('ambil-bahan', function () {
+        return redirect()->route('siswa.loans.create', array_merge(
+            ['type' => 'bahan'],
+            request()->query(),
+        ));
+    });
 });
 
 Route::middleware('auth')->group(function () {

@@ -61,14 +61,14 @@ export default function SiswaDashboard({
 
             <div className="grid gap-4 sm:grid-cols-2">
                 <QuickActionCard
-                    href="#"
+                    href={route("siswa.loans.create", { type: "alat" })}
                     icon={Wrench}
                     title="Ajukan Pinjam Alat"
                     description="Pinjam kamera, mixer, mikrofon, dan alat lab lainnya."
                     accent="primary"
                 />
                 <QuickActionCard
-                    href={route("siswa.supplies.index")}
+                    href={route("siswa.loans.create", { type: "bahan" })}
                     icon={Package}
                     title="Ambil Bahan"
                     description="Komponen elektro, kabel, timah, dan bahan habis pakai."

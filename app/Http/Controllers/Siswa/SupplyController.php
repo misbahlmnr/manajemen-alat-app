@@ -99,6 +99,6 @@ class SupplyController extends Controller
             return null;
         }
 
-        return url('/siswa/ambil-bahan').'?supply_id='.$supply->id;
+        return route('siswa.loans.create', ['type' => 'bahan', 'supply_id' => $supply->id]);
     }
 }

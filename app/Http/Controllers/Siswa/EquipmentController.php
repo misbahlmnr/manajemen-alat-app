@@ -114,6 +114,6 @@ class EquipmentController extends Controller
             return null;
         }
 
-        return url('/siswa/ajukan-peminjaman').'?equipment_id='.$equipment->id;
+        return route('siswa.loans.create', ['type' => 'alat', 'equipment_id' => $equipment->id]);
     }
 }

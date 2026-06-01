@@ -124,20 +124,19 @@ const siswaMenuItems = [
     {
         icon: FileText,
         label: "Ajukan Peminjaman",
-        routeName: null,
-        href: "#",
+        routeName: "siswa.loans.create",
+        query: { type: "alat" },
     },
     {
         icon: ClipboardList,
         label: "Peminjaman Saya",
-        routeName: null,
-        href: "#",
+        routeName: "siswa.loans.index",
     },
     {
         icon: History,
         label: "Riwayat",
-        routeName: null,
-        href: "#",
+        routeName: "siswa.loans.index",
+        query: { scope: "history" },
     },
     {
         icon: Bell,
@@ -194,10 +193,17 @@ export function isNavItemActive(item, currentUrl) {
 
     if (currentPath !== itemPath) return false;
 
-    const itemTab = new URLSearchParams(itemQuery || "").get("tab");
-    const currentTab = new URLSearchParams(currentQuery || "").get("tab");
+    const itemParams = new URLSearchParams(itemQuery || "");
+    const currentParams = new URLSearchParams(currentQuery || "");
 
+    const itemTab = itemParams.get("tab");
+    const currentTab = currentParams.get("tab");
     if (itemTab) return currentTab === itemTab;
+
+    const itemScope = itemParams.get("scope");
+    const currentScope = currentParams.get("scope");
+    if (itemScope) return currentScope === itemScope;
+    if (currentScope) return false;
 
     return !currentQuery || !itemQuery;
 }
