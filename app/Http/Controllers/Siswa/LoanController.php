@@ -93,10 +93,15 @@ class LoanController extends Controller
         $prefillId = $type === 'bahan' ? $prefillSupplyId : $prefillEquipmentId;
 
         $options = $this->formOptions($request->user());
+        $prefillItem = $this->resolvePrefillCatalogItem($prefillId, $type);
 
         return Inertia::render('Siswa/Loan/Create', [
             'loanType' => $type,
-            'prefillEquipmentId' => $prefillId,
+            'prefillItem' => $prefillItem,
+            'catalog' => $this->paginatedCatalog($request, $type),
+            'catalogFilters' => [
+                'search' => $request->string('catalog_search')->trim()->toString(),
+            ],
             ...$options,
             'defaults' => [
                 'item_type' => $type,
@@ -236,14 +241,24 @@ class LoanController extends Controller
                 ])
                 ->values()
                 ->all(),
-            'equipmentCatalogAlat' => $this->equipmentCatalog('alat'),
-            'equipmentCatalogBahan' => $this->equipmentCatalog('bahan'),
         ];
     }
 
-    private function equipmentCatalog(string $itemType): array
+    private function paginatedCatalog(Request $request, string $itemType)
     {
-        $query = Equipment::query()->where('status', 'active')->orderBy('name');
+        $search = $request->string('catalog_search')->trim();
+
+        $query = Equipment::query()
+            ->where('status', 'active')
+            ->where('available', '>', 0)
+            ->when($search->isNotEmpty(), function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('code', 'like', "%{$search}%")
+                        ->orWhere('category', 'like', "%{$search}%");
+                });
+            })
+            ->orderBy('name');
 
         if ($itemType === 'alat') {
             $query->alat();
@@ -251,19 +266,51 @@ class LoanController extends Controller
             $query->bahan();
         }
 
-        return $query->get(['id', 'code', 'name', 'category', 'available', 'stock', 'unit', 'min_stock'])
-            ->map(fn (Equipment $e) => [
-                'id' => $e->id,
-                'code' => $e->code,
-                'name' => $e->name,
-                'category' => $e->category,
-                'available' => $e->available,
-                'stock' => $e->stock,
-                'unit' => $e->unit,
-                'min_stock' => $e->min_stock,
-            ])
-            ->values()
-            ->all();
+        return $query
+            ->paginate(10)
+            ->withQueryString()
+            ->through(fn (Equipment $item) => $this->formatCatalogItem($item));
+    }
+
+    private function resolvePrefillCatalogItem(?int $id, string $itemType): ?array
+    {
+        if (! $id) {
+            return null;
+        }
+
+        $query = Equipment::query()
+            ->where('id', $id)
+            ->where('status', 'active')
+            ->where('available', '>', 0);
+
+        if ($itemType === 'alat') {
+            $query->alat();
+        } else {
+            $query->bahan();
+        }
+
+        $item = $query->first();
+
+        return $item ? $this->formatCatalogItem($item) : null;
+    }
+
+    private function formatCatalogItem(Equipment $equipment): array
+    {
+        $isBahan = $equipment->item_type === 'bahan';
+
+        return [
+            'id' => $equipment->id,
+            'code' => $equipment->code,
+            'name' => $equipment->name,
+            'category' => $equipment->category,
+            'available' => $equipment->available,
+            'stock' => $equipment->stock,
+            'unit' => $equipment->unit ?? ($isBahan ? 'pcs' : 'unit'),
+            'min_stock' => $equipment->min_stock,
+            'is_low_stock' => $isBahan
+                && $equipment->min_stock !== null
+                && $equipment->available <= $equipment->min_stock,
+        ];
     }
 
     private function formatLoan(Loan $loan, bool $detailed = false): array

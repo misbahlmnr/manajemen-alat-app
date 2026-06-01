@@ -1,8 +1,10 @@
 import AppLayout from "@/Layouts/AppLayout";
 import Checkbox from "@/Components/Checkbox";
 import InputError from "@/Components/InputError";
+import { paginatorTotal } from "@/lib/paginator";
 import { cn } from "@/lib/utils";
 import { Head, router, useForm } from "@inertiajs/react";
+import LoanCatalogTable from "./Components/LoanCatalogTable";
 import {
     AlertTriangle,
     Calendar,
@@ -20,7 +22,7 @@ import {
     Wrench,
     X,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 function formatScheduleTime(value) {
     if (!value) return "";
@@ -29,58 +31,75 @@ function formatScheduleTime(value) {
 
 export default function Create({
     loanType,
-    prefillEquipmentId,
+    prefillItem,
+    catalog,
+    catalogFilters,
     defaults,
     supervisorOptions = [],
     schedules = [],
-    equipmentCatalogAlat = [],
-    equipmentCatalogBahan = [],
 }) {
     const [tab, setTab] = useState(loanType === "bahan" ? "bahan" : "alat");
-    const [searchQuery, setSearchQuery] = useState("");
+
+    useEffect(() => {
+        setTab(loanType === "bahan" ? "bahan" : "alat");
+    }, [loanType]);
+    const [searchQuery, setSearchQuery] = useState(
+        catalogFilters?.search ?? "",
+    );
     const [cart, setCart] = useState([]);
+    const isFirstSearch = useRef(true);
     const { data, setData, processing, errors } = useForm({
         ...defaults,
         item_type: tab,
     });
 
-    const catalog =
-        tab === "bahan" ? equipmentCatalogBahan : equipmentCatalogAlat;
+    const catalogList = catalog?.data ?? [];
+    const catalogTotal = paginatorTotal(catalog);
     const isBahan = tab === "bahan";
 
     useEffect(() => {
-        if (!prefillEquipmentId) return;
-        const eq = catalog.find((e) => String(e.id) === String(prefillEquipmentId));
-        if (eq) {
-            setCart((c) =>
-                c.find((i) => i.equipment.id === eq.id)
-                    ? c
-                    : [...c, { equipment: eq, quantity: 1 }],
-            );
+        if (!prefillItem) return;
+        setCart((c) =>
+            c.find((i) => i.equipment.id === prefillItem.id)
+                ? c
+                : [...c, { equipment: prefillItem, quantity: 1 }],
+        );
+    }, [prefillItem]);
+
+    useEffect(() => {
+        if (isFirstSearch.current) {
+            isFirstSearch.current = false;
+            return;
         }
-    }, [prefillEquipmentId, catalog]);
+
+        const timeout = setTimeout(() => {
+            router.get(
+                route("siswa.loans.create"),
+                { type: tab, catalog_search: searchQuery },
+                {
+                    preserveState: true,
+                    preserveScroll: true,
+                    replace: true,
+                    only: ["catalog", "catalogFilters", "loanType"],
+                },
+            );
+        }, 400);
+
+        return () => clearTimeout(timeout);
+    }, [searchQuery, tab]);
 
     const switchTab = (t) => {
         setTab(t);
         setCart([]);
+        setSearchQuery("");
+        isFirstSearch.current = true;
         setData("item_type", t);
-        router.get(route("siswa.loans.create"), { type: t }, { preserveState: true });
+        router.get(
+            route("siswa.loans.create"),
+            { type: t },
+            { preserveState: true },
+        );
     };
-
-    const available = useMemo(
-        () =>
-            catalog.filter(
-                (e) =>
-                    e.available > 0 &&
-                    (e.name
-                        .toLowerCase()
-                        .includes(searchQuery.toLowerCase()) ||
-                        (e.category ?? "")
-                            .toLowerCase()
-                            .includes(searchQuery.toLowerCase())),
-            ),
-        [catalog, searchQuery],
-    );
 
     const maxQty = (eq) =>
         isBahan ? eq.available : eq.available;
@@ -259,78 +278,26 @@ export default function Create({
                                 onChange={(e) =>
                                     setSearchQuery(e.target.value)
                                 }
-                                placeholder={`Cari ${isBahan ? "bahan" : "alat"}...`}
+                                placeholder={`Cari ${isBahan ? "bahan" : "alat"} (nama, kode, kategori)...`}
                                 className="form-input pl-10"
                             />
                         </div>
-                        <div className="grid gap-3 sm:grid-cols-2">
-                            {available.map((eq) => {
-                                const inCart = cart.find(
-                                    (i) => i.equipment.id === eq.id,
-                                );
-                                const remain = maxQty(eq);
-                                const low =
-                                    isBahan &&
-                                    eq.min_stock != null &&
-                                    remain <= eq.min_stock;
-                                const indicator =
-                                    remain <= 0
-                                        ? "bg-destructive/10 text-destructive"
-                                        : low
-                                          ? "bg-warning/10 text-warning"
-                                          : "bg-success/10 text-success";
-                                return (
-                                    <div key={eq.id} className="equipment-card">
-                                        <div className="mb-2 flex items-start justify-between">
-                                            <div className="min-w-0">
-                                                <h3 className="truncate font-semibold text-foreground">
-                                                    {eq.name}
-                                                </h3>
-                                                <p className="text-xs text-muted-foreground">
-                                                    {eq.category ?? eq.code}
-                                                </p>
-                                            </div>
-                                            {inCart && (
-                                                <span className="rounded bg-success px-2 py-0.5 text-xs text-success-foreground">
-                                                    ×{inCart.quantity}
-                                                </span>
-                                            )}
-                                        </div>
-                                        <div
-                                            className={cn(
-                                                "mb-3 inline-block rounded px-2 py-0.5 text-xs font-medium",
-                                                indicator,
-                                            )}
-                                        >
-                                            {isBahan
-                                                ? `Stok: ${remain} ${eq.unit ?? ""}`
-                                                : `Tersedia: ${remain} dari ${eq.stock} unit`}
-                                        </div>
-                                        {low && (
-                                            <p className="mb-2 text-xs text-warning">
-                                                Stok menipis
-                                            </p>
-                                        )}
-                                        <button
-                                            type="button"
-                                            onClick={() => addToCart(eq)}
-                                            disabled={
-                                                remain <= 0 ||
-                                                (inCart &&
-                                                    inCart.quantity >= remain)
-                                            }
-                                            className="btn-primary w-full py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
-                                        >
-                                            {isBahan
-                                                ? "Ambil"
-                                                : "Tambah ke Keranjang"}
-                                        </button>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                        {available.length === 0 && (
-                            <p className="py-8 text-center text-sm text-muted-foreground">
+                        <p className="mb-3 text-sm text-muted-foreground">
+                            {catalogTotal}{" "}
+                            {isBahan ? "bahan" : "alat"} tersedia
+                            {searchQuery ? " untuk pencarian ini" : ""}
+                        </p>
+                        {catalogTotal > 0 ? (
+                            <LoanCatalogTable
+                                items={catalogList}
+                                pagination={catalog}
+                                isBahan={isBahan}
+                                cart={cart}
+                                onAdd={addToCart}
+                                maxQty={maxQty}
+                            />
+                        ) : (
+                            <p className="rounded-xl border border-dashed border-border py-10 text-center text-sm text-muted-foreground">
                                 Tidak ada {isBahan ? "bahan" : "alat"} yang
                                 cocok dengan pencarian.
                             </p>
