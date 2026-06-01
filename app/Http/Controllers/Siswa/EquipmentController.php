@@ -36,7 +36,7 @@ class EquipmentController extends Controller
             ->when($condition !== 'all', fn ($q) => $q->where('condition', $condition))
             ->availability($availability)
             ->orderBy('name')
-            ->paginate(12)
+            ->paginate(10)
             ->withQueryString()
             ->through(fn (Equipment $item) => $this->formatEquipment($item));
 

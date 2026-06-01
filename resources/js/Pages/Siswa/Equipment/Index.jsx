@@ -1,14 +1,14 @@
 import AppLayout from "@/Layouts/AppLayout";
 import PageHeader from "@/Components/PageHeader";
 import EmptyState from "@/Components/EmptyState";
-import DataPagination from "@/Components/DataPagination";
+import { paginatorTotal } from "@/lib/paginator";
 import { Button } from "@/Components/ui/button";
 import { Input } from "@/Components/ui/input";
 import { Select } from "@/Components/ui/select";
 import { Head, router, useForm } from "@inertiajs/react";
 import { Search, Wrench } from "lucide-react";
 import { useEffect, useRef } from "react";
-import EquipmentCatalogCard from "./Components/EquipmentCatalogCard";
+import EquipmentCatalogTable from "./Components/EquipmentCatalogTable";
 
 export default function Index({ equipment, filters, categories }) {
     const { data, setData } = useForm({
@@ -45,6 +45,7 @@ export default function Index({ equipment, filters, categories }) {
     ]);
 
     const list = equipment.data ?? [];
+    const total = paginatorTotal(equipment);
 
     return (
         <AppLayout>
@@ -53,7 +54,7 @@ export default function Index({ equipment, filters, categories }) {
             <div className="animate-fade-in">
                 <PageHeader
                     title="Alat Lab"
-                    subtitle={`${equipment.meta?.total ?? 0} alat laboratorium`}
+                    subtitle={`${total} alat laboratorium`}
                 />
 
                 <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
@@ -117,23 +118,11 @@ export default function Index({ equipment, filters, categories }) {
                     </div>
                 </div>
 
-                {list.length > 0 ? (
-                    <>
-                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                            {list.map((item) => (
-                                <EquipmentCatalogCard
-                                    key={item.id}
-                                    equipment={item}
-                                />
-                            ))}
-                        </div>
-                        <div className="mt-8">
-                            <DataPagination
-                                links={equipment.links}
-                                meta={equipment.meta}
-                            />
-                        </div>
-                    </>
+                {total > 0 ? (
+                    <EquipmentCatalogTable
+                        items={list}
+                        pagination={equipment}
+                    />
                 ) : (
                     <EmptyState
                         icon={Wrench}

@@ -33,7 +33,7 @@ class SupplyController extends Controller
             ->when($status !== 'all', fn ($q) => $q->where('status', $status))
             ->stockStatus($stockStatus)
             ->orderBy('name')
-            ->paginate(12)
+            ->paginate(10)
             ->withQueryString()
             ->through(fn (Supply $item) => $this->formatSupply($item));
 

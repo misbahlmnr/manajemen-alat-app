@@ -1,14 +1,14 @@
 import AppLayout from "@/Layouts/AppLayout";
 import PageHeader from "@/Components/PageHeader";
 import EmptyState from "@/Components/EmptyState";
-import DataPagination from "@/Components/DataPagination";
+import { paginatorTotal } from "@/lib/paginator";
 import { Button } from "@/Components/ui/button";
 import { Input } from "@/Components/ui/input";
 import { Select } from "@/Components/ui/select";
 import { Head, router, useForm } from "@inertiajs/react";
 import { Package, Search } from "lucide-react";
 import { useEffect, useRef } from "react";
-import SupplyCatalogCard from "./Components/SupplyCatalogCard";
+import SupplyCatalogTable from "./Components/SupplyCatalogTable";
 
 export default function Index({ supplies, filters, categories }) {
     const { data, setData } = useForm({
@@ -38,6 +38,7 @@ export default function Index({ supplies, filters, categories }) {
     }, [data.search, data.category, data.status, data.stock_status]);
 
     const list = supplies.data ?? [];
+    const total = paginatorTotal(supplies);
 
     return (
         <AppLayout>
@@ -46,7 +47,7 @@ export default function Index({ supplies, filters, categories }) {
             <div className="animate-fade-in">
                 <PageHeader
                     title="Bahan Lab"
-                    subtitle={`${supplies.meta?.total ?? 0} bahan praktikum`}
+                    subtitle={`${total} bahan praktikum`}
                 />
 
                 <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -95,20 +96,11 @@ export default function Index({ supplies, filters, categories }) {
                     </Select>
                 </div>
 
-                {list.length > 0 ? (
-                    <>
-                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                            {list.map((item) => (
-                                <SupplyCatalogCard key={item.id} supply={item} />
-                            ))}
-                        </div>
-                        <div className="mt-8">
-                            <DataPagination
-                                links={supplies.links}
-                                meta={supplies.meta}
-                            />
-                        </div>
-                    </>
+                {total > 0 ? (
+                    <SupplyCatalogTable
+                        items={list}
+                        pagination={supplies}
+                    />
                 ) : (
                     <EmptyState
                         icon={Package}

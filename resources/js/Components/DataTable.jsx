@@ -45,8 +45,6 @@ export default function DataTable({
 
     const rows = table.getRowModel().rows;
 
-    console.log({ enablePagination, pagination });
-
     return (
         <div className="space-y-3">
             <div
