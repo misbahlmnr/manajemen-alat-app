@@ -3,7 +3,7 @@ import Checkbox from "@/Components/Checkbox";
 import InputError from "@/Components/InputError";
 import { paginatorTotal } from "@/lib/paginator";
 import { cn } from "@/lib/utils";
-import { Head, router, useForm } from "@inertiajs/react";
+import { Head, Link, router, useForm } from "@inertiajs/react";
 import LoanCatalogTable from "./Components/LoanCatalogTable";
 import {
     AlertTriangle,
@@ -15,6 +15,7 @@ import {
     MapPin,
     Package,
     Search,
+    ArrowLeft,
     Send,
     ShoppingCart,
     Trophy,
@@ -30,27 +31,33 @@ function formatScheduleTime(value) {
 }
 
 export default function Create({
+    loan = null,
     loanType,
     prefillItem,
+    initialCart = [],
     catalog,
     catalogFilters,
     defaults,
     supervisorOptions = [],
     schedules = [],
 }) {
-    const [tab, setTab] = useState(loanType === "bahan" ? "bahan" : "alat");
+    const isEdit = Boolean(loan);
+    const resolvedType =
+        loanType === "bahan" || loan?.item_type === "bahan" ? "bahan" : "alat";
+    const [tab, setTab] = useState(resolvedType);
 
     useEffect(() => {
+        if (isEdit) return;
         setTab(loanType === "bahan" ? "bahan" : "alat");
-    }, [loanType]);
+    }, [loanType, isEdit]);
     const [searchQuery, setSearchQuery] = useState(
         catalogFilters?.search ?? "",
     );
-    const [cart, setCart] = useState([]);
+    const [cart, setCart] = useState(() => (isEdit ? initialCart : []));
     const isFirstSearch = useRef(true);
-    const { data, setData, processing, errors } = useForm({
+    const { data, setData, post, put, processing, errors, transform } = useForm({
         ...defaults,
-        item_type: tab,
+        item_type: resolvedType,
     });
 
     const catalogList = catalog?.data ?? [];
@@ -58,13 +65,13 @@ export default function Create({
     const isBahan = tab === "bahan";
 
     useEffect(() => {
-        if (!prefillItem) return;
+        if (isEdit || !prefillItem) return;
         setCart((c) =>
             c.find((i) => i.equipment.id === prefillItem.id)
                 ? c
                 : [...c, { equipment: prefillItem, quantity: 1 }],
         );
-    }, [prefillItem]);
+    }, [prefillItem, isEdit]);
 
     useEffect(() => {
         if (isFirstSearch.current) {
@@ -73,20 +80,25 @@ export default function Create({
         }
 
         const timeout = setTimeout(() => {
-            router.get(
-                route("siswa.loans.create"),
-                { type: tab, catalog_search: searchQuery },
-                {
-                    preserveState: true,
-                    preserveScroll: true,
-                    replace: true,
-                    only: ["catalog", "catalogFilters", "loanType"],
-                },
-            );
+            const catalogRoute = isEdit
+                ? route("siswa.loans.edit", loan.id)
+                : route("siswa.loans.create");
+            const params = isEdit
+                ? { catalog_search: searchQuery }
+                : { type: tab, catalog_search: searchQuery };
+
+            router.get(catalogRoute, params, {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+                only: isEdit
+                    ? ["catalog", "catalogFilters", "initialCart"]
+                    : ["catalog", "catalogFilters", "loanType"],
+            });
         }, 400);
 
         return () => clearTimeout(timeout);
-    }, [searchQuery, tab]);
+    }, [searchQuery, tab, isEdit, loan?.id]);
 
     const switchTab = (t) => {
         setTab(t);
@@ -101,8 +113,14 @@ export default function Create({
         );
     };
 
-    const maxQty = (eq) =>
-        isBahan ? eq.available : eq.available;
+    const maxQty = (eq) => {
+        const cartItem = cart.find((i) => i.equipment.id === eq.id);
+        const base = eq.available ?? 0;
+        if (cartItem) {
+            return Math.max(base, cartItem.quantity);
+        }
+        return base;
+    };
 
     const addToCart = (eq) => {
         const existing = cart.find((i) => i.equipment.id === eq.id);
@@ -167,36 +185,59 @@ export default function Create({
 
     const submit = (e) => {
         e.preventDefault();
-        const items = cart.map((i) => ({
-            equipment_id: String(i.equipment.id),
-            quantity: i.quantity,
-        }));
-        const purpose =
-            data.notes?.trim() || data.purpose?.trim() || "Peminjaman";
 
-        const payload = {
-            supervisor_id: data.supervisor_id,
-            item_type: tab,
-            request_date:
-                data.request_date || new Date().toISOString().slice(0, 10),
-            purpose,
-            notes: data.notes,
-            borrow_scope: isBahan ? "lab" : data.borrow_scope,
-            items,
+        transform((formData) => {
+            const purpose =
+                formData.notes?.trim() ||
+                formData.purpose?.trim() ||
+                "Peminjaman";
+
+            const payload = {
+                supervisor_id: formData.supervisor_id,
+                item_type: tab,
+                request_date:
+                    formData.request_date ||
+                    new Date().toISOString().slice(0, 10),
+                purpose,
+                notes: formData.notes ?? "",
+                items: cart.map((i) => ({
+                    equipment_id: i.equipment.id,
+                    quantity: i.quantity,
+                })),
+            };
+
+            if (!isBahan) {
+                payload.borrow_scope = formData.borrow_scope;
+                payload.practicum_schedule_id = formData.practicum_schedule_id;
+                payload.due_at = formData.due_at;
+                if (formData.borrow_scope === "bawa_pulang") {
+                    payload.collateral_agreed = formData.collateral_agreed
+                        ? 1
+                        : 0;
+                }
+            }
+
+            return payload;
+        });
+
+        const visitOptions = {
+            preserveScroll: true,
+            onSuccess: () => {
+                if (!isEdit) setCart([]);
+            },
+            onError: () => window.scrollTo({ top: 0, behavior: "smooth" }),
         };
 
-        if (!isBahan) {
-            payload.practicum_schedule_id = data.practicum_schedule_id;
-            payload.due_at = data.due_at;
-            if (collateralRequired) {
-                payload.collateral_agreed = data.collateral_agreed;
-            }
+        if (isEdit) {
+            put(route("siswa.loans.update", loan.id), visitOptions);
+        } else {
+            post(route("siswa.loans.store"), visitOptions);
         }
-
-        router.post(route("siswa.loans.store"), payload, {
-            preserveScroll: true,
-        });
     };
+
+    const formErrorList = Object.entries(errors).filter(
+        ([, message]) => Boolean(message),
+    );
 
     useEffect(() => {
         setData("item_type", tab);
@@ -214,18 +255,32 @@ export default function Create({
 
     return (
         <AppLayout>
-            <Head title="Ajukan Peminjaman" />
+            <Head title={isEdit ? "Ubah Pengajuan" : "Ajukan Peminjaman"} />
 
             <div className="animate-fade-in">
                 <div className="page-header">
                     <div>
-                        <h1 className="section-title">Ajukan Peminjaman</h1>
+                        <h1 className="section-title">
+                            {isEdit ? "Ubah Pengajuan" : "Ajukan Peminjaman"}
+                        </h1>
                         <p className="mt-1 text-muted-foreground">
-                            Pilih jenis: pinjam alat atau ambil bahan
+                            {isEdit
+                                ? `Perbarui barang atau detail pengajuan • ${loan.code}`
+                                : "Pilih jenis: pinjam alat atau ambil bahan"}
                         </p>
                     </div>
+                    {isEdit && (
+                        <Link
+                            href={route("siswa.loans.show", loan.id)}
+                            className="inline-flex items-center rounded-lg border border-border px-3 py-2 text-sm font-medium hover:bg-secondary"
+                        >
+                            <ArrowLeft className="mr-2 h-4 w-4" />
+                            Kembali
+                        </Link>
+                    )}
                 </div>
 
+                {!isEdit && (
                 <div className="mb-6 flex w-fit items-center gap-2 rounded-lg bg-secondary p-1">
                     <button
                         type="button"
@@ -252,6 +307,7 @@ export default function Create({
                         <Package className="h-4 w-4" /> Ambil Bahan
                     </button>
                 </div>
+                )}
 
                 <div
                     className={cn(
@@ -268,6 +324,20 @@ export default function Create({
                             : "Alat harus dikembalikan sebelum batas waktu. Permintaan akan diverifikasi admin."}
                     </p>
                 </div>
+
+                {formErrorList.length > 0 && (
+                    <div className="mb-6 rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+                        <p className="mb-2 font-medium">
+                            {isEdit ? "Perubahan gagal disimpan." : "Pengajuan gagal."}{" "}
+                            Periksa data berikut:
+                        </p>
+                        <ul className="list-inside list-disc space-y-1">
+                            {formErrorList.map(([key, message]) => (
+                                <li key={key}>{message}</li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
 
                 <div className="grid gap-6 lg:grid-cols-3">
                     <div className="lg:col-span-2">
@@ -559,10 +629,11 @@ export default function Create({
                                                             "lab"
                                                         }
                                                         onChange={() =>
-                                                            setData(
-                                                                "borrow_scope",
-                                                                "lab",
-                                                            )
+                                                            setData((prev) => ({
+                                                                ...prev,
+                                                                borrow_scope: "lab",
+                                                                collateral_agreed: false,
+                                                            }))
                                                         }
                                                         className="mt-0.5"
                                                     />
@@ -737,10 +808,12 @@ export default function Create({
                                 >
                                     <Send className="mr-2 h-4 w-4" />
                                     {processing
-                                        ? "Mengirim..."
-                                        : isBahan
-                                          ? "Ambil Bahan"
-                                          : "Ajukan Peminjaman"}
+                                        ? "Menyimpan..."
+                                        : isEdit
+                                          ? "Simpan Perubahan"
+                                          : isBahan
+                                            ? "Ambil Bahan"
+                                            : "Ajukan Peminjaman"}
                                 </button>
                             </form>
                         </div>

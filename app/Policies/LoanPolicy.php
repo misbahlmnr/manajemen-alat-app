@@ -27,12 +27,14 @@ class LoanPolicy
 
     public function create(User $user): bool
     {
-        return $user->isAdmin() || $user->isSiswa();
+        return $user->isSiswa();
     }
 
     public function update(User $user, Loan $loan): bool
     {
-        return $user->isAdmin() && in_array($loan->status, ['diminta', 'antrian'], true);
+        return $user->isSiswa()
+            && $loan->borrower_id === $user->id
+            && in_array($loan->status, ['diminta', 'antrian', 'disetujui'], true);
     }
 
     public function delete(User $user, Loan $loan): bool

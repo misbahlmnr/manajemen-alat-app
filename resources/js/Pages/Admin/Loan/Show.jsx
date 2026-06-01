@@ -13,7 +13,6 @@ import { Head, Link, router } from "@inertiajs/react";
 import {
     Check,
     PackageCheck,
-    Pencil,
     RotateCcw,
     X,
 } from "lucide-react";
@@ -90,14 +89,6 @@ export default function Show({ loan }) {
 
             <div className="animate-fade-in mx-auto max-w-5xl">
                 <PageHeader title="Detail Peminjaman" subtitle={loan.code}>
-                    {loan.can_edit && (
-                        <Button variant="outline" asChild>
-                            <Link href={route("admin.loans.edit", loan.id)}>
-                                <Pencil className="mr-2 h-4 w-4" />
-                                Edit
-                            </Link>
-                        </Button>
-                    )}
                     {loan.can_approve && (
                         <Button
                             variant="outline"

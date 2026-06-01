@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class LoanCompensation extends Model
 {
+    protected $table = 'loan_compensations';
+
     protected $fillable = [
         'loan_id',
         'required',

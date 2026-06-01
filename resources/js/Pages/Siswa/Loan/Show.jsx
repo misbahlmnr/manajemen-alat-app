@@ -11,7 +11,7 @@ import {
     CardTitle,
 } from "@/Components/ui/card";
 import { Head, Link, router } from "@inertiajs/react";
-import { ArrowLeft, RotateCcw, X } from "lucide-react";
+import { ArrowLeft, Pencil, RotateCcw, X } from "lucide-react";
 import { useState } from "react";
 import CancelLoanDialog from "./Components/CancelLoanDialog";
 import RequestReturnDialog from "./Components/RequestReturnDialog";
@@ -61,6 +61,14 @@ export default function Show({ loan }) {
                             Kembali
                         </Link>
                     </Button>
+                    {loan.can_edit && (
+                        <Button variant="outline" asChild>
+                            <Link href={route("siswa.loans.edit", loan.id)}>
+                                <Pencil className="mr-2 h-4 w-4" />
+                                Ubah Pengajuan
+                            </Link>
+                        </Button>
+                    )}
                     {loan.can_request_return && (
                         <Button onClick={() => setReturnOpen(true)}>
                             <RotateCcw className="mr-2 h-4 w-4" />

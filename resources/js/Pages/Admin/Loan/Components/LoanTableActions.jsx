@@ -12,7 +12,6 @@ import {
     Eye,
     MoreHorizontal,
     PackageCheck,
-    Pencil,
     RotateCcw,
     Trash2,
     X,
@@ -41,17 +40,6 @@ export default function LoanTableActions({ loan, onDelete, onReject, onReturn })
                         Detail
                     </Link>
                 </DropdownMenuItem>
-                {loan.can_edit && (
-                    <DropdownMenuItem asChild>
-                        <Link
-                            href={route("admin.loans.edit", loan.id)}
-                            className="cursor-pointer"
-                        >
-                            <Pencil className="mr-2 h-4 w-4" />
-                            Edit
-                        </Link>
-                    </DropdownMenuItem>
-                )}
                 {loan.can_approve && (
                     <DropdownMenuItem
                         className="cursor-pointer text-emerald-700 focus:text-emerald-700"

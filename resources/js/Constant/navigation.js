@@ -134,7 +134,7 @@ const siswaMenuItems = [
     },
     {
         icon: History,
-        label: "Riwayat",
+        label: "Riwayat Peminjaman",
         routeName: "siswa.loans.index",
         query: { scope: "history" },
     },

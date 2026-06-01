@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Siswa;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Siswa\StoreStudentLoanRequest;
+use App\Http\Requests\Siswa\UpdateStudentLoanRequest;
 use App\Models\Equipment;
 use App\Models\Loan;
 use App\Models\PracticumSchedule;
@@ -35,6 +36,9 @@ class LoanController extends Controller
 
         $baseQuery = Loan::query()->where('borrower_id', $user->id);
 
+        $scopedCountQuery = (clone $baseQuery);
+        $this->applyStudentLoanScope($scopedCountQuery, $scope);
+
         $loans = (clone $baseQuery)
             ->with([
                 'supervisor:id,name',
@@ -42,11 +46,7 @@ class LoanController extends Controller
                 'items.equipment:id,code,name,item_type,unit',
                 'collateral:id,loan_id,status,held_at,returned_at',
             ])
-            ->when($scope === 'history', function ($query) {
-                $query->whereIn('status', ['dikembalikan', 'ditolak', 'dibatalkan']);
-            }, function ($query) {
-                $query->whereNotIn('status', ['dikembalikan', 'ditolak', 'dibatalkan']);
-            })
+            ->tap(fn ($query) => $this->applyStudentLoanScope($query, $scope))
             ->when($search->isNotEmpty(), function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('code', 'like', "%{$search}%")
@@ -66,9 +66,9 @@ class LoanController extends Controller
         return Inertia::render('Siswa/Loan/Index', [
             'loans' => $loans,
             'tabCounts' => [
-                'all' => (clone $baseQuery)->count(),
-                'alat' => (clone $baseQuery)->where('item_type', 'alat')->count(),
-                'bahan' => (clone $baseQuery)->where('item_type', 'bahan')->count(),
+                'all' => (clone $scopedCountQuery)->count(),
+                'alat' => (clone $scopedCountQuery)->where('item_type', 'alat')->count(),
+                'bahan' => (clone $scopedCountQuery)->where('item_type', 'bahan')->count(),
             ],
             'filters' => [
                 'search' => $search->toString(),
@@ -122,6 +122,8 @@ class LoanController extends Controller
 
     public function store(StoreStudentLoanRequest $request): RedirectResponse
     {
+        $this->authorize('create', Loan::class);
+
         $validated = $request->validated();
         $items = $validated['items'];
         unset($validated['items'], $validated['collateral_agreed']);
@@ -149,8 +151,87 @@ class LoanController extends Controller
         }
 
         return redirect()
-            ->route('siswa.loans.index')
+            ->route('siswa.loans.index', ['scope' => 'active'])
             ->with('success', $message);
+    }
+
+    public function edit(Request $request, Loan $loan): Response
+    {
+        $this->authorize('update', $loan);
+
+        $loan->load('items.equipment');
+
+        $options = $this->formOptions($request->user());
+
+        return Inertia::render('Siswa/Loan/Create', [
+            'loan' => $this->formatLoan($loan, true),
+            'loanType' => $loan->item_type,
+            'catalog' => $this->paginatedCatalog($request, $loan->item_type, $loan),
+            'catalogFilters' => [
+                'search' => $request->string('catalog_search')->trim()->toString(),
+            ],
+            'initialCart' => $loan->items
+                ->map(function ($item) {
+                    if (! $item->equipment) {
+                        return null;
+                    }
+
+                    return [
+                        'equipment' => $this->formatCatalogItem($item->equipment),
+                        'quantity' => $item->quantity,
+                    ];
+                })
+                ->filter()
+                ->values()
+                ->all(),
+            ...$options,
+            'defaults' => [
+                'item_type' => $loan->item_type,
+                'supervisor_id' => (string) $loan->supervisor_id,
+                'practicum_schedule_id' => $loan->practicum_schedule_id
+                    ? (string) $loan->practicum_schedule_id
+                    : '',
+                'request_date' => $loan->request_date?->format('Y-m-d') ?? now()->toDateString(),
+                'borrow_scope' => $loan->borrow_scope ?? 'lab',
+                'due_at' => $loan->due_at?->format('Y-m-d\TH:i') ?? '',
+                'purpose' => $loan->purpose ?? '',
+                'notes' => $loan->notes ?? $loan->purpose ?? '',
+                'collateral_agreed' => false,
+            ],
+        ]);
+    }
+
+    public function update(UpdateStudentLoanRequest $request, Loan $loan): RedirectResponse
+    {
+        $this->authorize('update', $loan);
+
+        $validated = $request->validated();
+        $items = $validated['items'];
+        unset($validated['items'], $validated['collateral_agreed'], $validated['item_type']);
+
+        $this->workflow->validateStockForItems($items, $loan->item_type);
+
+        $loan->update([
+            'supervisor_id' => $validated['supervisor_id'],
+            'practicum_schedule_id' => $validated['practicum_schedule_id'] ?? null,
+            'request_date' => $validated['request_date'],
+            'purpose' => $validated['purpose'],
+            'notes' => $validated['notes'] ?? null,
+            'borrow_scope' => $loan->isAlat() ? ($validated['borrow_scope'] ?? 'lab') : null,
+            'due_at' => $loan->isAlat() ? ($validated['due_at'] ?? null) : null,
+        ]);
+
+        $this->syncItems($loan, $items);
+        $this->workflow->logStatus(
+            $loan,
+            $loan->status,
+            'Pengajuan diperbarui oleh siswa.',
+            $request->user(),
+        );
+
+        return redirect()
+            ->route('siswa.loans.show', $loan)
+            ->with('success', 'Pengajuan peminjaman berhasil diperbarui.');
     }
 
     public function show(Loan $loan): Response
@@ -244,13 +325,21 @@ class LoanController extends Controller
         ];
     }
 
-    private function paginatedCatalog(Request $request, string $itemType)
+    private function paginatedCatalog(Request $request, string $itemType, ?Loan $loan = null)
     {
         $search = $request->string('catalog_search')->trim();
+        $currentEquipmentIds = $loan
+            ? $loan->items()->pluck('equipment_id')
+            : collect();
 
         $query = Equipment::query()
             ->where('status', 'active')
-            ->where('available', '>', 0)
+            ->where(function ($q) use ($currentEquipmentIds) {
+                $q->where('available', '>', 0);
+                if ($currentEquipmentIds->isNotEmpty()) {
+                    $q->orWhereIn('id', $currentEquipmentIds);
+                }
+            })
             ->when($search->isNotEmpty(), function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
@@ -370,6 +459,7 @@ class LoanController extends Controller
             'collateral_code' => $loan->collateral?->code,
             'collateral_status' => $loan->collateral?->status,
             'can_cancel' => auth()->user()?->can('cancel', $loan) ?? false,
+            'can_edit' => auth()->user()?->can('update', $loan) ?? false,
             'can_request_return' => auth()->user()?->can('requestReturn', $loan) ?? false,
             'is_overdue' => $loan->status === 'terlambat',
         ];
@@ -394,5 +484,27 @@ class LoanController extends Controller
         }
 
         return $data;
+    }
+
+    private function applyStudentLoanScope($query, string $scope): void
+    {
+        if ($scope === 'history') {
+            $query->where(function ($q) {
+                $q->whereIn('status', ['dikembalikan', 'ditolak', 'dibatalkan'])
+                    ->orWhere(function ($inner) {
+                        $inner->where('item_type', 'bahan')->where('status', 'dipinjam');
+                    });
+            });
+
+            return;
+        }
+
+        $query->where(function ($q) {
+            $q->whereNotIn('status', ['dikembalikan', 'ditolak', 'dibatalkan'])
+                ->where(function ($inner) {
+                    $inner->where('item_type', 'alat')
+                        ->orWhere('status', '!=', 'dipinjam');
+                });
+        });
     }
 }

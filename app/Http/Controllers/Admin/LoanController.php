@@ -5,11 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\RejectLoanRequest;
 use App\Http\Requests\Admin\ReturnLoanRequest;
-use App\Http\Requests\Admin\StoreLoanRequest;
-use App\Http\Requests\Admin\UpdateLoanRequest;
-use App\Models\Equipment;
 use App\Models\Loan;
-use App\Models\PracticumSchedule;
 use App\Models\User;
 use App\Services\Loan\LoanWorkflowService;
 use Illuminate\Http\RedirectResponse;
@@ -79,37 +75,6 @@ class LoanController extends Controller
         ]);
     }
 
-    public function create(): Response
-    {
-        $this->authorize('create', Loan::class);
-
-        return Inertia::render('Admin/Loan/Create', $this->formOptions());
-    }
-
-    public function store(StoreLoanRequest $request): RedirectResponse
-    {
-        $validated = $request->validated();
-        $items = $validated['items'];
-        unset($validated['items']);
-
-        $this->workflow->validateStockForItems($items, $validated['item_type']);
-
-        $loan = Loan::create([
-            ...$validated,
-            'code' => Loan::generateCode(),
-            'status' => 'diminta',
-            'borrow_scope' => $validated['borrow_scope'] ?? 'lab',
-            'due_at' => $validated['item_type'] === 'alat' ? ($validated['due_at'] ?? null) : null,
-        ]);
-
-        $this->syncItems($loan, $items);
-        $this->workflow->logStatus($loan, 'diminta', 'Pengajuan peminjaman dibuat.', $request->user());
-
-        return redirect()
-            ->route('admin.loans.index')
-            ->with('success', 'Pengajuan peminjaman berhasil dibuat.');
-    }
-
     public function show(Loan $loan): Response
     {
         $this->authorize('view', $loan);
@@ -127,39 +92,6 @@ class LoanController extends Controller
         return Inertia::render('Admin/Loan/Show', [
             'loan' => $this->formatLoan($loan, true),
         ]);
-    }
-
-    public function edit(Loan $loan): Response
-    {
-        $this->authorize('update', $loan);
-        $loan->load('items.equipment:id,code,name,item_type,available');
-
-        return Inertia::render('Admin/Loan/Edit', [
-            'loan' => $this->formatLoan($loan, true),
-            ...$this->formOptions(),
-        ]);
-    }
-
-    public function update(UpdateLoanRequest $request, Loan $loan): RedirectResponse
-    {
-        $this->authorize('update', $loan);
-
-        $validated = $request->validated();
-        $items = $validated['items'];
-        unset($validated['items']);
-
-        $this->workflow->validateStockForItems($items, $validated['item_type']);
-
-        $loan->update([
-            ...$validated,
-            'due_at' => $validated['item_type'] === 'alat' ? ($validated['due_at'] ?? null) : null,
-        ]);
-
-        $this->syncItems($loan, $items);
-
-        return redirect()
-            ->route('admin.loans.show', $loan)
-            ->with('success', 'Peminjaman berhasil diperbarui.');
     }
 
     public function destroy(Loan $loan): RedirectResponse
@@ -220,26 +152,6 @@ class LoanController extends Controller
         }
     }
 
-    private function formOptions(): array
-    {
-        return [
-            'borrowerOptions' => $this->borrowerOptions(),
-            'supervisorOptions' => $this->supervisorOptions(),
-            'scheduleOptions' => PracticumSchedule::query()
-                ->where('status', 'aktif')
-                ->orderByDesc('tanggal')
-                ->get(['id', 'code', 'title', 'mata_kuliah', 'kelas', 'tanggal'])
-                ->map(fn ($s) => [
-                    'id' => $s->id,
-                    'label' => "{$s->code} — {$s->title} ({$s->kelas})",
-                ])
-                ->values()
-                ->all(),
-            'equipmentOptionsAlat' => $this->equipmentOptions('alat'),
-            'equipmentOptionsBahan' => $this->equipmentOptions('bahan'),
-        ];
-    }
-
     private function borrowerOptions(): array
     {
         return User::query()
@@ -265,25 +177,6 @@ class LoanController extends Controller
             ->orderBy('name')
             ->get(['id', 'name'])
             ->map(fn (User $u) => ['id' => $u->id, 'name' => $u->name])
-            ->values()
-            ->all();
-    }
-
-    private function equipmentOptions(string $itemType): array
-    {
-        $query = Equipment::query()->where('status', 'active')->orderBy('name');
-
-        if ($itemType === 'alat') {
-            $query->alat();
-        } else {
-            $query->bahan();
-        }
-
-        return $query->get(['id', 'code', 'name', 'available', 'unit'])
-            ->map(fn (Equipment $e) => [
-                'id' => $e->id,
-                'label' => "{$e->code} — {$e->name} (tersedia: {$e->available}".($e->unit ? " {$e->unit}" : '').')',
-            ])
             ->values()
             ->all();
     }
@@ -335,7 +228,7 @@ class LoanController extends Controller
             'can_mark_borrowed' => $loan->isAlat() && $loan->status === 'disetujui',
             'can_return' => $loan->isAlat() && in_array($loan->status, ['dipinjam', 'terlambat'], true),
             'can_inspect' => $loan->status === 'menunggu_inspeksi',
-            'can_edit' => in_array($loan->status, ['diminta', 'antrian'], true),
+            'can_edit' => false,
             'requires_collateral' => $loan->requiresCollateral(),
             'collateral_id' => $loan->collateral?->id,
             'collateral_code' => $loan->collateral?->code,

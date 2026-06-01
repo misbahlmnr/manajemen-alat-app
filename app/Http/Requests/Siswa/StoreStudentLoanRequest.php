@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Siswa;
 
+use App\Models\Equipment;
 use App\Models\PracticumSchedule;
 use App\Models\User;
 use Illuminate\Contracts\Validation\Validator;
@@ -22,10 +23,19 @@ class StoreStudentLoanRequest extends FormRequest
             $items = array_values(array_filter($items, fn ($row) => ! empty($row['equipment_id'])));
         }
 
-        $this->merge([
+        $merge = [
             'items' => $items,
             'borrower_id' => $this->user()->id,
-        ]);
+        ];
+
+        $isAlat = $this->input('item_type') === 'alat';
+        $bawaPulang = $this->input('borrow_scope') === 'bawa_pulang';
+
+        if (! $isAlat || ! $bawaPulang) {
+            $merge['collateral_agreed'] = null;
+        }
+
+        $this->merge($merge);
     }
 
     public function rules(): array
@@ -48,8 +58,8 @@ class StoreStudentLoanRequest extends FormRequest
                 ),
             ],
             'item_type' => ['required', Rule::in(['alat', 'bahan'])],
-            'request_date' => ['required', 'date', 'after_or_equal:today'],
-            'due_at' => [$isAlat ? 'required' : 'nullable', 'date', 'after:request_date'],
+            'request_date' => ['required', 'date'],
+            'due_at' => [$isAlat ? 'required' : 'nullable', 'date', 'after_or_equal:request_date'],
             'purpose' => ['required', 'string', 'max:255'],
             'notes' => ['nullable', 'string', 'max:2000'],
             'borrow_scope' => [
@@ -57,6 +67,7 @@ class StoreStudentLoanRequest extends FormRequest
                 Rule::in(['lab', 'bawa_pulang']),
             ],
             'collateral_agreed' => [
+                Rule::excludeIf(fn () => ! $isAlat || ! $bawaPulang),
                 Rule::requiredIf($isAlat && $bawaPulang),
                 'accepted',
             ],
@@ -93,7 +104,22 @@ class StoreStudentLoanRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator) {
-            if ($this->input('item_type') !== 'alat' || ! $this->filled('practicum_schedule_id')) {
+            $itemType = $this->input('item_type');
+
+            foreach ($this->input('items', []) as $index => $row) {
+                $equipment = Equipment::query()->find($row['equipment_id'] ?? null);
+
+                if (! $equipment || $equipment->item_type !== $itemType) {
+                    $validator->errors()->add(
+                        'items',
+                        'Barang tidak valid untuk jenis pengajuan ini.',
+                    );
+
+                    break;
+                }
+            }
+
+            if ($itemType !== 'alat' || ! $this->filled('practicum_schedule_id')) {
                 return;
             }
 

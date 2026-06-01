@@ -42,7 +42,7 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
     Route::resource('equipment', EquipmentController::class);
     Route::resource('supplies', SupplyController::class);
     Route::resource('schedules', PracticumScheduleController::class);
-    Route::resource('loans', LoanController::class);
+    Route::resource('loans', LoanController::class)->except(['create', 'store', 'edit', 'update']);
     Route::post('loans/{loan}/approve', [LoanController::class, 'approve'])->name('loans.approve');
     Route::post('loans/{loan}/reject', [LoanController::class, 'reject'])->name('loans.reject');
     Route::post('loans/{loan}/mark-borrowed', [LoanController::class, 'markBorrowed'])->name('loans.mark-borrowed');
@@ -62,6 +62,8 @@ Route::middleware(['auth', 'verified', 'role:siswa'])->prefix('siswa')->name('si
     Route::get('loans', [SiswaLoanController::class, 'index'])->name('loans.index');
     Route::get('loans/create', [SiswaLoanController::class, 'create'])->name('loans.create');
     Route::post('loans', [SiswaLoanController::class, 'store'])->name('loans.store');
+    Route::get('loans/{loan}/edit', [SiswaLoanController::class, 'edit'])->name('loans.edit');
+    Route::put('loans/{loan}', [SiswaLoanController::class, 'update'])->name('loans.update');
     Route::get('loans/{loan}', [SiswaLoanController::class, 'show'])->name('loans.show');
     Route::post('loans/{loan}/cancel', [SiswaLoanController::class, 'cancel'])->name('loans.cancel');
     Route::post('loans/{loan}/request-return', [SiswaLoanController::class, 'requestReturn'])->name('loans.request-return');

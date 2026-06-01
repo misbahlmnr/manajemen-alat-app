@@ -6,7 +6,7 @@ import {
     DropdownMenuTrigger,
 } from "@/Components/ui/dropdown-menu";
 import { Button } from "@/Components/ui/button";
-import { Eye, MoreHorizontal, RotateCcw, X } from "lucide-react";
+import { Eye, MoreHorizontal, Pencil, RotateCcw, X } from "lucide-react";
 
 export default function StudentLoanTableActions({
     loan,
@@ -31,6 +31,17 @@ export default function StudentLoanTableActions({
                         Detail
                     </Link>
                 </DropdownMenuItem>
+                {loan.can_edit && (
+                    <DropdownMenuItem asChild>
+                        <Link
+                            href={route("siswa.loans.edit", loan.id)}
+                            className="cursor-pointer"
+                        >
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Ubah Pengajuan
+                        </Link>
+                    </DropdownMenuItem>
+                )}
                 {loan.can_request_return && (
                     <DropdownMenuItem
                         className="cursor-pointer"

@@ -6,7 +6,7 @@ import { Button } from "@/Components/ui/button";
 import { Input } from "@/Components/ui/input";
 import { Select } from "@/Components/ui/select";
 import { Head, Link, router, useForm } from "@inertiajs/react";
-import { ClipboardList, Plus, Search } from "lucide-react";
+import { ClipboardList, Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import LoanTable from "./Components/LoanTable";
 import DeleteLoanDialog from "./Components/DeleteLoanDialog";
@@ -118,15 +118,8 @@ export default function Index({
             <div className="animate-fade-in">
                 <PageHeader
                     title="Peminjaman"
-                    subtitle={`${total} pengajuan terdaftar`}
-                >
-                    <Button asChild>
-                        <Link href={route("admin.loans.create")}>
-                            <Plus className="mr-2 h-4 w-4" />
-                            Tambah Peminjaman
-                        </Link>
-                    </Button>
-                </PageHeader>
+                    subtitle={`${total} pengajuan dari siswa`}
+                />
 
                 <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                     <div className="relative sm:col-span-2">
@@ -232,15 +225,7 @@ export default function Index({
                     <EmptyState
                         icon={ClipboardList}
                         title="Tidak ada peminjaman ditemukan"
-                        description="Ubah filter atau buat pengajuan baru."
-                        action={
-                            <Button asChild variant="outline">
-                                <Link href={route("admin.loans.create")}>
-                                    <Plus className="mr-2 h-4 w-4" />
-                                    Tambah peminjaman
-                                </Link>
-                            </Button>
-                        }
+                        description="Pengajuan dari siswa akan muncul di sini untuk disetujui atau ditolak."
                     />
                 )}
             </div>
