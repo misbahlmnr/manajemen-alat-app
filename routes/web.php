@@ -8,6 +8,9 @@ use App\Http\Controllers\Admin\PracticumScheduleController;
 use App\Http\Controllers\Admin\SupplyController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Guru\DashboardController as GuruDashboardController;
+use App\Http\Controllers\Guru\InventarisController as GuruInventarisController;
+use App\Http\Controllers\Guru\LoanController as GuruLoanController;
+use App\Http\Controllers\Guru\ScheduleController as GuruScheduleController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Siswa\DashboardController as SiswaDashboardController;
 use App\Http\Controllers\Siswa\EquipmentController as SiswaEquipmentController;
@@ -52,6 +55,16 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
     Route::post('collaterals/{collateral}/return-card', [LoanCollateralController::class, 'returnCard'])->name('collaterals.return-card');
     Route::post('collaterals/{collateral}/complete-compensation', [LoanCollateralController::class, 'completeCompensation'])->name('collaterals.complete-compensation');
     Route::post('loans/{loan}/inspect', [LoanCollateralController::class, 'inspect'])->name('loans.inspect');
+});
+
+Route::middleware(['auth', 'verified', 'role:guru'])->prefix('guru')->name('guru.')->group(function () {
+    Route::get('inventaris', [GuruInventarisController::class, 'index'])->name('inventaris.index');
+    Route::get('inventaris/alat/{equipment}', [GuruInventarisController::class, 'showAlat'])->name('inventaris.alat.show');
+    Route::get('inventaris/bahan/{supply}', [GuruInventarisController::class, 'showBahan'])->name('inventaris.bahan.show');
+    Route::get('schedules', [GuruScheduleController::class, 'index'])->name('schedules.index');
+    Route::get('schedules/{schedule}', [GuruScheduleController::class, 'show'])->name('schedules.show');
+    Route::get('loans', [GuruLoanController::class, 'index'])->name('loans.index');
+    Route::get('loans/{loan}', [GuruLoanController::class, 'show'])->name('loans.show');
 });
 
 Route::middleware(['auth', 'verified', 'role:siswa'])->prefix('siswa')->name('siswa.')->group(function () {

@@ -2,15 +2,18 @@
 
 namespace App\Http\Controllers\Guru;
 
-use App\Http\Controllers\Concerns\LoadsDashboardData;
 use App\Http\Controllers\Controller;
+use App\Services\Dashboard\GuruDashboardDataService;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class DashboardController extends Controller
 {
-    use LoadsDashboardData;
-
-    public function index()
+    public function index(): Response
     {
-        return $this->dashboardIndex('Guru/Dashboard/Index');
+        $user = auth()->user();
+        $payload = app(GuruDashboardDataService::class)->forUser($user);
+
+        return Inertia::render('Guru/Dashboard/Index', $payload);
     }
 }

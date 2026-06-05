@@ -1,8 +1,8 @@
 import { StatCard } from "@/Components/Dashboard/StatCard";
 import { RecentLoansTable } from "@/Components/Dashboard/RecentLoansTable";
+import { MonitoringEquipmentTable } from "@/Components/Dashboard/MonitoringEquipmentTable";
 import { DashboardSection } from "@/Components/Dashboard/DashboardSection";
 import { UpcomingSchedules } from "@/Components/Dashboard/UpcomingSchedules";
-import { EquipmentCard } from "@/Components/Equipment/EquipmentCard";
 import AlertBanner from "./AlertBanner";
 import { AlertTriangle, CalendarDays, Package, Users } from "lucide-react";
 
@@ -50,7 +50,7 @@ export default function GuruDashboard({
                 title="Peminjaman Siswa Terbaru"
                 description="Pantau aktivitas peminjaman siswa Anda."
                 actionLabel="Lihat Semua"
-                actionHref="#"
+                actionHref={route("guru.loans.index")}
                 actionVariant="outline"
             >
                 <RecentLoansTable loans={loans} />
@@ -58,25 +58,20 @@ export default function GuruDashboard({
 
             <UpcomingSchedules schedules={upcomingSchedules} />
 
-            {borrowedEquipment.length > 0 && (
-                <div className="mt-8">
-                    <h2 className="mb-4 text-lg font-semibold text-foreground">
-                        Monitoring Alat Praktikum
-                    </h2>
-                    <p className="mb-4 text-sm text-muted-foreground">
-                        Alat dengan stok sedang dipinjam
-                    </p>
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                        {borrowedEquipment.slice(0, 3).map((eq) => (
-                            <EquipmentCard
-                                key={eq.id}
-                                equipment={eq}
-                                showBorrowButton={false}
-                            />
-                        ))}
-                    </div>
-                </div>
-            )}
+            <DashboardSection
+                title="Monitoring Alat Praktikum"
+                description="Alat dengan stok sedang dipinjam"
+                badge={borrowedEquipment.length || undefined}
+                actionLabel="Lihat Inventaris"
+                actionHref={route("guru.inventaris.index", { type: "alat" })}
+                actionVariant="outline"
+                className="mt-8"
+            >
+                <MonitoringEquipmentTable
+                    equipment={borrowedEquipment}
+                    showDetailLink
+                />
+            </DashboardSection>
 
             {overdue.length > 0 && (
                 <DashboardSection

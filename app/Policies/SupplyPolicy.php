@@ -9,12 +9,12 @@ class SupplyPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->isAdmin() || $user->isSiswa();
+        return $user->isAdmin() || $user->isSiswa() || $user->isGuru();
     }
 
     public function view(User $user, Supply $supply): bool
     {
-        return $user->isAdmin() || $user->isSiswa();
+        return $user->isAdmin() || $user->isSiswa() || $user->isGuru();
     }
 
     public function create(User $user): bool

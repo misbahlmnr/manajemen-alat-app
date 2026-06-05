@@ -76,26 +76,23 @@ const guruMenuItems = [
     {
         icon: Box,
         label: "Inventaris",
-        routeName: null,
-        href: "#",
+        routeName: "guru.inventaris.index",
     },
     {
         icon: CalendarDays,
         label: "Jadwal Praktikum",
-        routeName: null,
-        href: "#",
+        routeName: "guru.schedules.index",
     },
     {
         icon: ClipboardList,
         label: "Peminjaman Siswa",
-        routeName: null,
-        href: "#",
+        routeName: "guru.loans.index",
     },
     {
         icon: History,
         label: "Riwayat",
-        routeName: null,
-        href: "#",
+        routeName: "guru.loans.index",
+        query: { scope: "history" },
     },
     {
         icon: BarChart3,

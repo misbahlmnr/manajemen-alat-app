@@ -9,12 +9,17 @@ class PracticumSchedulePolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->isAdmin();
+        return $user->isAdmin() || $user->isGuru();
     }
 
     public function view(User $user, PracticumSchedule $practicumSchedule): bool
     {
-        return $user->isAdmin();
+        if ($user->isAdmin()) {
+            return true;
+        }
+
+        return $user->isGuru()
+            && $practicumSchedule->guru_id === $user->id;
     }
 
     public function create(User $user): bool
