@@ -92,7 +92,6 @@ class SiswaDashboardDataService
             ->values()
             ->all();
 
-        $notifications = $this->buildNotifications($user, $loans);
         $compensationLoan = collect($loans)->first(
             fn ($loan) => ($loan['compensation']['status'] ?? null) === 'pending'
         );
@@ -101,66 +100,8 @@ class SiswaDashboardDataService
             'loans' => $loans,
             'equipment' => $availableEquipment,
             'upcomingSchedules' => $upcomingSchedules,
-            'notifications' => $notifications,
-            'unreadNotifications' => collect($notifications)->where('read', false)->count(),
             'hasPendingCompensation' => $compensationLoan !== null,
             'compensationLoanId' => $compensationLoan['id'] ?? null,
         ];
-    }
-
-    private function buildNotifications(User $user, array $loans): array
-    {
-        $notifications = [];
-        $userId = (string) $user->id;
-
-        foreach ($loans as $loan) {
-            $label = $loan['equipmentName'] ?? $loan['code'];
-
-            if ($loan['status'] === 'terlambat') {
-                $notifications[] = [
-                    'id' => "overdue-{$loan['id']}",
-                    'userId' => $userId,
-                    'title' => 'Peminjaman Terlambat',
-                    'message' => "{$label} sudah melewati batas pengembalian. Segera ajukan pengembalian.",
-                    'type' => 'error',
-                    'read' => false,
-                ];
-            }
-
-            if (($loan['compensation']['status'] ?? null) === 'pending') {
-                $notifications[] = [
-                    'id' => "compensation-{$loan['id']}",
-                    'userId' => $userId,
-                    'title' => 'Kompensasi Pending',
-                    'message' => "Selesaikan kompensasi untuk {$label} agar kartu pelajar dapat diambil.",
-                    'type' => 'warning',
-                    'read' => false,
-                ];
-            }
-
-            if (in_array($loan['status'], ['diminta', 'antrian'], true)) {
-                $notifications[] = [
-                    'id' => "pending-{$loan['id']}",
-                    'userId' => $userId,
-                    'title' => 'Pengajuan Menunggu',
-                    'message' => "Pengajuan {$label} sedang menunggu persetujuan admin.",
-                    'type' => 'info',
-                    'read' => false,
-                ];
-            }
-
-            if ($loan['status'] === 'disetujui') {
-                $notifications[] = [
-                    'id' => "approved-{$loan['id']}",
-                    'userId' => $userId,
-                    'title' => 'Pengajuan Disetujui',
-                    'message' => "{$label} telah disetujui. Silakan ambil di laboratorium.",
-                    'type' => 'success',
-                    'read' => false,
-                ];
-            }
-        }
-
-        return array_slice($notifications, 0, 8);
     }
 }

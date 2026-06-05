@@ -13,6 +13,7 @@ use App\Http\Controllers\Guru\InventarisController as GuruInventarisController;
 use App\Http\Controllers\Guru\LoanController as GuruLoanController;
 use App\Http\Controllers\Guru\ReportController as GuruReportController;
 use App\Http\Controllers\Guru\ScheduleController as GuruScheduleController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Siswa\DashboardController as SiswaDashboardController;
 use App\Http\Controllers\Siswa\EquipmentController as SiswaEquipmentController;
@@ -58,6 +59,7 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
     Route::post('collaterals/{collateral}/complete-compensation', [LoanCollateralController::class, 'completeCompensation'])->name('collaterals.complete-compensation');
     Route::post('loans/{loan}/inspect', [LoanCollateralController::class, 'inspect'])->name('loans.inspect');
     Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
+    Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
 });
 
 Route::middleware(['auth', 'verified', 'role:guru'])->prefix('guru')->name('guru.')->group(function () {
@@ -69,6 +71,7 @@ Route::middleware(['auth', 'verified', 'role:guru'])->prefix('guru')->name('guru
     Route::get('loans', [GuruLoanController::class, 'index'])->name('loans.index');
     Route::get('loans/{loan}', [GuruLoanController::class, 'show'])->name('loans.show');
     Route::get('reports', [GuruReportController::class, 'index'])->name('reports.index');
+    Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
 });
 
 Route::middleware(['auth', 'verified', 'role:siswa'])->prefix('siswa')->name('siswa.')->group(function () {
@@ -96,9 +99,14 @@ Route::middleware(['auth', 'verified', 'role:siswa'])->prefix('siswa')->name('si
             request()->query(),
         ));
     });
+    Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
 });
 
 Route::middleware('auth')->group(function () {
+    Route::post('notifications/{notification}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
+    Route::post('notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read-all');
+    Route::post('notifications/push/subscribe', [NotificationController::class, 'subscribePush'])->name('notifications.push.subscribe');
+    Route::post('notifications/push/unsubscribe', [NotificationController::class, 'unsubscribePush'])->name('notifications.push.unsubscribe');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');

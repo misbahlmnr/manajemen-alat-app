@@ -11,6 +11,7 @@ use App\Models\PracticumSchedule;
 use App\Models\User;
 use App\Services\Loan\CollateralWorkflowService;
 use App\Services\Loan\LoanWorkflowService;
+use App\Services\Notification\LabNotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -147,6 +148,8 @@ class LoanController extends Controller
         if ($loan->requiresCollateral()) {
             $this->collateralWorkflow->registerPendingCollateral($loan->fresh());
         }
+
+        app(LabNotificationService::class)->loanSubmitted($loan->fresh(['borrower', 'supervisor', 'items.equipment']));
 
         if ($validated['item_type'] === 'bahan') {
             $message = 'Pengambilan bahan berhasil dicatat! Menunggu verifikasi admin.';

@@ -6,16 +6,21 @@ import { UpcomingSchedules } from "@/Components/Dashboard/UpcomingSchedules";
 import QuickActionCard from "./QuickActionCard";
 import NotificationBanner from "./NotificationBanner";
 import CompensationAlert from "./CompensationAlert";
+import { usePage } from "@inertiajs/react";
 import { Bell, ClipboardCheck, FileText, Package, Wrench } from "lucide-react";
 
 export default function SiswaDashboard({
     loans,
     equipment,
-    notifications,
     upcomingSchedules,
     hasPendingCompensation = false,
     compensationLoanId = null,
 }) {
+    const {
+        notifications = [],
+        unreadNotifications = 0,
+        notificationsIndexUrl = null,
+    } = usePage().props;
     const myLoans = loans ?? [];
     const myActive = myLoans.filter((l) =>
         ["dipinjam", "disetujui", "terlambat"].includes(l.status),
@@ -23,13 +28,16 @@ export default function SiswaDashboard({
     const myPending = myLoans.filter((l) =>
         ["diminta", "antrian"].includes(l.status),
     );
-    const unread = (notifications ?? []).filter((n) => !n.read);
     const availableEquipment = equipment ?? [];
     const returnedLoans = myLoans.filter((l) => l.status === "dikembalikan");
 
     return (
         <>
-            <NotificationBanner notifications={unread} />
+            <NotificationBanner
+                notifications={notifications}
+                unreadCount={unreadNotifications}
+                indexUrl={notificationsIndexUrl}
+            />
 
             <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <StatCard
@@ -46,9 +54,9 @@ export default function SiswaDashboard({
                 />
                 <StatCard
                     title="Notifikasi Baru"
-                    value={unread.length}
+                    value={unreadNotifications}
                     icon={Bell}
-                    variant={unread.length > 0 ? "warning" : "default"}
+                    variant={unreadNotifications > 0 ? "warning" : "default"}
                 />
             </div>
 

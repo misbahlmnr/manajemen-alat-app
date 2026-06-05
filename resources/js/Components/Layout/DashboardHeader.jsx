@@ -8,6 +8,7 @@ export default function DashboardHeader({
     user,
     unreadNotifications = 0,
     notifications = [],
+    notificationsIndexUrl = null,
     className,
 }) {
     return (
@@ -23,6 +24,7 @@ export default function DashboardHeader({
                 <NotificationDropdown
                     unreadCount={unreadNotifications}
                     notifications={notifications}
+                    indexUrl={notificationsIndexUrl}
                 />
 
                 <div className="flex items-center gap-2 sm:gap-3">

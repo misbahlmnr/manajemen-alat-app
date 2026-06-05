@@ -1,6 +1,8 @@
+import { Button } from "@/Components/ui/button";
+import { Link } from "@inertiajs/react";
 import { Bell } from "lucide-react";
 
-export default function AlertBanner({ notifications }) {
+export default function AlertBanner({ notifications, indexUrl = null }) {
     if (!notifications?.length) return null;
 
     return (
@@ -14,6 +16,11 @@ export default function AlertBanner({ notifications }) {
                     {notifications[0]?.message}
                 </p>
             </div>
+            <Button asChild variant="outline" size="sm">
+                <Link href={indexUrl ?? route("guru.notifications.index")}>
+                    Buka
+                </Link>
+            </Button>
         </div>
     );
 }

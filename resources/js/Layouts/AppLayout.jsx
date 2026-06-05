@@ -3,6 +3,8 @@ import FlashMessage from "@/Components/FlashMessage";
 import DashboardSidebar from "@/Components/Layout/DashboardSidebar";
 import DashboardHeader from "@/Components/Layout/DashboardHeader";
 import DashboardContent from "@/Components/Layout/DashboardContent";
+import useRealtimeNotifications from "@/hooks/useRealtimeNotifications";
+import useWebPush from "@/hooks/useWebPush";
 import { usePage } from "@inertiajs/react";
 
 export default function AppLayout({ children }) {
@@ -10,9 +12,13 @@ export default function AppLayout({ children }) {
         auth,
         unreadNotifications = 0,
         notifications = [],
+        notificationsIndexUrl = null,
     } = usePage().props;
     const user = auth?.user;
     const [sidebarOpen, setSidebarOpen] = useState(false);
+
+    useRealtimeNotifications();
+    useWebPush();
 
     return (
         <div className="flex min-h-screen w-full bg-background">
@@ -29,6 +35,7 @@ export default function AppLayout({ children }) {
                     onMenuClick={() => setSidebarOpen(true)}
                     unreadNotifications={unreadNotifications}
                     notifications={notifications}
+                    notificationsIndexUrl={notificationsIndexUrl}
                 />
 
                 <DashboardContent>{children}</DashboardContent>

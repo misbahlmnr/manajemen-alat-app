@@ -2,22 +2,29 @@ import { Button } from "@/Components/ui/button";
 import { Link } from "@inertiajs/react";
 import { Bell } from "lucide-react";
 
-export default function NotificationBanner({ notifications }) {
-    if (!notifications?.length) return null;
+export default function NotificationBanner({
+    notifications = [],
+    unreadCount = 0,
+    indexUrl = null,
+}) {
+    const unread = unreadCount || notifications.filter((n) => !n.read).length;
+    const latest = notifications.find((n) => !n.read) ?? notifications[0];
+
+    if (!unread || !latest) return null;
 
     return (
         <div className="mb-6 flex items-start gap-3 rounded-xl border border-warning/20 bg-warning/10 p-4">
             <Bell className="mt-0.5 h-5 w-5 shrink-0 text-warning" />
             <div className="min-w-0 flex-1">
-                <p className="font-medium">
-                    {notifications.length} notifikasi belum dibaca
-                </p>
+                <p className="font-medium">{unread} notifikasi belum dibaca</p>
                 <p className="mt-0.5 line-clamp-1 text-sm text-muted-foreground">
-                    {notifications[0]?.message}
+                    {latest.message}
                 </p>
             </div>
             <Button asChild variant="outline" size="sm">
-                <Link href={route("siswa.loans.index")}>Buka</Link>
+                <Link href={indexUrl ?? route("siswa.notifications.index")}>
+                    Buka
+                </Link>
             </Button>
         </div>
     );

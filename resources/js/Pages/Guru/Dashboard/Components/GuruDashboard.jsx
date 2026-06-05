@@ -4,6 +4,7 @@ import { MonitoringEquipmentTable } from "@/Components/Dashboard/MonitoringEquip
 import { DashboardSection } from "@/Components/Dashboard/DashboardSection";
 import { UpcomingSchedules } from "@/Components/Dashboard/UpcomingSchedules";
 import AlertBanner from "./AlertBanner";
+import { usePage } from "@inertiajs/react";
 import { AlertTriangle, CalendarDays, Package, Users } from "lucide-react";
 
 export default function GuruDashboard({
@@ -11,8 +12,8 @@ export default function GuruDashboard({
     equipment,
     stats,
     upcomingSchedules,
-    notifications,
 }) {
+    const { notifications = [], notificationsIndexUrl = null } = usePage().props;
     const activeAlat = loans.filter((l) =>
         ["dipinjam", "terlambat"].includes(l.status),
     );
@@ -24,7 +25,10 @@ export default function GuruDashboard({
 
     return (
         <>
-            <AlertBanner notifications={alertNotifications} />
+            <AlertBanner
+                notifications={alertNotifications}
+                indexUrl={notificationsIndexUrl}
+            />
 
             <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <StatCard

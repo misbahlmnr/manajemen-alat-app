@@ -7,6 +7,7 @@ use App\Models\LoanCollateral;
 use App\Models\LoanCompensation;
 use App\Models\LoanReturnInspection;
 use App\Models\User;
+use App\Services\Notification\LabNotificationService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -29,6 +30,8 @@ class CollateralWorkflowService
             'held_at' => now(),
             'held_by_admin_id' => $admin->id,
         ]);
+
+        app(LabNotificationService::class)->collateralHeld($collateral->fresh());
     }
 
     public function requestReturnInspection(Loan $loan, ?string $note, User $actor): void
@@ -52,6 +55,8 @@ class CollateralWorkflowService
             ['loan_id' => $loan->id],
             ['result' => 'belum']
         );
+
+        app(LabNotificationService::class)->loanReturnRequested($loan->fresh());
     }
 
     public function inspectReturn(Loan $loan, array $data, User $admin): void
@@ -111,6 +116,14 @@ class CollateralWorkflowService
                     ]
                 );
             }
+
+            $freshLoan = $loan->fresh();
+
+            if ($result === 'lengkap') {
+                app(LabNotificationService::class)->loanReturned($freshLoan);
+            } else {
+                app(LabNotificationService::class)->compensationRequired($freshLoan);
+            }
         });
     }
 
@@ -139,6 +152,8 @@ class CollateralWorkflowService
                 'status' => 'dikembalikan',
                 'returned_at' => now(),
             ]);
+
+            app(LabNotificationService::class)->compensationCompleted($loan->fresh());
         });
     }
 
@@ -230,6 +245,8 @@ class CollateralWorkflowService
             'held_by_admin_id' => $admin->id,
             'notes' => $cardData['notes'] ?? null,
         ]);
+
+        app(LabNotificationService::class)->collateralHeld($collateral->fresh());
 
         return $collateral;
     }

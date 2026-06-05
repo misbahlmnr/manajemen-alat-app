@@ -56,8 +56,7 @@ const adminMenuItems = [
     {
         icon: Bell,
         label: "Notifikasi",
-        routeName: null,
-        href: "#",
+        routeName: "admin.notifications.index",
     },
     {
         icon: BarChart3,
@@ -92,6 +91,11 @@ const guruMenuItems = [
         label: "Riwayat",
         routeName: "guru.loans.index",
         query: { scope: "history" },
+    },
+    {
+        icon: Bell,
+        label: "Notifikasi",
+        routeName: "guru.notifications.index",
     },
     {
         icon: BarChart3,
@@ -136,8 +140,7 @@ const siswaMenuItems = [
     {
         icon: Bell,
         label: "Notifikasi",
-        routeName: null,
-        href: "#",
+        routeName: "siswa.notifications.index",
     },
 ];
 

@@ -106,7 +106,6 @@ class GuruDashboardDataService
                 'bahanThisWeek' => $bahanThisWeek,
             ],
             'upcomingSchedules' => $upcomingSchedules,
-            'notifications' => [],
         ];
     }
 
