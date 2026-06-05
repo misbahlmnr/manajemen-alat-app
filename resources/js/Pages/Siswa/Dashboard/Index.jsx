@@ -8,6 +8,8 @@ export default function Index({
     equipment = [],
     notifications = [],
     upcomingSchedules = [],
+    hasPendingCompensation = false,
+    compensationLoanId = null,
 }) {
     const user = usePage().props.auth?.user;
     const firstName = user?.name?.split(" ")[0] ?? "Pengguna";
@@ -23,11 +25,12 @@ export default function Index({
                 />
 
                 <SiswaDashboard
-                    user={user}
                     loans={loans}
                     equipment={equipment}
                     notifications={notifications}
                     upcomingSchedules={upcomingSchedules}
+                    hasPendingCompensation={hasPendingCompensation}
+                    compensationLoanId={compensationLoanId}
                 />
             </div>
         </AppLayout>

@@ -6,10 +6,12 @@ use App\Models\Equipment;
 use App\Models\Loan;
 use App\Models\PracticumSchedule;
 use App\Models\User;
+use App\Services\Dashboard\Concerns\FormatsDashboardLoan;
 use Carbon\Carbon;
 
 class GuruDashboardDataService
 {
+    use FormatsDashboardLoan;
     public function forUser(User $user): array
     {
         $supervised = Loan::query()->where('supervisor_id', $user->id);
@@ -108,38 +110,5 @@ class GuruDashboardDataService
         ];
     }
 
-    private function formatDashboardLoan(Loan $loan): array
-    {
-        $itemsSummary = $loan->relationLoaded('items')
-            ? $loan->items
-                ->map(fn ($item) => ($item->equipment?->name ?? 'Item').' ×'.$item->quantity)
-                ->join(', ')
-            : '—';
 
-        $firstItem = $loan->relationLoaded('items') ? $loan->items->first() : null;
-        $totalQty = $loan->relationLoaded('items')
-            ? (int) $loan->items->sum('quantity')
-            : 0;
-
-        return [
-            'id' => $loan->id,
-            'code' => $loan->code,
-            'borrower_name' => $loan->borrower?->name,
-            'borrower_class' => $loan->borrower?->class,
-            'borrowerName' => $loan->borrower?->name,
-            'borrowerClass' => $loan->borrower?->class,
-            'item_type' => $loan->item_type,
-            'items_summary' => $itemsSummary,
-            'equipmentName' => $firstItem?->equipment?->name ?? $itemsSummary,
-            'quantity' => $totalQty,
-            'status' => $loan->status,
-            'request_date' => $loan->request_date?->format('Y-m-d'),
-            'request_date_formatted' => $loan->request_date?->translatedFormat('d M Y'),
-            'borrowed_at' => $loan->borrowed_at?->format('Y-m-d'),
-            'borrowDate' => $loan->borrowed_at?->format('Y-m-d') ?? $loan->request_date?->format('Y-m-d'),
-            'due_at' => $loan->due_at?->format('Y-m-d'),
-            'dueDate' => $loan->due_at?->format('Y-m-d'),
-            'due_at_formatted' => $loan->due_at?->translatedFormat('d M Y H:i') ?: '—',
-        ];
-    }
 }

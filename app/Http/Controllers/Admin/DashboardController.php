@@ -2,15 +2,18 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Http\Controllers\Concerns\LoadsDashboardData;
 use App\Http\Controllers\Controller;
+use App\Services\Dashboard\AdminDashboardDataService;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class DashboardController extends Controller
 {
-    use LoadsDashboardData;
-
-    public function index()
+    public function index(): Response
     {
-        return $this->dashboardIndex('Admin/Dashboard/Index');
+        $user = auth()->user();
+        $payload = app(AdminDashboardDataService::class)->forUser($user);
+
+        return Inertia::render('Admin/Dashboard/Index', $payload);
     }
 }

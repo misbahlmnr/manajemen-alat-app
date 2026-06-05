@@ -86,7 +86,7 @@ export default function AdminDashboard({ loans, equipment, stats }) {
                 description="Permintaan peminjaman alat menunggu persetujuan."
                 badge={pendingAlat.length}
                 actionLabel="Buka Verifikasi"
-                actionHref="#"
+                actionHref={route("admin.loans.index", { status: "diminta" })}
             >
                 {pendingAlat.length > 0 ? (
                     <RecentLoansTable loans={pendingAlat} />

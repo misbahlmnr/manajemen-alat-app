@@ -2,15 +2,21 @@
 
 namespace App\Http\Controllers\Siswa;
 
-use App\Http\Controllers\Concerns\LoadsDashboardData;
 use App\Http\Controllers\Controller;
+use App\Services\Dashboard\SiswaDashboardDataService;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class DashboardController extends Controller
 {
-    use LoadsDashboardData;
-
-    public function index()
+    public function index(): Response
     {
-        return $this->dashboardIndex('Siswa/Dashboard/Index');
+        $user = auth()->user();
+        $payload = app(SiswaDashboardDataService::class)->forUser($user);
+
+        return Inertia::render('Siswa/Dashboard/Index', [
+            ...$payload,
+            'kelasName' => $user->class ?? null,
+        ]);
     }
 }

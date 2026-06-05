@@ -2,7 +2,7 @@ import { Button } from "@/Components/ui/button";
 import { Link } from "@inertiajs/react";
 import { CreditCard } from "lucide-react";
 
-export default function CompensationAlert() {
+export default function CompensationAlert({ href }) {
     return (
         <div className="mt-6 flex items-start gap-3 rounded-xl border border-destructive/20 bg-destructive/10 p-4">
             <CreditCard className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
@@ -12,9 +12,11 @@ export default function CompensationAlert() {
                     Selesaikan kompensasi agar kartu pelajar Anda dapat diambil.
                 </p>
             </div>
-            <Button asChild variant="outline" size="sm">
-                <Link href="#">Lihat</Link>
-            </Button>
+            {href && (
+                <Button asChild variant="outline" size="sm">
+                    <Link href={href}>Lihat</Link>
+                </Button>
+            )}
         </div>
     );
 }

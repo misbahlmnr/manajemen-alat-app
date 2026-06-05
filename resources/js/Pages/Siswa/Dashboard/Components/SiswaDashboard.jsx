@@ -9,29 +9,22 @@ import CompensationAlert from "./CompensationAlert";
 import { Bell, ClipboardCheck, FileText, Package, Wrench } from "lucide-react";
 
 export default function SiswaDashboard({
-    user,
     loans,
     equipment,
     notifications,
     upcomingSchedules,
+    hasPendingCompensation = false,
+    compensationLoanId = null,
 }) {
-    const userId = String(user?.id ?? "");
-    const myLoans = loans.filter((l) => String(l.borrowerId) === userId);
+    const myLoans = loans ?? [];
     const myActive = myLoans.filter((l) =>
         ["dipinjam", "disetujui", "terlambat"].includes(l.status),
     );
     const myPending = myLoans.filter((l) =>
         ["diminta", "antrian"].includes(l.status),
     );
-    const hasPendingCompensation = myLoans.some(
-        (l) => l.compensation?.status === "pending",
-    );
-    const unread = (notifications ?? []).filter(
-        (n) => String(n.userId) === userId && !n.read,
-    );
-    const availableEquipment = equipment.filter(
-        (e) => e.itemType === "alat" && e.available > 0,
-    );
+    const unread = (notifications ?? []).filter((n) => !n.read);
+    const availableEquipment = equipment ?? [];
     const returnedLoans = myLoans.filter((l) => l.status === "dikembalikan");
 
     return (
@@ -76,7 +69,15 @@ export default function SiswaDashboard({
                 />
             </div>
 
-            {hasPendingCompensation && <CompensationAlert />}
+            {hasPendingCompensation && (
+                <CompensationAlert
+                    href={
+                        compensationLoanId
+                            ? route("siswa.loans.show", compensationLoanId)
+                            : route("siswa.loans.index")
+                    }
+                />
+            )}
 
             <UpcomingSchedules schedules={upcomingSchedules} />
 

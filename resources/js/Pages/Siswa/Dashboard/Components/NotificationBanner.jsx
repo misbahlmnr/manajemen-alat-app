@@ -17,7 +17,7 @@ export default function NotificationBanner({ notifications }) {
                 </p>
             </div>
             <Button asChild variant="outline" size="sm">
-                <Link href="#">Buka</Link>
+                <Link href={route("siswa.loans.index")}>Buka</Link>
             </Button>
         </div>
     );
