@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\EquipmentController;
 use App\Http\Controllers\Admin\LoanCollateralController;
 use App\Http\Controllers\Admin\LoanController;
+use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\PracticumScheduleController;
 use App\Http\Controllers\Admin\SupplyController;
 use App\Http\Controllers\Admin\UserController;
@@ -55,6 +56,7 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
     Route::post('collaterals/{collateral}/return-card', [LoanCollateralController::class, 'returnCard'])->name('collaterals.return-card');
     Route::post('collaterals/{collateral}/complete-compensation', [LoanCollateralController::class, 'completeCompensation'])->name('collaterals.complete-compensation');
     Route::post('loans/{loan}/inspect', [LoanCollateralController::class, 'inspect'])->name('loans.inspect');
+    Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
 });
 
 Route::middleware(['auth', 'verified', 'role:guru'])->prefix('guru')->name('guru.')->group(function () {

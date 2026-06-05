@@ -62,8 +62,7 @@ const adminMenuItems = [
     {
         icon: BarChart3,
         label: "Laporan",
-        routeName: null,
-        href: "#",
+        routeName: "admin.reports.index",
     },
 ];
 

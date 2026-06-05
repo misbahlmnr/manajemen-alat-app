@@ -1,6 +1,9 @@
 <?php
 
 return [
+    'school_name' => env('LAB_SCHOOL_NAME', 'SMK Negeri 7 Bekasi'),
+    'lab_name' => env('LAB_NAME', 'Laboratorium Audio Video'),
+
     'equipment_categories' => [
         'Kamera',
         'Mikrofon',

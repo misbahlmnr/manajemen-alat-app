@@ -1,8 +1,8 @@
 import { StatCard } from "@/Components/Dashboard/StatCard";
 import { RecentLoansTable } from "@/Components/Dashboard/RecentLoansTable";
+import { AvailableEquipmentTable } from "@/Components/Dashboard/AvailableEquipmentTable";
+import { DashboardSection } from "@/Components/Dashboard/DashboardSection";
 import { UpcomingSchedules } from "@/Components/Dashboard/UpcomingSchedules";
-import { EquipmentCard } from "@/Components/Equipment/EquipmentCard";
-import { Link } from "@inertiajs/react";
 import QuickActionCard from "./QuickActionCard";
 import NotificationBanner from "./NotificationBanner";
 import CompensationAlert from "./CompensationAlert";
@@ -99,28 +99,16 @@ export default function SiswaDashboard({
                 </div>
             )}
 
-            <div className="mt-8">
-                <div className="mb-4 flex items-center justify-between">
-                    <h2 className="text-lg font-semibold">
-                        Peralatan Tersedia
-                    </h2>
-                    <Link
-                        href={route("siswa.equipment.index")}
-                        className="flex items-center gap-1 text-sm text-primary hover:underline"
-                    >
-                        Lihat semua
-                    </Link>
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                    {availableEquipment.slice(0, 4).map((eq) => (
-                        <EquipmentCard
-                            key={eq.id}
-                            equipment={eq}
-                            onBorrow={() => {}}
-                        />
-                    ))}
-                </div>
-            </div>
+            <DashboardSection
+                title="Peralatan Tersedia"
+                description={`${availableEquipment.length} alat siap dipinjam`}
+                actionLabel="Lihat Semua"
+                actionHref={route("siswa.equipment.index")}
+                actionVariant="outline"
+                className="mt-8"
+            >
+                <AvailableEquipmentTable equipment={availableEquipment} />
+            </DashboardSection>
         </>
     );
 }
