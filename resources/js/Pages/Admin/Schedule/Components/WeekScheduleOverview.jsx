@@ -24,7 +24,10 @@ function getWeekDays() {
     });
 }
 
-export default function WeekScheduleOverview({ schedules = [] }) {
+export default function WeekScheduleOverview({
+    schedules = [],
+    scheduleShowRoute = "admin.schedules.show",
+}) {
     const weekDays = getWeekDays();
     const byDate = schedules.reduce((acc, s) => {
         if (!acc[s.tanggal]) acc[s.tanggal] = [];
@@ -48,7 +51,7 @@ export default function WeekScheduleOverview({ schedules = [] }) {
                 </div>
             </CardHeader>
             <CardContent>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
+                <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2 sm:grid-cols-4 lg:grid-cols-7">
                     {weekDays.map((day) => {
                         const items = byDate[day.key] ?? [];
                         return (
@@ -72,7 +75,7 @@ export default function WeekScheduleOverview({ schedules = [] }) {
                                             <Link
                                                 key={s.id}
                                                 href={route(
-                                                    "admin.schedules.show",
+                                                    scheduleShowRoute,
                                                     s.id,
                                                 )}
                                                 className="block rounded-lg border border-border/40 bg-card p-1.5 text-[10px] leading-tight shadow-sm transition-colors hover:bg-muted/50"

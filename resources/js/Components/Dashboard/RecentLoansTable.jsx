@@ -36,27 +36,27 @@ export function RecentLoansTable({
 
   return (
     <div className="data-table overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full">
+      <div className="-mx-1 overflow-x-auto px-1 sm:mx-0 sm:px-0">
+        <table className="w-full min-w-[640px]">
           <thead>
             <tr className="bg-secondary/50">
-              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:px-4 sm:py-3">
                 Peminjam
               </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:px-4 sm:py-3">
                 Peralatan
               </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:px-4 sm:py-3">
                 Tanggal Pinjam
               </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:px-4 sm:py-3">
                 Jatuh Tempo
               </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:px-4 sm:py-3">
                 Status
               </th>
               {showActions && (
-                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:px-4 sm:py-3">
                   Aksi
                 </th>
               )}
@@ -65,13 +65,13 @@ export function RecentLoansTable({
           <tbody className="divide-y divide-border">
             {pagedLoans.map((loan) => (
               <tr key={loan.id} className="hover:bg-secondary/30 transition-colors">
-                <td className="px-4 py-4">
+                <td className="px-3 py-3 sm:px-4 sm:py-4">
                   <div>
                     <p className="text-sm font-medium text-foreground">{loan.borrowerName}</p>
                     <p className="text-xs text-muted-foreground">{loan.borrowerClass}</p>
                   </div>
                 </td>
-                <td className="px-4 py-4">
+                <td className="px-3 py-3 sm:px-4 sm:py-4">
                   <div>
                     <p className="text-sm text-foreground">{loan.equipmentName}</p>
                     <p className="text-xs text-muted-foreground">Qty: {loan.quantity}</p>
@@ -83,11 +83,11 @@ export function RecentLoansTable({
                 <td className="px-4 py-4 text-sm text-muted-foreground">
                   {formatDate(loan.dueDate)}
                 </td>
-                <td className="px-4 py-4">
+                <td className="px-3 py-3 sm:px-4 sm:py-4">
                   <LoanStatusBadge status={loan.status} />
                 </td>
                 {showActions && loan.status === 'diminta' && (
-                  <td className="px-4 py-4">
+                  <td className="px-3 py-3 sm:px-4 sm:py-4">
                     <div className="flex gap-2">
                       <button
                         onClick={() => onApprove?.(loan.id)}

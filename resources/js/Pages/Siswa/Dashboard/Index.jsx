@@ -18,7 +18,7 @@ export default function Index({
         <AppLayout>
             <Head title="Dashboard Siswa" />
 
-            <div className="animate-fade-in mx-auto max-w-7xl">
+            <div className="animate-fade-in mx-auto w-full min-w-0 max-w-7xl">
                 <DashboardPageHeader
                     title={`Halo, ${firstName}`}
                     subtitle="Apa yang ingin kamu lakukan hari ini?"

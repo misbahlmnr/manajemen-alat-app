@@ -12,8 +12,8 @@ const severityStyles = {
     info: "border-border/60 bg-card",
 };
 
-export default function Index({ notifications, unreadCount = 0 }) {
-    const items = notifications?.data ?? [];
+export default function Index({ notificationFeed, unreadCount = 0 }) {
+    const items = notificationFeed?.data ?? [];
 
     const markAllRead = () => {
         router.post(route("notifications.read-all"), {}, { preserveScroll: true });
@@ -27,7 +27,7 @@ export default function Index({ notifications, unreadCount = 0 }) {
         <AppLayout>
             <Head title="Notifikasi" />
 
-            <div className="animate-fade-in">
+            <div className="animate-fade-in w-full min-w-0">
                 <PageHeader
                     title="Notifikasi"
                     subtitle="Pembaruan status peminjaman, persetujuan, keterlambatan, dan aktivitas lab"
@@ -116,9 +116,9 @@ export default function Index({ notifications, unreadCount = 0 }) {
                     )}
                 </div>
 
-                {notifications?.links?.length > 3 && (
+                {notificationFeed?.links?.length > 3 && (
                     <div className="mt-6 flex flex-wrap justify-center gap-2">
-                        {notifications.links.map((link, index) =>
+                        {notificationFeed.links.map((link, index) =>
                             link.url ? (
                                 <Link
                                     key={`${link.label}-${index}`}

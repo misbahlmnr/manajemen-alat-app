@@ -134,7 +134,7 @@
     }
 
     .form-input {
-        @apply w-full px-4 py-2.5 rounded-lg border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all duration-200;
+        @apply w-full max-w-full min-w-0 px-4 py-2.5 rounded-lg border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all duration-200;
     }
 
     .btn-primary {
@@ -150,7 +150,7 @@
     }
 
     .stat-card {
-        @apply bg-card rounded-xl p-6 shadow-[var(--shadow-card)] border border-border/50 hover:shadow-[var(--shadow-md)] transition-shadow duration-200;
+        @apply rounded-xl border border-border/50 bg-card p-4 shadow-[var(--shadow-card)] transition-shadow duration-200 hover:shadow-[var(--shadow-md)] sm:p-6;
     }
 
     .data-table {
@@ -186,11 +186,11 @@
     }
 
     .page-header {
-        @apply flex items-center justify-between pb-6 border-b border-border mb-6;
+        @apply mb-6 flex flex-col gap-4 border-b border-border pb-6 sm:flex-row sm:items-center sm:justify-between;
     }
 
     .section-title {
-        @apply text-2xl font-bold text-foreground;
+        @apply text-xl font-bold text-foreground sm:text-2xl;
     }
 }
 

@@ -17,6 +17,7 @@ export default function NotificationDropdown({
     className,
 }) {
     const unread = Math.max(0, unreadCount);
+    const items = Array.isArray(notifications) ? notifications : [];
 
     const openNotification = (item) => {
         if (!item.read) {
@@ -52,7 +53,10 @@ export default function NotificationDropdown({
                 </button>
             </DropdownMenuTrigger>
 
-            <DropdownMenuContent align="end" className="w-80">
+            <DropdownMenuContent
+                align="end"
+                className="w-[calc(100vw-1.5rem)] max-w-80 sm:w-80"
+            >
                 <DropdownMenuLabel className="flex items-center justify-between">
                     <span>Notifikasi</span>
                     {indexUrl && (
@@ -66,12 +70,12 @@ export default function NotificationDropdown({
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
 
-                {notifications.length === 0 ? (
+                {items.length === 0 ? (
                     <div className="px-2 py-6 text-center text-sm text-muted-foreground">
                         Belum ada notifikasi
                     </div>
                 ) : (
-                    notifications.map((item) => (
+                    items.map((item) => (
                         <DropdownMenuItem
                             key={item.id}
                             className={cn(

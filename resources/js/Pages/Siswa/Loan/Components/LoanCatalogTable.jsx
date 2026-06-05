@@ -1,4 +1,6 @@
 import DataTable from "@/Components/DataTable";
+import DataPagination from "@/Components/DataPagination";
+import { normalizePaginator } from "@/lib/paginator";
 import { Button } from "@/Components/ui/button";
 import { cn } from "@/lib/utils";
 import { useMemo } from "react";
@@ -33,6 +35,48 @@ function StockIndicator({ item, isBahan }) {
     );
 }
 
+function CatalogMobileCard({ item, isBahan, cart, onAdd, maxQty }) {
+    const inCart = cart.find((i) => i.equipment.id === item.id);
+    const remain = maxQty(item);
+    const disabled =
+        remain <= 0 || (inCart && inCart.quantity >= remain);
+
+    return (
+        <div className="rounded-xl border border-border/60 bg-card p-4 shadow-sm">
+            <div className="mb-3 flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                    <p className="font-medium text-foreground">{item.name}</p>
+                    <p className="mt-0.5 font-mono text-xs text-muted-foreground">
+                        {item.code}
+                    </p>
+                    {item.category && (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                            {item.category}
+                        </p>
+                    )}
+                </div>
+                {inCart && (
+                    <span className="shrink-0 rounded-full bg-success/15 px-2.5 py-0.5 text-xs font-medium text-success">
+                        ×{inCart.quantity}
+                    </span>
+                )}
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <StockIndicator item={item} isBahan={isBahan} />
+                <Button
+                    type="button"
+                    size="sm"
+                    disabled={disabled}
+                    className="w-full sm:w-auto"
+                    onClick={() => onAdd(item)}
+                >
+                    {isBahan ? "Ambil" : "Tambah"}
+                </Button>
+            </div>
+        </div>
+    );
+}
+
 export default function LoanCatalogTable({
     items,
     pagination,
@@ -41,6 +85,8 @@ export default function LoanCatalogTable({
     onAdd,
     maxQty,
 }) {
+    const normalizedPagination = normalizePaginator(pagination);
+
     const columns = useMemo(
         () => [
             {
@@ -57,7 +103,7 @@ export default function LoanCatalogTable({
                 header: isBahan ? "Nama Bahan" : "Nama Alat",
                 accessorFn: (row) => row.name,
                 cell: ({ row }) => (
-                    <div className="min-w-[140px] max-w-xs">
+                    <div className="min-w-[120px] max-w-xs">
                         <p className="font-medium text-foreground">
                             {row.original.name}
                         </p>
@@ -128,19 +174,52 @@ export default function LoanCatalogTable({
         [isBahan, cart, onAdd, maxQty],
     );
 
-    return (
-        <DataTable
-            data={items ?? []}
-            columns={columns}
-            pagination={pagination}
-            tableClassName="min-w-[640px]"
-            getRowId={(row) => String(row.id)}
-            emptyState={
-                isBahan
+    if (!items?.length) {
+        return (
+            <p className="rounded-xl border border-dashed border-border py-10 text-center text-sm text-muted-foreground">
+                {isBahan
                     ? "Tidak ada bahan tersedia"
-                    : "Tidak ada alat tersedia"
-            }
-            initialSorting={[{ id: "name", desc: false }]}
-        />
+                    : "Tidak ada alat tersedia"}
+            </p>
+        );
+    }
+
+    return (
+        <div className="space-y-3">
+            <div className="space-y-3 md:hidden">
+                {items.map((item) => (
+                    <CatalogMobileCard
+                        key={item.id}
+                        item={item}
+                        isBahan={isBahan}
+                        cart={cart}
+                        onAdd={onAdd}
+                        maxQty={maxQty}
+                    />
+                ))}
+                {normalizedPagination && (
+                    <DataPagination
+                        links={normalizedPagination.links}
+                        meta={normalizedPagination.meta}
+                    />
+                )}
+            </div>
+
+            <div className="hidden md:block">
+                <DataTable
+                    data={items ?? []}
+                    columns={columns}
+                    pagination={pagination}
+                    tableClassName="min-w-[600px]"
+                    getRowId={(row) => String(row.id)}
+                    emptyState={
+                        isBahan
+                            ? "Tidak ada bahan tersedia"
+                            : "Tidak ada alat tersedia"
+                    }
+                    initialSorting={[{ id: "name", desc: false }]}
+                />
+            </div>
+        </div>
     );
 }

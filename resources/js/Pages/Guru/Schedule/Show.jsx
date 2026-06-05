@@ -20,7 +20,7 @@ export default function Show({ schedule }) {
         <AppLayout>
             <Head title={schedule.title} />
 
-            <div className="animate-fade-in mx-auto max-w-5xl">
+            <div className="animate-fade-in mx-auto w-full min-w-0 max-w-5xl">
                 <PageHeader title="Detail Jadwal" subtitle={schedule.code}>
                     <Button variant="outline" asChild>
                         <Link href={route("guru.schedules.index")}>

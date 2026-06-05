@@ -4,7 +4,7 @@ import { CreditCard } from "lucide-react";
 
 export default function CompensationAlert({ href }) {
     return (
-        <div className="mt-6 flex items-start gap-3 rounded-xl border border-destructive/20 bg-destructive/10 p-4">
+        <div className="mt-6 flex flex-col gap-3 rounded-xl border border-destructive/20 bg-destructive/10 p-4 sm:flex-row sm:items-start">
             <CreditCard className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
             <div className="min-w-0 flex-1">
                 <p className="font-medium">Kompensasi pending</p>

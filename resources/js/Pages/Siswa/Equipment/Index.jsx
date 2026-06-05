@@ -51,7 +51,7 @@ export default function Index({ equipment, filters, categories }) {
         <AppLayout>
             <Head title="Alat Lab" />
 
-            <div className="animate-fade-in">
+            <div className="animate-fade-in w-full min-w-0">
                 <PageHeader
                     title="Alat Lab"
                     subtitle={`${total} alat laboratorium`}
@@ -93,7 +93,7 @@ export default function Index({ equipment, filters, categories }) {
                         <option value="rusak">Dalam Perbaikan</option>
                         <option value="nonaktif">Nonaktif</option>
                     </Select>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                         <Select
                             value={data.status}
                             onChange={(e) => setData("status", e.target.value)}

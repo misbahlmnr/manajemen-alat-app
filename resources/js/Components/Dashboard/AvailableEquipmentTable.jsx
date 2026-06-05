@@ -28,7 +28,7 @@ export function AvailableEquipmentTable({ equipment = [], pageSize = 5 }) {
 
     return (
         <div className="data-table overflow-hidden">
-            <div className="overflow-x-auto">
+            <div className="-mx-1 overflow-x-auto px-1 sm:mx-0 sm:px-0">
                 <table className="w-full min-w-[800px]">
                     <thead>
                         <tr className="bg-secondary/50">

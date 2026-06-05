@@ -28,7 +28,7 @@ export default function QuickActionCard({
         <Link
             href={href}
             className={cn(
-                "group rounded-2xl border border-border bg-card p-6 transition-all hover:shadow-md",
+                "group rounded-2xl border border-border bg-card p-4 transition-all hover:shadow-md sm:p-6",
                 style.border,
             )}
         >

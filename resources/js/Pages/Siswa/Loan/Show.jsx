@@ -53,7 +53,7 @@ export default function Show({ loan }) {
         <AppLayout>
             <Head title={loan.code} />
 
-            <div className="animate-fade-in mx-auto max-w-5xl">
+            <div className="animate-fade-in mx-auto w-full min-w-0 max-w-5xl">
                 <PageHeader title="Detail Peminjaman" subtitle={loan.code}>
                     <Button variant="outline" asChild>
                         <Link href={route("siswa.loans.index")}>

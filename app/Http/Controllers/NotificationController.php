@@ -21,7 +21,7 @@ class NotificationController extends Controller
         $user = $request->user();
 
         return Inertia::render('Notifications/Index', [
-            'notifications' => $this->presenter->paginatedForUser($user),
+            'notificationFeed' => $this->presenter->paginatedForUser($user),
             'unreadCount' => $this->presenter->unreadCount($user),
         ]);
     }

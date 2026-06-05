@@ -44,7 +44,7 @@ export default function Index({ supplies, filters, categories }) {
         <AppLayout>
             <Head title="Bahan Lab" />
 
-            <div className="animate-fade-in">
+            <div className="animate-fade-in w-full min-w-0">
                 <PageHeader
                     title="Bahan Lab"
                     subtitle={`${total} bahan praktikum`}

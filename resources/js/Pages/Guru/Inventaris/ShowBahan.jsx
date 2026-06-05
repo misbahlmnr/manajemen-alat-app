@@ -18,7 +18,7 @@ export default function ShowBahan({ supply }) {
         <AppLayout>
             <Head title={supply.name} />
 
-            <div className="animate-fade-in mx-auto max-w-5xl">
+            <div className="animate-fade-in mx-auto w-full min-w-0 max-w-5xl">
                 <PageHeader title="Detail Bahan" subtitle={supply.code}>
                     <Button variant="outline" asChild>
                         <Link

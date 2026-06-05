@@ -157,7 +157,7 @@ export default function LoanDetailModal({ loan, borrower, onClose, footer }) {
                     </div>
 
                     {!isBahan && (
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                             <div className="rounded-lg bg-secondary/50 p-3">
                                 <div className="mb-1 flex items-center gap-2">
                                     <Calendar className="h-4 w-4 text-muted-foreground" />

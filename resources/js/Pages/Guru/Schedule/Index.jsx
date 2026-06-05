@@ -71,13 +71,16 @@ export default function Index({
         <AppLayout>
             <Head title="Jadwal Praktikum" />
 
-            <div className="animate-fade-in">
+            <div className="animate-fade-in w-full min-w-0">
                 <PageHeader
                     title="Jadwal Praktikum"
                     subtitle={`${total} jadwal Anda`}
                 />
 
-                <WeekScheduleOverview schedules={weekSchedules ?? []} />
+                <WeekScheduleOverview
+                    schedules={weekSchedules ?? []}
+                    scheduleShowRoute="guru.schedules.show"
+                />
 
                 <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                     <div className="relative sm:col-span-2">

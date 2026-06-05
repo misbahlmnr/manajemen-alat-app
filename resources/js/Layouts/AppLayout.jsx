@@ -11,9 +11,12 @@ export default function AppLayout({ children }) {
     const {
         auth,
         unreadNotifications = 0,
-        notifications = [],
+        notifications,
         notificationsIndexUrl = null,
     } = usePage().props;
+    const recentNotifications = Array.isArray(notifications)
+        ? notifications
+        : [];
     const user = auth?.user;
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -34,7 +37,7 @@ export default function AppLayout({ children }) {
                     user={user}
                     onMenuClick={() => setSidebarOpen(true)}
                     unreadNotifications={unreadNotifications}
-                    notifications={notifications}
+                    notifications={recentNotifications}
                     notificationsIndexUrl={notificationsIndexUrl}
                 />
 

@@ -73,7 +73,7 @@ export default function StudentLoanCard({
                     : "border-border/60",
             )}
         >
-            <div className="flex items-start justify-between gap-3 border-b border-border/60 bg-muted/20 px-4 py-3 sm:px-5">
+            <div className="flex flex-col gap-3 border-b border-border/60 bg-muted/20 px-4 py-3 sm:flex-row sm:items-start sm:justify-between sm:px-5">
                 <div className="flex min-w-0 flex-1 items-start gap-3">
                     <div
                         className={cn(
@@ -120,11 +120,13 @@ export default function StudentLoanCard({
                         </p>
                     </div>
                 </div>
-                <StudentLoanTableActions
-                    loan={loan}
-                    onCancel={onCancel}
-                    onRequestReturn={onRequestReturn}
-                />
+                <div className="flex shrink-0 self-stretch sm:self-auto">
+                    <StudentLoanTableActions
+                        loan={loan}
+                        onCancel={onCancel}
+                        onRequestReturn={onRequestReturn}
+                    />
+                </div>
             </div>
 
             <div className="space-y-4 px-4 py-4 sm:px-5">

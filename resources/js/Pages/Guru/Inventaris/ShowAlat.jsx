@@ -19,7 +19,7 @@ export default function ShowAlat({ equipment }) {
         <AppLayout>
             <Head title={equipment.name} />
 
-            <div className="animate-fade-in mx-auto max-w-5xl">
+            <div className="animate-fade-in mx-auto w-full min-w-0 max-w-5xl">
                 <PageHeader title="Detail Alat" subtitle={equipment.code}>
                     <Button variant="outline" asChild>
                         <Link

@@ -270,7 +270,7 @@ export default function Create({
         <AppLayout>
             <Head title={isEdit ? "Ubah Pengajuan" : "Ajukan Peminjaman"} />
 
-            <div className="animate-fade-in">
+            <div className="animate-fade-in w-full min-w-0">
                 <div className="page-header">
                     <div>
                         <h1 className="section-title">
@@ -294,12 +294,12 @@ export default function Create({
                 </div>
 
                 {!isEdit && (
-                <div className="mb-6 flex w-fit items-center gap-2 rounded-lg bg-secondary p-1">
+                <div className="mb-6 flex w-full flex-wrap items-center gap-2 rounded-lg bg-secondary p-1 sm:w-fit">
                     <button
                         type="button"
                         onClick={() => switchTab("alat")}
                         className={cn(
-                            "flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium",
+                            "flex flex-1 items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium sm:flex-none",
                             tab === "alat"
                                 ? "bg-card text-foreground shadow-sm"
                                 : "text-muted-foreground",
@@ -311,7 +311,7 @@ export default function Create({
                         type="button"
                         onClick={() => switchTab("bahan")}
                         className={cn(
-                            "flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium",
+                            "flex flex-1 items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium sm:flex-none",
                             tab === "bahan"
                                 ? "bg-card text-foreground shadow-sm"
                                 : "text-muted-foreground",
@@ -352,8 +352,8 @@ export default function Create({
                     </div>
                 )}
 
-                <div className="grid gap-6 lg:grid-cols-3">
-                    <div className="lg:col-span-2">
+                <div className="grid min-w-0 gap-6 lg:grid-cols-3">
+                    <div className="min-w-0 lg:col-span-2">
                         <div className="relative mb-4">
                             <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                             <input
@@ -362,7 +362,7 @@ export default function Create({
                                     setSearchQuery(e.target.value)
                                 }
                                 placeholder={`Cari ${isBahan ? "bahan" : "alat"} (nama, kode, kategori)...`}
-                                className="form-input pl-10"
+                                className="form-input min-w-0 pl-10"
                             />
                         </div>
                         <p className="mb-3 text-sm text-muted-foreground">
@@ -387,8 +387,8 @@ export default function Create({
                         )}
                     </div>
 
-                    <div className="lg:col-span-1">
-                        <div className="sticky top-6 rounded-xl border border-border bg-card p-5">
+                    <div className="min-w-0 lg:col-span-1">
+                        <div className="rounded-xl border border-border bg-card p-4 lg:sticky lg:top-20 lg:p-5">
                             <div className="mb-4 flex items-center gap-3">
                                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
                                     <ShoppingCart className="h-5 w-5 text-primary" />
@@ -406,10 +406,10 @@ export default function Create({
                                     {cart.map((item) => (
                                         <div
                                             key={item.equipment.id}
-                                            className="flex items-center gap-2 rounded-lg bg-secondary/50 p-2"
+                                            className="flex flex-col gap-2 rounded-lg bg-secondary/50 p-3 sm:flex-row sm:items-center"
                                         >
                                             <div className="min-w-0 flex-1">
-                                                <p className="truncate text-sm font-medium">
+                                                <p className="text-sm font-medium leading-snug">
                                                     {item.equipment.name}
                                                 </p>
                                                 <p className="text-xs text-muted-foreground">
@@ -418,7 +418,7 @@ export default function Create({
                                                         "unit"}
                                                 </p>
                                             </div>
-                                            <div className="flex items-center gap-1">
+                                            <div className="flex shrink-0 items-center justify-between gap-1 sm:justify-end">
                                                 <button
                                                     type="button"
                                                     onClick={() =>

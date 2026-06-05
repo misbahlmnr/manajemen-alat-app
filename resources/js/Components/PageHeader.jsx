@@ -2,7 +2,7 @@ export default function PageHeader({ title, subtitle, children }) {
     return (
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-                <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">
+                <h1 className="font-display text-xl font-bold tracking-tight text-foreground sm:text-2xl">
                     {title}
                 </h1>
                 {subtitle && (
