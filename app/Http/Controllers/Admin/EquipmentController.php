@@ -64,8 +64,14 @@ class EquipmentController extends Controller
     {
         $this->authorize('create', Equipment::class);
 
+        $categories = Equipment::alat()
+            ->select('category')
+            ->distinct()
+            ->orderBy('category')
+            ->pluck('category');
+
         return Inertia::render('Admin/Equipment/Create', [
-            'categoryOptions' => config('lab.equipment_categories'),
+            'categoryOptions' => $categories,
         ]);
     }
 
@@ -97,9 +103,15 @@ class EquipmentController extends Controller
         $this->authorize('update', $equipment);
         $this->ensureAlat($equipment);
 
+        $categories = Equipment::alat()
+            ->select('category')
+            ->distinct()
+            ->orderBy('category')
+            ->pluck('category');
+
         return Inertia::render('Admin/Equipment/Edit', [
             'equipment' => $this->formatEquipment($equipment),
-            'categoryOptions' => config('lab.equipment_categories'),
+            'categoryOptions' => $categories,
         ]);
     }
 

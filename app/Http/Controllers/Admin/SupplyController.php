@@ -61,8 +61,14 @@ class SupplyController extends Controller
     {
         $this->authorize('create', Supply::class);
 
+        $categories = Supply::query()
+            ->select('category')
+            ->distinct()
+            ->orderBy('category')
+            ->pluck('category');
+
         return Inertia::render('Admin/Supply/Create', [
-            'categoryOptions' => config('lab.supply_categories'),
+            'categoryOptions' => $categories,
             'unitOptions' => config('lab.supply_units'),
         ]);
     }
@@ -92,10 +98,16 @@ class SupplyController extends Controller
     public function edit(Supply $supply): Response
     {
         $this->authorize('update', $supply);
+        
+        $categories = Supply::query()
+            ->select('category')
+            ->distinct()
+            ->orderBy('category')
+            ->pluck('category');
 
         return Inertia::render('Admin/Supply/Edit', [
             'supply' => $this->formatSupply($supply),
-            'categoryOptions' => config('lab.supply_categories'),
+            'categoryOptions' => $categories,
             'unitOptions' => config('lab.supply_units'),
         ]);
     }
