@@ -35,6 +35,10 @@ class StoreStudentLoanRequest extends FormRequest
             $merge['collateral_agreed'] = null;
         }
 
+        if (! $this->filled('practicum_schedule_id')) {
+            $merge['practicum_schedule_id'] = null;
+        }
+
         $this->merge($merge);
     }
 
@@ -51,7 +55,7 @@ class StoreStudentLoanRequest extends FormRequest
                 Rule::exists(User::class, 'id')->where('role', 'guru'),
             ],
             'practicum_schedule_id' => [
-                $isAlat ? 'required' : 'nullable',
+                ($isAlat && ! $bawaPulang) ? 'required' : 'nullable',
                 'integer',
                 Rule::exists('practicum_schedules', 'id')->where(
                     fn ($query) => $query->where('status', 'aktif'),

@@ -9,6 +9,7 @@ use App\Models\Equipment;
 use App\Models\Loan;
 use App\Models\PracticumSchedule;
 use App\Models\User;
+use App\Services\Loan\CollateralWorkflowService;
 use App\Services\Loan\LoanWorkflowService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,6 +20,7 @@ class LoanController extends Controller
 {
     public function __construct(
         private LoanWorkflowService $workflow,
+        private CollateralWorkflowService $collateralWorkflow,
     ) {}
 
     public function index(Request $request): Response
@@ -142,6 +144,10 @@ class LoanController extends Controller
         $this->syncItems($loan, $items);
         $this->workflow->logStatus($loan, 'diminta', 'Pengajuan peminjaman dibuat oleh siswa.', $request->user());
 
+        if ($loan->requiresCollateral()) {
+            $this->collateralWorkflow->registerPendingCollateral($loan->fresh());
+        }
+
         if ($validated['item_type'] === 'bahan') {
             $message = 'Pengambilan bahan berhasil dicatat! Menunggu verifikasi admin.';
         } elseif (($validated['borrow_scope'] ?? 'lab') === 'bawa_pulang') {
@@ -229,6 +235,8 @@ class LoanController extends Controller
             $request->user(),
         );
 
+        $this->collateralWorkflow->syncCollateralForLoan($loan->fresh());
+
         return redirect()
             ->route('siswa.loans.show', $loan)
             ->with('success', 'Pengajuan peminjaman berhasil diperbarui.');
@@ -303,26 +311,36 @@ class LoanController extends Controller
                 ->map(fn (User $u) => ['id' => $u->id, 'name' => $u->name])
                 ->values()
                 ->all(),
-            'schedules' => PracticumSchedule::query()
-                ->where('status', 'aktif')
-                ->when($user->class, fn ($q) => $q->where('kelas', $user->class))
-                ->whereDate('tanggal', '>=', now()->toDateString())
-                ->orderBy('tanggal')
-                ->get(['id', 'code', 'title', 'mata_kuliah', 'kelas', 'tanggal', 'jam_mulai', 'jam_selesai', 'priority'])
-                ->map(fn ($s) => [
-                    'id' => $s->id,
-                    'code' => $s->code,
-                    'title' => $s->title,
-                    'mata_kuliah' => $s->mata_kuliah,
-                    'kelas' => $s->kelas,
-                    'tanggal' => $s->tanggal?->format('Y-m-d'),
-                    'jam_mulai' => $s->jam_mulai,
-                    'jam_selesai' => $s->jam_selesai,
-                    'priority' => $s->priority,
-                ])
-                ->values()
-                ->all(),
+            'schedules' => $this->scheduleOptions($user, futureOnly: true),
+            'schedulesWithPast' => $this->scheduleOptions($user, futureOnly: false),
         ];
+    }
+
+    private function scheduleOptions(User $user, bool $futureOnly): array
+    {
+        return PracticumSchedule::query()
+            ->where('status', 'aktif')
+            ->when($user->class, fn ($q) => $q->where('kelas', $user->class))
+            ->when(
+                $futureOnly,
+                fn ($q) => $q->whereDate('tanggal', '>=', now()->toDateString()),
+                fn ($q) => $q->whereDate('tanggal', '>=', now()->subDays(60)->toDateString()),
+            )
+            ->orderByDesc('tanggal')
+            ->get(['id', 'code', 'title', 'mata_kuliah', 'kelas', 'tanggal', 'jam_mulai', 'jam_selesai', 'priority'])
+            ->map(fn ($s) => [
+                'id' => $s->id,
+                'code' => $s->code,
+                'title' => $s->title,
+                'mata_kuliah' => $s->mata_kuliah,
+                'kelas' => $s->kelas,
+                'tanggal' => $s->tanggal?->format('Y-m-d'),
+                'jam_mulai' => $s->jam_mulai,
+                'jam_selesai' => $s->jam_selesai,
+                'priority' => $s->priority,
+            ])
+            ->values()
+            ->all();
     }
 
     private function paginatedCatalog(Request $request, string $itemType, ?Loan $loan = null)

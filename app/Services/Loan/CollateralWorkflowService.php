@@ -156,6 +156,52 @@ class CollateralWorkflowService
         ]);
     }
 
+    public function registerPendingCollateral(Loan $loan): ?LoanCollateral
+    {
+        if (! $loan->requiresCollateral()) {
+            return null;
+        }
+
+        $existing = $loan->collateral;
+        if ($existing) {
+            return $existing;
+        }
+
+        $loan->loadMissing('borrower:id,nisn');
+
+        return LoanCollateral::create([
+            'code' => LoanCollateral::generateCode(),
+            'loan_id' => $loan->id,
+            'student_id' => $loan->borrower_id,
+            'card_type' => 'kartu_pelajar',
+            'card_number' => $loan->borrower?->nisn,
+            'status' => 'dititipkan',
+            'notes' => 'Pengajuan bawa pulang — menunggu penyerahan kartu pelajar.',
+        ]);
+    }
+
+    public function removePendingCollateralIfExists(Loan $loan): void
+    {
+        $collateral = $loan->collateral;
+
+        if ($collateral && $collateral->status === 'dititipkan') {
+            $collateral->delete();
+        }
+    }
+
+    public function syncCollateralForLoan(Loan $loan): void
+    {
+        $loan->loadMissing('borrower:id,nisn');
+
+        if ($loan->requiresCollateral()) {
+            $this->registerPendingCollateral($loan);
+
+            return;
+        }
+
+        $this->removePendingCollateralIfExists($loan);
+    }
+
     public function ensureCollateralForBawaPulangLoan(Loan $loan, User $admin, ?array $cardData = null): LoanCollateral
     {
         if (! $loan->requiresCollateral()) {

@@ -40,6 +40,7 @@ export default function Create({
     defaults,
     supervisorOptions = [],
     schedules = [],
+    schedulesWithPast = [],
 }) {
     const isEdit = Boolean(loan);
     const resolvedType =
@@ -156,16 +157,25 @@ export default function Create({
         );
     };
 
+    const isBawaPulang = !isBahan && data.borrow_scope === "bawa_pulang";
+    const scheduleRequired = !isBahan && !isBawaPulang;
+    const scheduleList = isBawaPulang ? schedulesWithPast : schedules;
+
     const selectedSchedule = useMemo(
         () =>
-            schedules.find(
+            scheduleList.find(
                 (s) => String(s.id) === String(data.practicum_schedule_id),
             ),
-        [schedules, data.practicum_schedule_id],
+        [scheduleList, data.practicum_schedule_id],
     );
 
     const applySchedule = (scheduleId) => {
-        const s = schedules.find((x) => String(x.id) === String(scheduleId));
+        if (!scheduleId) {
+            setData((prev) => ({ ...prev, practicum_schedule_id: "" }));
+            return;
+        }
+
+        const s = scheduleList.find((x) => String(x.id) === String(scheduleId));
         if (!s?.tanggal) {
             setData("practicum_schedule_id", scheduleId);
             return;
@@ -208,7 +218,10 @@ export default function Create({
 
             if (!isBahan) {
                 payload.borrow_scope = formData.borrow_scope;
-                payload.practicum_schedule_id = formData.practicum_schedule_id;
+                if (formData.practicum_schedule_id) {
+                    payload.practicum_schedule_id =
+                        formData.practicum_schedule_id;
+                }
                 payload.due_at = formData.due_at;
                 if (formData.borrow_scope === "bawa_pulang") {
                     payload.collateral_agreed = formData.collateral_agreed
@@ -247,7 +260,7 @@ export default function Create({
         cart.length > 0 &&
         data.supervisor_id &&
         (isBahan ||
-            (data.practicum_schedule_id &&
+            ((!scheduleRequired || data.practicum_schedule_id) &&
                 data.request_date &&
                 data.due_at &&
                 (!collateralRequired || data.collateral_agreed))) &&
@@ -494,13 +507,38 @@ export default function Create({
                                             <label className="flex items-center gap-1.5 text-sm font-medium">
                                                 <CalendarDays className="h-3.5 w-3.5" />{" "}
                                                 Jadwal Praktikum
+                                                {isBawaPulang ? (
+                                                    <span className="text-xs font-normal text-muted-foreground">
+                                                        (opsional)
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-destructive">
+                                                        *
+                                                    </span>
+                                                )}
                                             </label>
-                                            {schedules.length === 0 ? (
-                                                <div className="flex items-start gap-2 rounded-lg bg-destructive/10 p-2.5 text-xs text-destructive">
-                                                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5" />
+                                            {isBawaPulang && (
+                                                <p className="text-xs text-muted-foreground">
+                                                    Boleh dikosongkan jika
+                                                    tugas belum dikerjakan atau
+                                                    jadwal praktikum sudah
+                                                    lewat.
+                                                </p>
+                                            )}
+                                            {scheduleList.length === 0 ? (
+                                                <div
+                                                    className={cn(
+                                                        "flex items-start gap-2 rounded-lg p-2.5 text-xs",
+                                                        isBawaPulang
+                                                            ? "bg-secondary/60 text-muted-foreground"
+                                                            : "bg-destructive/10 text-destructive",
+                                                    )}
+                                                >
+                                                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
                                                     <span>
-                                                        Tidak ada jadwal aktif
-                                                        untuk kelas Anda.
+                                                        {isBawaPulang
+                                                            ? "Tidak ada jadwal tersedia — Anda tetap bisa mengajukan tanpa memilih jadwal."
+                                                            : "Tidak ada jadwal aktif untuk kelas Anda."}
                                                     </span>
                                                 </div>
                                             ) : (
@@ -517,9 +555,11 @@ export default function Create({
                                                     disabled={processing}
                                                 >
                                                     <option value="">
-                                                        Pilih jadwal...
+                                                        {isBawaPulang
+                                                            ? "Tanpa jadwal / pilih jika ada..."
+                                                            : "Pilih jadwal..."}
                                                     </option>
-                                                    {schedules.map((s) => (
+                                                    {scheduleList.map((s) => (
                                                         <option
                                                             key={s.id}
                                                             value={s.id}
@@ -666,10 +706,11 @@ export default function Create({
                                                             "bawa_pulang"
                                                         }
                                                         onChange={() =>
-                                                            setData(
-                                                                "borrow_scope",
-                                                                "bawa_pulang",
-                                                            )
+                                                            setData((prev) => ({
+                                                                ...prev,
+                                                                borrow_scope:
+                                                                    "bawa_pulang",
+                                                            }))
                                                         }
                                                         className="mt-0.5"
                                                     />
@@ -679,7 +720,8 @@ export default function Create({
                                                         </p>
                                                         <p className="text-xs text-muted-foreground">
                                                             Wajib jaminan kartu
-                                                            pelajar.
+                                                            pelajar. Jadwal
+                                                            praktikum opsional.
                                                         </p>
                                                     </div>
                                                 </label>

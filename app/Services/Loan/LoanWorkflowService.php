@@ -58,6 +58,8 @@ class LoanWorkflowService
             'rejection_reason' => $reason,
         ]);
 
+        app(CollateralWorkflowService::class)->removePendingCollateralIfExists($loan->fresh());
+
         $this->logStatus($loan, 'ditolak', $reason, $actor);
     }
 
@@ -119,6 +121,8 @@ class LoanWorkflowService
             if (in_array($loan->status, ['dipinjam', 'terlambat'], true)) {
                 $this->restoreStock($loan);
             }
+
+            app(CollateralWorkflowService::class)->removePendingCollateralIfExists($loan);
 
             $loan->update(['status' => 'dibatalkan']);
             $this->logStatus($loan, 'dibatalkan', 'Peminjaman dibatalkan.', $actor);
