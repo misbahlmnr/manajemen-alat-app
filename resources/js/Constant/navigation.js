@@ -96,8 +96,7 @@ const guruMenuItems = [
     {
         icon: BarChart3,
         label: "Laporan",
-        routeName: null,
-        href: "#",
+        routeName: "guru.reports.index",
     },
 ];
 

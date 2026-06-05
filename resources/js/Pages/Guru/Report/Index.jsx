@@ -7,8 +7,9 @@ export default function Index(props) {
         <AppLayout>
             <Head title="Laporan" />
             <ReportWorkspace
-                indexRoute="admin.reports.index"
-                pageSubtitle="Generate laporan operasional lab untuk kepala sekolah atau atasan"
+                indexRoute="guru.reports.index"
+                pageSubtitle="Generate laporan peminjaman siswa bimbingan dan inventaris lab"
+                showUsersTab={props.showUsersTab ?? false}
                 {...props}
             />
         </AppLayout>

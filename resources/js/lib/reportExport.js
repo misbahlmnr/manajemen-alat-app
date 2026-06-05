@@ -9,6 +9,8 @@ function formatFilename(type) {
 
 function addPdfHeader(doc, meta, title) {
     const pageWidth = doc.internal.pageSize.getWidth();
+    const isGuruScope = meta?.report_scope === "guru";
+
     doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
     doc.text(meta.school_name ?? "Sekolah", pageWidth / 2, 15, {
@@ -20,9 +22,53 @@ function addPdfHeader(doc, meta, title) {
     });
     doc.setFontSize(13);
     doc.text(title, pageWidth / 2, 32, { align: "center" });
+
+    let printedY = 40;
+    if (isGuruScope && meta.guru_name) {
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        doc.text(`Guru: ${meta.guru_name}`, pageWidth / 2, 38, {
+            align: "center",
+        });
+        printedY = 44;
+    }
+
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
-    doc.text(`Dicetak: ${meta.generated_at ?? "-"}`, 14, 40);
+    doc.text(`Dicetak: ${meta.generated_at ?? "-"}`, 14, printedY);
+
+    return printedY;
+}
+
+function buildRingkasanRows(stats, meta) {
+    const isGuruScope = meta?.report_scope === "guru";
+    const rows = [
+        ["Total Pengajuan Peminjaman", stats.total_loans],
+        ["Peminjaman Alat", stats.loans_alat],
+        ["Pengambilan Bahan", stats.loans_bahan],
+        ["Menunggu Persetujuan", stats.pending],
+        ["Sedang Dipinjam / Aktif", stats.active_borrows],
+        ["Keterlambatan", stats.overdue],
+        ["Dikembalikan", stats.returned],
+        ["Ditolak", stats.rejected],
+        ["Total Alat Terdaftar", stats.total_alat],
+        ["Total Bahan Terdaftar", stats.total_bahan],
+        ["Unit Alat Tersedia", stats.alat_available],
+        ["Bahan Stok Menipis", stats.low_stock_bahan],
+        ["Jadwal Praktikum (periode)", stats.schedules_period],
+        ["Kompensasi Pending", stats.compensation_pending],
+    ];
+
+    if (isGuruScope) {
+        rows.push(["Siswa Bimbingan", stats.siswa_bimbingan]);
+        rows.push(["Bahan Sedang Diambil", stats.bahan_diambil]);
+    } else {
+        rows.push(["Kartu Jaminan Ditahan", stats.collateral_held]);
+        rows.push(["Total Siswa", stats.total_siswa]);
+        rows.push(["Total Guru", stats.total_guru]);
+    }
+
+    return rows;
 }
 
 function addPdfFooter(doc) {
@@ -240,32 +286,19 @@ export function exportPenggunaExcel(rows) {
 
 export function exportRingkasanPdf(stats, highlights, meta) {
     const doc = new jsPDF();
-    addPdfHeader(doc, meta, "Laporan Ringkasan Operasional Lab");
-    doc.setFontSize(10);
-    doc.text(`Periode: ${stats.period_label ?? "-"}`, 14, 48);
+    const isGuruScope = meta?.report_scope === "guru";
+    const title = isGuruScope
+        ? "Laporan Ringkasan Bimbingan Peminjaman"
+        : "Laporan Ringkasan Operasional Lab";
+    const headerBottom = addPdfHeader(doc, meta, title);
 
-    const summaryRows = [
-        ["Total Pengajuan Peminjaman", stats.total_loans],
-        ["Peminjaman Alat", stats.loans_alat],
-        ["Pengambilan Bahan", stats.loans_bahan],
-        ["Menunggu Persetujuan", stats.pending],
-        ["Sedang Dipinjam / Aktif", stats.active_borrows],
-        ["Keterlambatan", stats.overdue],
-        ["Dikembalikan", stats.returned],
-        ["Ditolak", stats.rejected],
-        ["Total Alat Terdaftar", stats.total_alat],
-        ["Total Bahan Terdaftar", stats.total_bahan],
-        ["Unit Alat Tersedia", stats.alat_available],
-        ["Bahan Stok Menipis", stats.low_stock_bahan],
-        ["Jadwal Praktikum (periode)", stats.schedules_period],
-        ["Kartu Jaminan Ditahan", stats.collateral_held],
-        ["Kompensasi Pending", stats.compensation_pending],
-        ["Total Siswa", stats.total_siswa],
-        ["Total Guru", stats.total_guru],
-    ];
+    doc.setFontSize(10);
+    doc.text(`Periode: ${stats.period_label ?? "-"}`, 14, headerBottom + 8);
+
+    const summaryRows = buildRingkasanRows(stats, meta);
 
     autoTable(doc, {
-        startY: 54,
+        startY: headerBottom + 14,
         head: [["Indikator", "Nilai"]],
         body: summaryRows,
         styles: { fontSize: 9 },
@@ -317,29 +350,22 @@ export function exportRingkasanPdf(stats, highlights, meta) {
     doc.save(`${formatFilename("ringkasan")}.pdf`);
 }
 
-export function exportRingkasanExcel(stats, highlights) {
+export function exportRingkasanExcel(stats, highlights, meta = {}) {
+    const isGuruScope = meta?.report_scope === "guru";
+    const title = isGuruScope
+        ? "Laporan Ringkasan Bimbingan Peminjaman"
+        : "Laporan Ringkasan Operasional Lab";
+    const summaryRows = buildRingkasanRows(stats, meta);
+
     const summarySheet = XLSX.utils.aoa_to_sheet([
-        ["Laporan Ringkasan Operasional Lab"],
+        [title],
+        ...(isGuruScope && meta.guru_name
+            ? [["Guru", meta.guru_name]]
+            : []),
         ["Periode", stats.period_label ?? "-"],
         [],
         ["Indikator", "Nilai"],
-        ["Total Pengajuan", stats.total_loans],
-        ["Peminjaman Alat", stats.loans_alat],
-        ["Pengambilan Bahan", stats.loans_bahan],
-        ["Menunggu Persetujuan", stats.pending],
-        ["Aktif / Dipinjam", stats.active_borrows],
-        ["Keterlambatan", stats.overdue],
-        ["Dikembalikan", stats.returned],
-        ["Ditolak", stats.rejected],
-        ["Total Alat", stats.total_alat],
-        ["Total Bahan", stats.total_bahan],
-        ["Alat Tersedia", stats.alat_available],
-        ["Bahan Menipis", stats.low_stock_bahan],
-        ["Jadwal Aktif", stats.schedules_period],
-        ["Kartu Ditahan", stats.collateral_held],
-        ["Kompensasi Pending", stats.compensation_pending],
-        ["Total Siswa", stats.total_siswa],
-        ["Total Guru", stats.total_guru],
+        ...summaryRows,
     ]);
 
     const workbook = XLSX.utils.book_new();

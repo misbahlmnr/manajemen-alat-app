@@ -2,19 +2,18 @@
 
 namespace App\Services\Report;
 
+use App\Models\Equipment;
 use App\Models\Loan;
-use App\Models\LoanCollateral;
 use App\Models\LoanCompensation;
 use App\Models\PracticumSchedule;
 use App\Models\Supply;
 use App\Models\User;
-use App\Models\Equipment;
 use App\Services\Loan\LoanWorkflowService;
 use App\Services\Report\Concerns\FormatsReportData;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
-class AdminReportDataService
+class GuruReportDataService
 {
     use FormatsReportData;
 
@@ -26,21 +25,20 @@ class AdminReportDataService
     {
         $this->workflow->syncOverdue();
 
+        $user = $request->user();
         $type = $request->string('type')->toString() ?: 'ringkasan';
         $filters = [
             'type' => $type,
             'item_type' => $request->string('item_type')->toString() ?: 'all',
             'status' => $request->string('status')->toString() ?: 'all',
-            'role' => $request->string('role')->toString() ?: 'all',
             'date_from' => $request->string('date_from')->toString(),
             'date_to' => $request->string('date_to')->toString(),
         ];
 
         $payload = match ($type) {
-            'inventaris' => $this->inventarisReport($filters),
-            'peminjaman' => $this->peminjamanReport($filters),
-            'pengguna' => $this->penggunaReport($filters),
-            default => $this->ringkasanReport($filters),
+            'inventaris' => $this->buildInventarisReport($filters),
+            'peminjaman' => $this->peminjamanReport($user, $filters),
+            default => $this->ringkasanReport($user, $filters),
         };
 
         return [
@@ -50,26 +48,33 @@ class AdminReportDataService
             'meta' => [
                 'school_name' => config('lab.school_name'),
                 'lab_name' => config('lab.lab_name'),
+                'report_scope' => 'guru',
+                'guru_name' => $user->name,
                 'generated_at' => now()->translatedFormat('d F Y H:i'),
                 'generated_at_short' => now()->format('Y-m-d'),
             ],
             'statusOptions' => config('lab.loan_statuses'),
-            'collateralStatusOptions' => config('lab.collateral_statuses'),
-            'showUsersTab' => true,
+            'showUsersTab' => false,
         ];
     }
 
-    private function inventarisReport(array $filters): array
+    private function supervisedLoanQuery(User $user, array $filters)
     {
-        return $this->buildInventarisReport($filters);
+        [$from, $to] = $this->resolvePeriod($filters);
+
+        return Loan::query()
+            ->where('supervisor_id', $user->id)
+            ->when($filters['status'] !== 'all', fn ($q) => $q->where('status', $filters['status']))
+            ->when($filters['item_type'] !== 'all', fn ($q) => $q->where('item_type', $filters['item_type']))
+            ->when($from, fn ($q) => $q->whereDate('request_date', '>=', $from))
+            ->when($to, fn ($q) => $q->whereDate('request_date', '<=', $to));
     }
 
-    private function peminjamanReport(array $filters): array
+    private function peminjamanReport(User $user, array $filters): array
     {
-        $rows = $this->loanQuery($filters)
+        $rows = $this->supervisedLoanQuery($user, $filters)
             ->with([
                 'borrower:id,name,class',
-                'supervisor:id,name',
                 'schedule:id,title,mata_kuliah',
                 'items.equipment:id,name,code,unit',
                 'collateral:id,loan_id,status',
@@ -93,49 +98,12 @@ class AdminReportDataService
         ];
     }
 
-    private function penggunaReport(array $filters): array
-    {
-        $role = $filters['role'];
-
-        $rows = User::query()
-            ->when($role !== 'all', fn ($q) => $q->where('role', $role))
-            ->where('role', '!=', 'admin')
-            ->orderBy('role')
-            ->orderBy('name')
-            ->get()
-            ->map(fn (User $user) => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'username' => $user->username,
-                'role' => $user->role,
-                'role_label' => ucfirst($user->role),
-                'status' => $user->status ?? 'active',
-                'phone' => $user->phone ?? '—',
-                'nisn' => $user->nisn,
-                'nip' => $user->nip,
-                'identifier' => $user->nisn ?? $user->nip ?? '—',
-                'class' => $user->class ?? '—',
-                'created_at_formatted' => $user->created_at?->translatedFormat('d M Y'),
-            ])
-            ->values();
-
-        return [
-            'rows' => $rows->all(),
-            'stats' => [
-                'total' => $rows->count(),
-                'siswa' => $rows->where('role', 'siswa')->count(),
-                'guru' => $rows->where('role', 'guru')->count(),
-                'aktif' => $rows->where('status', 'active')->count(),
-            ],
-        ];
-    }
-
-    private function ringkasanReport(array $filters): array
+    private function ringkasanReport(User $user, array $filters): array
     {
         [$from, $to] = $this->resolvePeriod($filters);
 
         $loanBase = Loan::query()
+            ->where('supervisor_id', $user->id)
             ->when($from, fn ($q) => $q->whereDate('request_date', '>=', $from))
             ->when($to, fn ($q) => $q->whereDate('request_date', '<=', $to));
 
@@ -165,6 +133,14 @@ class AdminReportDataService
             ->values()
             ->all();
 
+        $siswaBimbingan = (clone $loanBase)->distinct('borrower_id')->count('borrower_id');
+
+        $compensationPending = LoanCompensation::query()
+            ->where('required', true)
+            ->where('status', 'pending')
+            ->whereHas('loan', fn ($q) => $q->where('supervisor_id', $user->id))
+            ->count();
+
         return [
             'rows' => [],
             'stats' => [
@@ -187,19 +163,17 @@ class AdminReportDataService
                     ->whereColumn('available', '<=', 'min_stock')
                     ->count(),
                 'schedules_period' => PracticumSchedule::query()
+                    ->where('guru_id', $user->id)
                     ->when($from, fn ($q) => $q->whereDate('tanggal', '>=', $from))
                     ->when($to, fn ($q) => $q->whereDate('tanggal', '<=', $to))
-                    ->where('status', 'aktif')
+                    ->whereIn('status', ['aktif', 'draft', 'selesai'])
                     ->count(),
-                'collateral_held' => LoanCollateral::query()
-                    ->whereIn('status', ['ditahan', 'menunggu_kompensasi'])
+                'siswa_bimbingan' => $siswaBimbingan,
+                'compensation_pending' => $compensationPending,
+                'bahan_diambil' => (clone $loanBase)
+                    ->where('item_type', 'bahan')
+                    ->where('status', 'dipinjam')
                     ->count(),
-                'compensation_pending' => LoanCompensation::query()
-                    ->where('required', true)
-                    ->where('status', 'pending')
-                    ->count(),
-                'total_siswa' => User::where('role', 'siswa')->count(),
-                'total_guru' => User::where('role', 'guru')->count(),
             ],
             'highlights' => [
                 'overdue_loans' => $overdueLoans,
@@ -207,16 +181,4 @@ class AdminReportDataService
             ],
         ];
     }
-
-    private function loanQuery(array $filters)
-    {
-        [$from, $to] = $this->resolvePeriod($filters);
-
-        return Loan::query()
-            ->when($filters['status'] !== 'all', fn ($q) => $q->where('status', $filters['status']))
-            ->when($filters['item_type'] !== 'all', fn ($q) => $q->where('item_type', $filters['item_type']))
-            ->when($from, fn ($q) => $q->whereDate('request_date', '>=', $from))
-            ->when($to, fn ($q) => $q->whereDate('request_date', '<=', $to));
-    }
-
 }
