@@ -19,7 +19,10 @@ return new class extends Migration
             $table->unsignedInteger('quantity')->default(1);
             $table->timestamps();
 
-            $table->unique(['practicum_schedule_id', 'equipment_id']);
+            $table->unique(
+                ['practicum_schedule_id', 'equipment_id'],
+                'pse_schedule_equipment_unique'
+            );
         });
     }
 
