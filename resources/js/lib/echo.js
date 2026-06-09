@@ -10,11 +10,16 @@ export function initEcho(config) {
 
     window.Pusher = Pusher;
 
+    if (import.meta.env.DEV) {
+        Pusher.logToConsole = true;
+    }
+
     echoInstance = new Echo({
         broadcaster: "pusher",
         key: config.key,
-        cluster: config.cluster ?? "mt1",
+        cluster: config.cluster ?? "ap1",
         forceTLS: true,
+        enabledTransports: ["ws", "wss"],
         authEndpoint: "/broadcasting/auth",
         auth: {
             headers: {

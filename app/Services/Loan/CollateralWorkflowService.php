@@ -56,7 +56,6 @@ class CollateralWorkflowService
             ['result' => 'belum']
         );
 
-        app(LabNotificationService::class)->loanReturnRequested($loan->fresh());
     }
 
     public function inspectReturn(Loan $loan, array $data, User $admin): void
@@ -87,7 +86,7 @@ class CollateralWorkflowService
                 'status' => 'dikembalikan',
                 'returned_at' => now(),
             ]);
-            $this->loanWorkflow->logStatus($loan, 'dikembalikan', 'Inspeksi pengembalian selesai.', $admin);
+            $this->loanWorkflow->logStatus($loan, 'dikembalikan', 'Inspeksi pengembalian selesai.', $admin, notify: false);
 
             $collateral = $loan->collateral;
 

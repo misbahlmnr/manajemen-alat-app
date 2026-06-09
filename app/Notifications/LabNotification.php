@@ -42,10 +42,7 @@ class LabNotification extends Notification implements ShouldBroadcast, ShouldQue
 
     public function toBroadcast(object $notifiable): BroadcastMessage
     {
-        return new BroadcastMessage([
-            ...$this->payload(),
-            'unread_count' => $notifiable->unreadNotifications()->count(),
-        ]);
+        return new BroadcastMessage($this->payload());
     }
 
     public function toWebPush(object $notifiable, mixed $notification): WebPushMessage

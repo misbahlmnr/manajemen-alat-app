@@ -12,7 +12,7 @@ use Illuminate\Validation\ValidationException;
 
 class LoanWorkflowService
 {
-    public function logStatus(Loan $loan, string $status, ?string $note, ?User $actor): void
+    public function logStatus(Loan $loan, string $status, ?string $note, ?User $actor, bool $notify = true): void
     {
         LoanStatusLog::create([
             'loan_id' => $loan->id,
@@ -21,6 +21,10 @@ class LoanWorkflowService
             'user_id' => $actor?->id,
             'created_at' => now(),
         ]);
+
+        if ($notify) {
+            app(LabNotificationService::class)->onStatusChange($loan->fresh(), $status, $note);
+        }
     }
 
     public function approve(Loan $loan, User $actor): void
@@ -44,8 +48,6 @@ class LoanWorkflowService
                 $this->logStatus($loan, 'dipinjam', 'Bahan disetujui dan diambil.', $actor);
             }
         });
-
-        app(LabNotificationService::class)->loanApproved($loan->fresh());
     }
 
     public function reject(Loan $loan, string $reason, User $actor): void
@@ -64,8 +66,6 @@ class LoanWorkflowService
         app(CollateralWorkflowService::class)->removePendingCollateralIfExists($loan->fresh());
 
         $this->logStatus($loan, 'ditolak', $reason, $actor);
-
-        app(LabNotificationService::class)->loanRejected($loan->fresh(), $reason);
     }
 
     public function markBorrowed(Loan $loan, User $actor): void
@@ -88,8 +88,6 @@ class LoanWorkflowService
                 app(CollateralWorkflowService::class)->ensureCollateralForBawaPulangLoan($loan, $actor);
             }
         });
-
-        app(LabNotificationService::class)->loanBorrowed($loan->fresh());
     }
 
     public function processReturn(Loan $loan, ?string $note, User $actor): void
@@ -114,8 +112,6 @@ class LoanWorkflowService
             ]);
             $this->logStatus($loan, 'dikembalikan', $note ?? 'Alat telah dikembalikan.', $actor);
         });
-
-        app(LabNotificationService::class)->loanReturned($loan->fresh());
     }
 
     public function cancel(Loan $loan, User $actor): void
@@ -136,8 +132,6 @@ class LoanWorkflowService
             $loan->update(['status' => 'dibatalkan']);
             $this->logStatus($loan, 'dibatalkan', 'Peminjaman dibatalkan.', $actor);
         });
-
-        app(LabNotificationService::class)->loanCancelled($loan->fresh());
     }
 
     public function syncOverdue(): void
@@ -147,15 +141,12 @@ class LoanWorkflowService
             ->where('status', 'dipinjam')
             ->whereNotNull('due_at')
             ->where('due_at', '<', now())
-            ->with(['borrower:id,name', 'supervisor:id,name'])
+            ->with(['borrower', 'supervisor'])
             ->get();
-
-        $notifier = app(LabNotificationService::class);
 
         foreach ($loans as $loan) {
             $loan->update(['status' => 'terlambat']);
             $this->logStatus($loan, 'terlambat', 'Peminjaman melewati batas waktu.', null);
-            $notifier->loanOverdue($loan->fresh());
         }
     }
 

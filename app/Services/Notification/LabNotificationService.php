@@ -12,7 +12,7 @@ class LabNotificationService
 {
     public function loanSubmitted(Loan $loan): void
     {
-        $loan->loadMissing(['borrower:id,name,class', 'supervisor:id,name', 'items.equipment:id,name']);
+        $loan->loadMissing(['borrower', 'supervisor', 'items.equipment:id,name']);
 
         $summary = $this->loanSummary($loan);
         $borrower = $loan->borrower?->name ?? 'Siswa';
@@ -42,9 +42,10 @@ class LabNotificationService
 
     public function loanApproved(Loan $loan): void
     {
-        $loan->loadMissing('borrower:id,name');
+        $loan->loadMissing(['borrower', 'supervisor']);
 
         $statusLabel = $loan->status === 'dipinjam' ? 'disetujui dan siap diambil' : 'disetujui';
+        $borrowerName = $loan->borrower?->name ?? 'Siswa';
 
         $this->notifyUser(
             $loan->borrower,
@@ -55,11 +56,23 @@ class LabNotificationService
             route('siswa.loans.show', $loan),
             $loan,
         );
+
+        if ($loan->supervisor_id) {
+            $this->notifyUser(
+                $loan->supervisor,
+                'loan_approved',
+                'Pengajuan Siswa Disetujui',
+                "Peminjaman {$loan->code} milik {$borrowerName} telah {$statusLabel}.",
+                'success',
+                route('guru.loans.show', $loan),
+                $loan,
+            );
+        }
     }
 
     public function loanRejected(Loan $loan, ?string $reason = null): void
     {
-        $loan->loadMissing(['borrower:id,name', 'supervisor:id,name']);
+        $loan->loadMissing(['borrower', 'supervisor']);
         $detail = $reason ? " Alasan: {$reason}" : '';
 
         $this->notifyUser(
@@ -87,7 +100,7 @@ class LabNotificationService
 
     public function loanBorrowed(Loan $loan): void
     {
-        $loan->loadMissing('borrower:id,name');
+        $loan->loadMissing('borrower');
 
         $this->notifyUser(
             $loan->borrower,
@@ -102,8 +115,18 @@ class LabNotificationService
 
     public function loanReturnRequested(Loan $loan): void
     {
-        $loan->loadMissing(['borrower:id,name', 'supervisor:id,name']);
+        $loan->loadMissing(['borrower', 'supervisor']);
         $borrower = $loan->borrower?->name ?? 'Siswa';
+
+        $this->notifyUser(
+            $loan->borrower,
+            'loan_return_requested',
+            'Pengembalian Diajukan',
+            "Pengajuan pengembalian {$loan->code} diterima. Menunggu inspeksi admin.",
+            'info',
+            route('siswa.loans.show', $loan),
+            $loan,
+        );
 
         $this->notifyUsers(
             $this->admins(),
@@ -130,7 +153,7 @@ class LabNotificationService
 
     public function loanReturned(Loan $loan): void
     {
-        $loan->loadMissing(['borrower:id,name', 'supervisor:id,name']);
+        $loan->loadMissing(['borrower', 'supervisor']);
 
         $this->notifyUser(
             $loan->borrower,
@@ -157,8 +180,18 @@ class LabNotificationService
 
     public function loanCancelled(Loan $loan): void
     {
-        $loan->loadMissing(['borrower:id,name', 'supervisor:id,name']);
+        $loan->loadMissing(['borrower', 'supervisor']);
         $borrower = $loan->borrower?->name ?? 'Siswa';
+
+        $this->notifyUser(
+            $loan->borrower,
+            'loan_cancelled',
+            'Peminjaman Dibatalkan',
+            "Peminjaman {$loan->code} telah dibatalkan.",
+            'warning',
+            route('siswa.loans.show', $loan),
+            $loan,
+        );
 
         $this->notifyUsers(
             $this->admins(),
@@ -185,7 +218,7 @@ class LabNotificationService
 
     public function loanOverdue(Loan $loan): void
     {
-        $loan->loadMissing(['borrower:id,name', 'supervisor:id,name']);
+        $loan->loadMissing(['borrower', 'supervisor']);
         $borrower = $loan->borrower?->name ?? 'Siswa';
 
         $this->notifyUser(
@@ -223,7 +256,7 @@ class LabNotificationService
 
     public function compensationRequired(Loan $loan): void
     {
-        $loan->loadMissing(['borrower:id,name', 'supervisor:id,name']);
+        $loan->loadMissing(['borrower', 'supervisor']);
 
         $this->notifyUser(
             $loan->borrower,
@@ -250,7 +283,7 @@ class LabNotificationService
 
     public function compensationCompleted(Loan $loan): void
     {
-        $loan->loadMissing('borrower:id,name');
+        $loan->loadMissing('borrower');
 
         $this->notifyUser(
             $loan->borrower,
@@ -265,7 +298,7 @@ class LabNotificationService
 
     public function collateralHeld(LoanCollateral $collateral): void
     {
-        $collateral->loadMissing(['loan.borrower:id,name', 'loan:id,code']);
+        $collateral->loadMissing(['loan.borrower', 'loan']);
         $loan = $collateral->loan;
 
         if (! $loan?->borrower) {
@@ -283,6 +316,22 @@ class LabNotificationService
         );
     }
 
+    public function onStatusChange(Loan $loan, string $status, ?string $note = null): void
+    {
+        match ($status) {
+            'disetujui' => $this->loanApproved($loan),
+            'ditolak' => $this->loanRejected($loan, $note),
+            'dipinjam' => str_contains($note ?? '', 'diserahkan')
+                ? $this->loanBorrowed($loan)
+                : $this->loanApproved($loan),
+            'terlambat' => $this->loanOverdue($loan),
+            'dikembalikan' => $this->loanReturned($loan),
+            'dibatalkan' => $this->loanCancelled($loan),
+            'menunggu_inspeksi' => $this->loanReturnRequested($loan),
+            default => null,
+        };
+    }
+
     private function notifyUser(
         ?User $user,
         string $eventType,
@@ -292,7 +341,8 @@ class LabNotificationService
         ?string $actionUrl,
         ?Loan $loan = null,
     ): void {
-        if (! $user || $user->status !== 'active') {
+        $user = $this->resolveActiveUser($user);
+        if (! $user) {
             return;
         }
 
@@ -327,6 +377,22 @@ class LabNotificationService
             ->where('role', 'admin')
             ->where('status', 'active')
             ->get();
+    }
+
+    private function resolveActiveUser(?User $user): ?User
+    {
+        if (! $user?->id) {
+            return null;
+        }
+
+        if ($user->status === 'active') {
+            return $user;
+        }
+
+        return User::query()
+            ->where('id', $user->id)
+            ->where('status', 'active')
+            ->first();
     }
 
     private function loanSummary(Loan $loan): string
