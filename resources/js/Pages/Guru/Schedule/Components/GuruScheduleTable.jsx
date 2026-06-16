@@ -1,6 +1,5 @@
 import DataTable from "@/Components/DataTable";
 import SchedulePriorityBadge from "@/Components/SchedulePriorityBadge";
-import ScheduleStatusBadge from "@/Components/ScheduleStatusBadge";
 import { Button } from "@/Components/ui/button";
 import { Link } from "@inertiajs/react";
 import { Eye } from "lucide-react";
@@ -33,9 +32,19 @@ export default function GuruScheduleTable({ items, pagination }) {
         },
         { accessorKey: "kelas", header: "Kelas" },
         {
-            accessorKey: "tanggal_formatted",
-            header: "Tanggal",
+            accessorKey: "jadwal_label",
+            header: "Jadwal",
             meta: { cellClassName: "whitespace-nowrap" },
+            cell: ({ row }) => (
+                <div>
+                    <p className="font-medium text-foreground">
+                        {row.original.jadwal_label}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                        {row.original.type_label}
+                    </p>
+                </div>
+            ),
         },
         {
             accessorKey: "waktu_label",
@@ -52,17 +61,6 @@ export default function GuruScheduleTable({ items, pagination }) {
             header: "Prioritas",
             cell: ({ getValue }) => (
                 <SchedulePriorityBadge priority={getValue()} />
-            ),
-        },
-        {
-            id: "status",
-            header: "Status",
-            accessorFn: (row) => row.status,
-            cell: ({ row }) => (
-                <ScheduleStatusBadge
-                    status={row.original.status}
-                    displayStatus={row.original.display_status}
-                />
             ),
         },
         {
@@ -92,7 +90,7 @@ export default function GuruScheduleTable({ items, pagination }) {
             tableClassName="min-w-[900px]"
             getRowId={(row) => String(row.id)}
             emptyState="Tidak ada jadwal ditemukan"
-            initialSorting={[{ id: "tanggal_formatted", desc: true }]}
+            initialSorting={[{ id: "jadwal_label", desc: false }]}
         />
     );
 }

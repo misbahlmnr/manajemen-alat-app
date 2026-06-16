@@ -17,14 +17,15 @@ export default function Index({
     filters,
     kelasOptions,
     subjectOptions,
+    dayOptions,
+    typeOptions,
 }) {
     const { data, setData } = useForm({
         search: filters.search ?? "",
-        status: filters.status ?? "all",
+        type: filters.type ?? "all",
         kelas: filters.kelas ?? "all",
         mata_kuliah: filters.mata_kuliah ?? "all",
-        date_from: filters.date_from ?? "",
-        date_to: filters.date_to ?? "",
+        hari: filters.hari ?? "all",
     });
 
     const isFirstRender = useRef(true);
@@ -46,11 +47,10 @@ export default function Index({
         return () => clearTimeout(timeout);
     }, [
         data.search,
-        data.status,
+        data.type,
         data.kelas,
         data.mata_kuliah,
-        data.date_from,
-        data.date_to,
+        data.hari,
     ]);
 
     const list = schedules.data ?? [];
@@ -59,11 +59,10 @@ export default function Index({
     const resetFilters = () => {
         setData({
             search: "",
-            status: "all",
+            type: "all",
             kelas: "all",
             mata_kuliah: "all",
-            date_from: "",
-            date_to: "",
+            hari: "all",
         });
     };
 
@@ -122,30 +121,29 @@ export default function Index({
 
                 <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     <Select
-                        value={data.status}
-                        onChange={(e) => setData("status", e.target.value)}
+                        value={data.type}
+                        onChange={(e) => setData("type", e.target.value)}
                         className="rounded-xl border-border/60 bg-card shadow-sm"
                     >
-                        <option value="all">Semua status</option>
-                        <option value="draft">Draft</option>
-                        <option value="aktif">Aktif</option>
-                        <option value="selesai">Selesai</option>
-                        <option value="dibatalkan">Dibatalkan</option>
+                        <option value="all">Semua jenis</option>
+                        {Object.entries(typeOptions).map(([value, label]) => (
+                            <option key={value} value={value}>
+                                {label}
+                            </option>
+                        ))}
                     </Select>
-                    <Input
-                        type="date"
-                        value={data.date_from}
-                        onChange={(e) => setData("date_from", e.target.value)}
+                    <Select
+                        value={data.hari}
+                        onChange={(e) => setData("hari", e.target.value)}
                         className="rounded-xl border-border/60 bg-card shadow-sm"
-                        title="Dari tanggal"
-                    />
-                    <Input
-                        type="date"
-                        value={data.date_to}
-                        onChange={(e) => setData("date_to", e.target.value)}
-                        className="rounded-xl border-border/60 bg-card shadow-sm"
-                        title="Sampai tanggal"
-                    />
+                    >
+                        <option value="all">Semua hari</option>
+                        {Object.entries(dayOptions).map(([value, label]) => (
+                            <option key={value} value={value}>
+                                {label}
+                            </option>
+                        ))}
+                    </Select>
                 </div>
 
                 {total > 0 ? (

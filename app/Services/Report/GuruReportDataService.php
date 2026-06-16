@@ -164,9 +164,14 @@ class GuruReportDataService
                     ->count(),
                 'schedules_period' => PracticumSchedule::query()
                     ->where('guru_id', $user->id)
-                    ->when($from, fn ($q) => $q->whereDate('tanggal', '>=', $from))
-                    ->when($to, fn ($q) => $q->whereDate('tanggal', '<=', $to))
-                    ->whereIn('status', ['aktif', 'draft', 'selesai'])
+                    ->where(function ($q) use ($from, $to) {
+                        $q->where('type', 'mingguan')
+                            ->orWhere(function ($special) use ($from, $to) {
+                                $special->where('type', 'khusus')
+                                    ->when($from, fn ($q) => $q->whereDate('tanggal', '>=', $from))
+                                    ->when($to, fn ($q) => $q->whereDate('tanggal', '<=', $to));
+                            });
+                    })
                     ->count(),
                 'siswa_bimbingan' => $siswaBimbingan,
                 'compensation_pending' => $compensationPending,

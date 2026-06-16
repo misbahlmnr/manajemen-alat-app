@@ -3,7 +3,6 @@
 namespace App\Http\Requests\Admin;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class UpdatePracticumScheduleRequest extends FormRequest
 {
@@ -14,15 +13,17 @@ class UpdatePracticumScheduleRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        if ($this->has('required_equipment')) {
-            $equipment = $this->input('required_equipment', []);
-            if (is_array($equipment)) {
-                $equipment = array_values(array_filter($equipment, function ($row) {
-                    return ! empty($row['equipment_id']);
-                }));
-            }
-            $this->merge(['required_equipment' => $equipment]);
+        $merge = [];
+
+        if ($this->input('type') === 'mingguan') {
+            $merge['tanggal'] = null;
         }
+
+        if ($this->input('type') === 'khusus') {
+            $merge['hari'] = null;
+        }
+
+        $this->merge($merge);
     }
 
     public function rules(): array

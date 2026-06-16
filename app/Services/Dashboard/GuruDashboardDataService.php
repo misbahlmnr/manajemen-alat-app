@@ -49,9 +49,8 @@ class GuruDashboardDataService
 
         $upcomingSchedules = PracticumSchedule::query()
             ->where('guru_id', $user->id)
-            ->whereBetween('tanggal', [$weekStart->toDateString(), $weekEnd->toDateString()])
-            ->whereIn('status', ['aktif', 'draft'])
-            ->orderBy('tanggal')
+            ->visibleInWeek($weekStart, $weekEnd)
+            ->orderByHari()
             ->orderBy('jam_mulai')
             ->get()
             ->map(fn (PracticumSchedule $schedule) => [
@@ -60,6 +59,10 @@ class GuruDashboardDataService
                 'title' => $schedule->title,
                 'mata_kuliah' => $schedule->mata_kuliah,
                 'kelas' => $schedule->kelas,
+                'type' => $schedule->type,
+                'hari' => $schedule->hari,
+                'hari_label' => $schedule->hariLabel(),
+                'jadwal_label' => $schedule->jadwalLabel(),
                 'tanggal' => $schedule->tanggal?->format('Y-m-d'),
                 'tanggal_formatted' => $schedule->tanggal?->translatedFormat('d M Y'),
                 'jam_mulai' => substr((string) $schedule->jam_mulai, 0, 5),
@@ -68,7 +71,6 @@ class GuruDashboardDataService
                 'jamSelesai' => substr((string) $schedule->jam_selesai, 0, 5),
                 'ruangan' => $schedule->ruangan,
                 'priority' => $schedule->priority,
-                'display_status' => $schedule->resolveDisplayStatus(),
             ])
             ->values()
             ->all();

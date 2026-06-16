@@ -67,14 +67,12 @@ class SiswaDashboardDataService
             ->values()
             ->all();
 
-        $today = Carbon::today()->toDateString();
         $class = $user->class;
 
         $upcomingSchedules = PracticumSchedule::query()
             ->when($class, fn ($q) => $q->where('kelas', $class))
-            ->where('status', 'aktif')
-            ->whereDate('tanggal', '>=', $today)
-            ->orderBy('tanggal')
+            ->forStudentSelection(futureOnly: true)
+            ->orderByHari()
             ->orderBy('jam_mulai')
             ->limit(5)
             ->get()
@@ -83,6 +81,8 @@ class SiswaDashboardDataService
                 'title' => $schedule->title,
                 'mata_kuliah' => $schedule->mata_kuliah,
                 'kelas' => $schedule->kelas,
+                'type' => $schedule->type,
+                'jadwal_label' => $schedule->jadwalLabel(),
                 'tanggal' => $schedule->tanggal?->format('Y-m-d'),
                 'jamMulai' => substr((string) $schedule->jam_mulai, 0, 5),
                 'jamSelesai' => substr((string) $schedule->jam_selesai, 0, 5),

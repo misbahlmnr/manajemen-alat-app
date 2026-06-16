@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StorePracticumScheduleRequest;
 use App\Http\Requests\Admin\UpdatePracticumScheduleRequest;
-use App\Models\Equipment;
 use App\Models\PracticumSchedule;
 use App\Models\User;
 use Carbon\Carbon;
@@ -21,12 +20,11 @@ class PracticumScheduleController extends Controller
         $this->authorize('viewAny', PracticumSchedule::class);
 
         $search = $request->string('search')->trim();
-        $status = $request->string('status')->toString() ?: 'all';
+        $type = $request->string('type')->toString() ?: 'all';
         $kelas = $request->string('kelas')->toString() ?: 'all';
         $guruId = $request->string('guru_id')->toString() ?: 'all';
         $mataKuliah = $request->string('mata_kuliah')->toString() ?: 'all';
-        $dateFrom = $request->string('date_from')->toString();
-        $dateTo = $request->string('date_to')->toString();
+        $hari = $request->string('hari')->toString() ?: 'all';
 
         $schedules = PracticumSchedule::query()
             ->with('guru:id,name')
@@ -41,14 +39,14 @@ class PracticumScheduleController extends Controller
                         ->orWhereHas('guru', fn ($g) => $g->where('name', 'like', "%{$search}%"));
                 });
             })
-            ->when($status !== 'all', fn ($q) => $q->where('status', $status))
+            ->when($type !== 'all', fn ($q) => $q->where('type', $type))
             ->when($kelas !== 'all', fn ($q) => $q->where('kelas', $kelas))
             ->when($guruId !== 'all', fn ($q) => $q->where('guru_id', $guruId))
             ->when($mataKuliah !== 'all', fn ($q) => $q->where('mata_kuliah', $mataKuliah))
-            ->when($dateFrom !== '', fn ($q) => $q->whereDate('tanggal', '>=', $dateFrom))
-            ->when($dateTo !== '', fn ($q) => $q->whereDate('tanggal', '<=', $dateTo))
-            ->orderByDesc('tanggal')
+            ->when($hari !== 'all', fn ($q) => $q->where('hari', $hari))
+            ->orderByHari()
             ->orderBy('jam_mulai')
+            ->orderByDesc('tanggal')
             ->paginate(10)
             ->withQueryString()
             ->through(fn (PracticumSchedule $item) => $this->formatSchedule($item));
@@ -58,9 +56,8 @@ class PracticumScheduleController extends Controller
 
         $weekSchedules = PracticumSchedule::query()
             ->with('guru:id,name')
-            ->whereBetween('tanggal', [$weekStart->toDateString(), $weekEnd->toDateString()])
-            ->whereIn('status', ['aktif', 'draft'])
-            ->orderBy('tanggal')
+            ->visibleInWeek($weekStart, $weekEnd)
+            ->orderByHari()
             ->orderBy('jam_mulai')
             ->get()
             ->map(fn (PracticumSchedule $item) => $this->formatSchedule($item));
@@ -70,16 +67,17 @@ class PracticumScheduleController extends Controller
             'weekSchedules' => $weekSchedules,
             'filters' => [
                 'search' => $search->toString(),
-                'status' => $status,
+                'type' => $type,
                 'kelas' => $kelas,
                 'guru_id' => $guruId,
                 'mata_kuliah' => $mataKuliah,
-                'date_from' => $dateFrom,
-                'date_to' => $dateTo,
+                'hari' => $hari,
             ],
             'guruOptions' => $this->guruOptions(),
             'kelasOptions' => config('lab.class_options'),
             'subjectOptions' => config('lab.practicum_subjects'),
+            'dayOptions' => config('lab.schedule_days'),
+            'typeOptions' => config('lab.schedule_types'),
         ]);
     }
 
@@ -91,23 +89,18 @@ class PracticumScheduleController extends Controller
             'guruOptions' => $this->guruOptions(),
             'kelasOptions' => config('lab.class_options'),
             'subjectOptions' => config('lab.practicum_subjects'),
-            'equipmentOptions' => $this->equipmentOptions(),
+            'dayOptions' => config('lab.schedule_days'),
+            'typeOptions' => config('lab.schedule_types'),
         ]);
     }
 
     public function store(StorePracticumScheduleRequest $request): RedirectResponse
     {
-        $validated = $request->validated();
-        $equipment = $validated['required_equipment'] ?? [];
-        unset($validated['required_equipment']);
-
-        $schedule = PracticumSchedule::create([
-            ...$validated,
+        PracticumSchedule::create([
+            ...$request->validated(),
             'code' => PracticumSchedule::generateCode(),
             'jurusan' => config('lab.jurusan_default'),
         ]);
-
-        $this->syncEquipment($schedule, $equipment);
 
         return redirect()
             ->route('admin.schedules.index')
@@ -118,10 +111,10 @@ class PracticumScheduleController extends Controller
     {
         $this->authorize('view', $schedule);
 
-        $schedule->load(['guru:id,name,nip', 'equipment']);
+        $schedule->load('guru:id,name,nip');
 
         return Inertia::render('Admin/Schedule/Show', [
-            'schedule' => $this->formatSchedule($schedule, true),
+            'schedule' => $this->formatSchedule($schedule),
         ]);
     }
 
@@ -129,28 +122,22 @@ class PracticumScheduleController extends Controller
     {
         $this->authorize('update', $schedule);
 
-        $schedule->load('equipment');
-
         return Inertia::render('Admin/Schedule/Edit', [
-            'schedule' => $this->formatSchedule($schedule, true),
+            'schedule' => $this->formatSchedule($schedule),
             'guruOptions' => $this->guruOptions(),
             'kelasOptions' => config('lab.class_options'),
             'subjectOptions' => config('lab.practicum_subjects'),
-            'equipmentOptions' => $this->equipmentOptions(),
+            'dayOptions' => config('lab.schedule_days'),
+            'typeOptions' => config('lab.schedule_types'),
         ]);
     }
 
     public function update(UpdatePracticumScheduleRequest $request, PracticumSchedule $schedule): RedirectResponse
     {
-        $validated = $request->validated();
-        $equipment = $validated['required_equipment'] ?? [];
-        unset($validated['required_equipment']);
-
         $schedule->update([
-            ...$validated,
+            ...$request->validated(),
             'jurusan' => config('lab.jurusan_default'),
         ]);
-        $this->syncEquipment($schedule, $equipment);
 
         return redirect()
             ->route('admin.schedules.show', $schedule)
@@ -168,16 +155,6 @@ class PracticumScheduleController extends Controller
             ->with('success', 'Jadwal praktikum berhasil dihapus.');
     }
 
-    private function syncEquipment(PracticumSchedule $schedule, array $rows): void
-    {
-        $sync = [];
-        foreach ($rows as $row) {
-            $sync[$row['equipment_id']] = ['quantity' => (int) $row['quantity']];
-        }
-
-        $schedule->equipment()->sync($sync);
-    }
-
     private function guruOptions(): array
     {
         return User::query()
@@ -193,35 +170,25 @@ class PracticumScheduleController extends Controller
             ->all();
     }
 
-    private function equipmentOptions(): array
-    {
-        return Equipment::query()
-            ->alat()
-            ->where('status', 'active')
-            ->orderBy('name')
-            ->get(['id', 'code', 'name', 'available'])
-            ->map(fn (Equipment $item) => [
-                'id' => $item->id,
-                'label' => "{$item->code} — {$item->name} (tersedia: {$item->available})",
-            ])
-            ->values()
-            ->all();
-    }
-
-    private function formatSchedule(PracticumSchedule $schedule, bool $detailed = false): array
+    private function formatSchedule(PracticumSchedule $schedule): array
     {
         $jamMulai = $this->formatTimeForDisplay($schedule->jam_mulai);
         $jamSelesai = $this->formatTimeForDisplay($schedule->jam_selesai);
 
-        $data = [
+        return [
             'id' => $schedule->id,
             'code' => $schedule->code,
             'title' => $schedule->title,
             'mata_kuliah' => $schedule->mata_kuliah,
             'jurusan' => $schedule->jurusan,
             'kelas' => $schedule->kelas,
+            'type' => $schedule->type,
+            'type_label' => config("lab.schedule_types.{$schedule->type}"),
+            'hari' => $schedule->hari,
+            'hari_label' => $schedule->hariLabel(),
             'tanggal' => $schedule->tanggal?->format('Y-m-d'),
             'tanggal_formatted' => $schedule->tanggal?->translatedFormat('d M Y'),
+            'jadwal_label' => $schedule->jadwalLabel(),
             'jam_mulai' => $jamMulai,
             'jam_selesai' => $jamSelesai,
             'waktu_label' => "{$jamMulai} – {$jamSelesai}",
@@ -229,25 +196,10 @@ class PracticumScheduleController extends Controller
             'guru_id' => $schedule->guru_id,
             'guru_name' => $schedule->guru?->name,
             'priority' => $schedule->priority,
-            'status' => $schedule->status,
-            'display_status' => $schedule->resolveDisplayStatus(),
             'notes' => $schedule->notes,
             'created_at_formatted' => $schedule->created_at?->translatedFormat('d M Y'),
             'updated_at_formatted' => $schedule->updated_at?->translatedFormat('d M Y H:i'),
         ];
-
-        if ($detailed) {
-            $data['required_equipment'] = $schedule->relationLoaded('equipment')
-                ? $schedule->equipment->map(fn (Equipment $item) => [
-                    'equipment_id' => $item->id,
-                    'equipment_name' => $item->name,
-                    'equipment_code' => $item->code,
-                    'quantity' => $item->pivot->quantity,
-                ])->values()->all()
-                : [];
-        }
-
-        return $data;
     }
 
     private function formatTimeForDisplay(?string $time): string

@@ -187,9 +187,14 @@ class AdminReportDataService
                     ->whereColumn('available', '<=', 'min_stock')
                     ->count(),
                 'schedules_period' => PracticumSchedule::query()
-                    ->when($from, fn ($q) => $q->whereDate('tanggal', '>=', $from))
-                    ->when($to, fn ($q) => $q->whereDate('tanggal', '<=', $to))
-                    ->where('status', 'aktif')
+                    ->where(function ($q) use ($from, $to) {
+                        $q->where('type', 'mingguan')
+                            ->orWhere(function ($special) use ($from, $to) {
+                                $special->where('type', 'khusus')
+                                    ->when($from, fn ($q) => $q->whereDate('tanggal', '>=', $from))
+                                    ->when($to, fn ($q) => $q->whereDate('tanggal', '<=', $to));
+                            });
+                    })
                     ->count(),
                 'collateral_held' => LoanCollateral::query()
                     ->whereIn('status', ['ditahan', 'menunggu_kompensasi'])

@@ -72,8 +72,7 @@ class AdminDashboardDataService
                 ->where('status', 'antrian')
                 ->count(),
             'activeSchedulesWeek' => PracticumSchedule::query()
-                ->where('status', 'aktif')
-                ->whereBetween('tanggal', [$today->toDateString(), $weekEnd->toDateString()])
+                ->visibleInWeek($today->copy()->startOfWeek(Carbon::MONDAY), $weekEnd)
                 ->count(),
             'heldCards' => LoanCollateral::query()
                 ->whereIn('status', ['ditahan', 'menunggu_kompensasi'])

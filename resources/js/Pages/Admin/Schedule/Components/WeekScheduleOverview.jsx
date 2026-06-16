@@ -4,6 +4,14 @@ import { Link } from "@inertiajs/react";
 import { CalendarDays } from "lucide-react";
 
 const dayNames = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"];
+const hariIndex = {
+    senin: 0,
+    selasa: 1,
+    rabu: 2,
+    kamis: 3,
+    jumat: 4,
+    sabtu: 5,
+};
 
 function getWeekDays() {
     const now = new Date();
@@ -20,6 +28,7 @@ function getWeekDays() {
             key: d.toISOString().slice(0, 10),
             label: dayNames[i],
             date: d.getDate(),
+            index: i,
         };
     });
 }
@@ -29,11 +38,27 @@ export default function WeekScheduleOverview({
     scheduleShowRoute = "admin.schedules.show",
 }) {
     const weekDays = getWeekDays();
-    const byDate = schedules.reduce((acc, s) => {
-        if (!acc[s.tanggal]) acc[s.tanggal] = [];
-        acc[s.tanggal].push(s);
+    const byDayIndex = weekDays.reduce((acc, day) => {
+        acc[day.index] = [];
         return acc;
     }, {});
+
+    schedules.forEach((schedule) => {
+        if (schedule.type === "mingguan" && schedule.hari) {
+            const index = hariIndex[schedule.hari];
+            if (index !== undefined) {
+                byDayIndex[index].push(schedule);
+            }
+            return;
+        }
+
+        if (schedule.type === "khusus" && schedule.tanggal) {
+            const day = weekDays.find((d) => d.key === schedule.tanggal);
+            if (day) {
+                byDayIndex[day.index].push(schedule);
+            }
+        }
+    });
 
     return (
         <Card className="mb-6 rounded-2xl border-border/60 shadow-card">
@@ -45,7 +70,7 @@ export default function WeekScheduleOverview({
                             Jadwal Minggu Ini
                         </CardTitle>
                         <CardDescription>
-                            Ringkasan visual — tabel utama tetap di bawah
+                            Jadwal mingguan berulang + acara khusus minggu ini
                         </CardDescription>
                     </div>
                 </div>
@@ -53,7 +78,7 @@ export default function WeekScheduleOverview({
             <CardContent>
                 <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2 sm:grid-cols-4 lg:grid-cols-7">
                     {weekDays.map((day) => {
-                        const items = byDate[day.key] ?? [];
+                        const items = byDayIndex[day.index] ?? [];
                         return (
                             <div
                                 key={day.key}
@@ -85,6 +110,9 @@ export default function WeekScheduleOverview({
                                                 </p>
                                                 <p className="mt-0.5 text-muted-foreground">
                                                     {s.jam_mulai}
+                                                    {s.type === "khusus"
+                                                        ? " • khusus"
+                                                        : ""}
                                                 </p>
                                                 <div className="mt-1 flex flex-wrap gap-1">
                                                     <SchedulePriorityBadge

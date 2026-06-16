@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\Equipment;
 use App\Models\PracticumSchedule;
 use App\Models\User;
 use Carbon\Carbon;
@@ -17,96 +16,82 @@ class PracticumScheduleSeeder extends Seeder
             return;
         }
 
-        $camera = Equipment::query()->alat()->where('name', 'like', '%Kamera%')->first();
-
         $items = [
             [
-                'title' => 'Praktik Shooting Video Dokumenter',
-                'mata_kuliah' => 'Produksi Video',
-                'kelas' => 'XII TAV 1',
-                'tanggal' => Carbon::today()->addDays(1),
+                'title' => 'Praktik Rangkaian Elektronika Dasar',
+                'mata_kuliah' => 'PRE (Penerapan Rangkaian Elektronika)',
+                'kelas' => 'X TAV 1',
+                'type' => 'mingguan',
+                'hari' => 'senin',
                 'jam_mulai' => '08:00',
                 'jam_selesai' => '11:00',
                 'ruangan' => 'Lab AV-1',
                 'priority' => 'normal',
-                'status' => 'aktif',
             ],
             [
-                'title' => 'Praktik Rekaman Podcast',
-                'mata_kuliah' => 'Produksi Audio',
-                'kelas' => 'XII TAV 1',
-                'tanggal' => Carbon::today()->addDays(2),
+                'title' => 'Praktik Mikrokontroler Arduino',
+                'mata_kuliah' => 'PAM (Pembelajaran Alat Mikrokontroler)',
+                'kelas' => 'XI TAV 1',
+                'type' => 'mingguan',
+                'hari' => 'selasa',
                 'jam_mulai' => '10:00',
                 'jam_selesai' => '12:00',
                 'ruangan' => 'Lab AV-2',
-                'priority' => 'tinggi',
-                'status' => 'aktif',
+                'priority' => 'normal',
             ],
             [
-                'title' => 'Praktik Lighting Studio',
-                'mata_kuliah' => 'Produksi Video',
+                'title' => 'Praktik Sistem Radio TV',
+                'mata_kuliah' => 'PSRT (Penerapan Sistem Radio Televisi)',
                 'kelas' => 'XI TAV 2',
-                'tanggal' => Carbon::today()->addDays(3),
+                'type' => 'mingguan',
+                'hari' => 'rabu',
                 'jam_mulai' => '13:00',
                 'jam_selesai' => '15:00',
                 'ruangan' => 'Lab AV-1',
                 'priority' => 'normal',
-                'status' => 'aktif',
             ],
             [
-                'title' => 'Persiapan Lomba Film Pendek',
-                'mata_kuliah' => 'Produksi Video',
+                'title' => 'Praktik Instalasi Audio Video',
+                'mata_kuliah' => 'PISAV (Perancangan Instalasi Audio Video)',
                 'kelas' => 'XII TAV 1',
+                'type' => 'mingguan',
+                'hari' => 'kamis',
+                'jam_mulai' => '08:00',
+                'jam_selesai' => '10:00',
+                'ruangan' => 'Lab AV-1',
+                'priority' => 'tinggi',
+            ],
+            [
+                'title' => 'Lomba Instalasi AV',
+                'mata_kuliah' => 'PISAV (Perancangan Instalasi Audio Video)',
+                'kelas' => 'XII TAV 1',
+                'type' => 'khusus',
                 'tanggal' => Carbon::today()->addDays(5),
                 'jam_mulai' => '08:00',
                 'jam_selesai' => '16:00',
                 'ruangan' => 'Lab AV-1',
                 'priority' => 'lomba',
-                'status' => 'aktif',
-                'equipment' => $camera ? [['id' => $camera->id, 'qty' => 3]] : [],
             ],
             [
-                'title' => 'Ujian Praktik Penyiaran',
-                'mata_kuliah' => 'Penyiaran',
-                'kelas' => 'XI TAV 1',
+                'title' => 'Ujian Praktik Dasar Elektronika',
+                'mata_kuliah' => 'Dasar Elektronika',
+                'kelas' => 'X TAV 2',
+                'type' => 'khusus',
                 'tanggal' => Carbon::today()->addDays(7),
                 'jam_mulai' => '09:00',
                 'jam_selesai' => '12:00',
-                'ruangan' => 'Studio Siaran',
+                'ruangan' => 'Lab AV-2',
                 'priority' => 'lomba',
-                'status' => 'aktif',
-            ],
-            [
-                'title' => 'Praktik Dasar Kamera (Selesai)',
-                'mata_kuliah' => 'Dasar AV',
-                'kelas' => 'X TAV 1',
-                'tanggal' => Carbon::today()->subDays(7),
-                'jam_mulai' => '08:00',
-                'jam_selesai' => '10:00',
-                'ruangan' => 'Lab AV-1',
-                'priority' => 'normal',
-                'status' => 'selesai',
             ],
         ];
 
         foreach ($items as $item) {
-            $equipment = $item['equipment'] ?? [];
-            unset($item['equipment']);
-
-            $schedule = PracticumSchedule::create([
+            PracticumSchedule::create([
                 ...$item,
                 'code' => PracticumSchedule::generateCode(),
                 'jurusan' => 'Audio Video',
                 'guru_id' => $guru->id,
             ]);
-
-            if ($equipment) {
-                $sync = [];
-                foreach ($equipment as $row) {
-                    $sync[$row['id']] = ['quantity' => $row['qty']];
-                }
-                $schedule->equipment()->sync($sync);
-            }
         }
     }
 }

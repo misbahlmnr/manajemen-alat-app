@@ -1,5 +1,4 @@
 import InputError from "@/Components/InputError";
-import { Button } from "@/Components/ui/button";
 import {
     Card,
     CardContent,
@@ -10,9 +9,6 @@ import {
 import { Input } from "@/Components/ui/input";
 import { Label } from "@/Components/ui/label";
 import { Select } from "@/Components/ui/select";
-import { Plus, Trash2 } from "lucide-react";
-
-const emptyEquipmentRow = () => ({ equipment_id: "", quantity: 1 });
 
 export default function ScheduleForm({
     data,
@@ -22,30 +18,30 @@ export default function ScheduleForm({
     guruOptions = [],
     kelasOptions = [],
     subjectOptions = [],
-    equipmentOptions = [],
+    dayOptions = {},
+    typeOptions = {},
 }) {
-    const equipmentRows =
-        data.required_equipment?.length > 0
-            ? data.required_equipment
-            : [emptyEquipmentRow()];
+    const isMingguan = data.type === "mingguan";
+    const isKhusus = data.type === "khusus";
 
-    const setEquipmentRows = (rows) => {
-        setData("required_equipment", rows);
-    };
+    const handleTypeChange = (type) => {
+        if (type === "mingguan") {
+            setData({
+                ...data,
+                type,
+                hari: data.hari || "senin",
+                tanggal: "",
+                priority: data.priority === "lomba" ? "normal" : data.priority,
+            });
+            return;
+        }
 
-    const updateRow = (index, field, value) => {
-        const rows = [...equipmentRows];
-        rows[index] = { ...rows[index], [field]: value };
-        setEquipmentRows(rows);
-    };
-
-    const addRow = () => {
-        setEquipmentRows([...equipmentRows, emptyEquipmentRow()]);
-    };
-
-    const removeRow = (index) => {
-        const rows = equipmentRows.filter((_, i) => i !== index);
-        setEquipmentRows(rows.length ? rows : [emptyEquipmentRow()]);
+        setData({
+            ...data,
+            type,
+            hari: "",
+            priority: "lomba",
+        });
     };
 
     return (
@@ -54,7 +50,8 @@ export default function ScheduleForm({
                 <CardHeader>
                     <CardTitle>Informasi Jadwal</CardTitle>
                     <CardDescription>
-                        Data praktikum mata pelajaran kejurusan AV/TAV.
+                        Jadwal mingguan berulang untuk praktikum rutin, atau
+                        acara khusus seperti lomba.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="grid gap-4 sm:grid-cols-2">
@@ -68,6 +65,23 @@ export default function ScheduleForm({
                             disabled={processing}
                         />
                         <InputError message={errors.title} />
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="type">Jenis Jadwal *</Label>
+                        <Select
+                            id="type"
+                            value={data.type}
+                            onChange={(e) => handleTypeChange(e.target.value)}
+                            disabled={processing}
+                        >
+                            {Object.entries(typeOptions).map(([value, label]) => (
+                                <option key={value} value={value}>
+                                    {label}
+                                </option>
+                            ))}
+                        </Select>
+                        <InputError message={errors.type} />
                     </div>
 
                     <div className="space-y-2">
@@ -146,29 +160,19 @@ export default function ScheduleForm({
                             onChange={(e) =>
                                 setData("priority", e.target.value)
                             }
-                            disabled={processing}
+                            disabled={processing || isKhusus}
                         >
                             <option value="normal">Normal</option>
                             <option value="tinggi">Tinggi</option>
                             <option value="lomba">Lomba</option>
                         </Select>
+                        {isKhusus && (
+                            <p className="text-xs text-muted-foreground">
+                                Acara khusus otomatis menggunakan prioritas
+                                lomba.
+                            </p>
+                        )}
                         <InputError message={errors.priority} />
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="status">Status *</Label>
-                        <Select
-                            id="status"
-                            value={data.status}
-                            onChange={(e) => setData("status", e.target.value)}
-                            disabled={processing}
-                        >
-                            <option value="draft">Draft</option>
-                            <option value="aktif">Aktif</option>
-                            <option value="selesai">Selesai</option>
-                            <option value="dibatalkan">Dibatalkan</option>
-                        </Select>
-                        <InputError message={errors.status} />
                     </div>
 
                     <div className="space-y-2 sm:col-span-2">
@@ -189,25 +193,51 @@ export default function ScheduleForm({
 
             <Card className="rounded-2xl border-border/60 shadow-card">
                 <CardHeader>
-                    <CardTitle>Waktu & Tanggal</CardTitle>
+                    <CardTitle>Waktu Pelaksanaan</CardTitle>
                     <CardDescription>
-                        Jadwal pelaksanaan praktikum.
+                        {isMingguan
+                            ? "Pilih hari dan jam — jadwal ini berlaku setiap minggu."
+                            : "Pilih tanggal spesifik untuk acara khusus."}
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="grid gap-4 sm:grid-cols-3">
-                    <div className="space-y-2">
-                        <Label htmlFor="tanggal">Tanggal *</Label>
-                        <Input
-                            id="tanggal"
-                            type="date"
-                            value={data.tanggal}
-                            onChange={(e) =>
-                                setData("tanggal", e.target.value)
-                            }
-                            disabled={processing}
-                        />
-                        <InputError message={errors.tanggal} />
-                    </div>
+                    {isMingguan ? (
+                        <div className="space-y-2">
+                            <Label htmlFor="hari">Hari *</Label>
+                            <Select
+                                id="hari"
+                                value={data.hari}
+                                onChange={(e) =>
+                                    setData("hari", e.target.value)
+                                }
+                                disabled={processing}
+                            >
+                                <option value="">Pilih hari</option>
+                                {Object.entries(dayOptions).map(
+                                    ([value, label]) => (
+                                        <option key={value} value={value}>
+                                            {label}
+                                        </option>
+                                    ),
+                                )}
+                            </Select>
+                            <InputError message={errors.hari} />
+                        </div>
+                    ) : (
+                        <div className="space-y-2">
+                            <Label htmlFor="tanggal">Tanggal *</Label>
+                            <Input
+                                id="tanggal"
+                                type="date"
+                                value={data.tanggal}
+                                onChange={(e) =>
+                                    setData("tanggal", e.target.value)
+                                }
+                                disabled={processing}
+                            />
+                            <InputError message={errors.tanggal} />
+                        </div>
+                    )}
 
                     <div className="space-y-2">
                         <Label htmlFor="jam_mulai">Jam Mulai *</Label>
@@ -236,94 +266,6 @@ export default function ScheduleForm({
                         />
                         <InputError message={errors.jam_selesai} />
                     </div>
-                </CardContent>
-            </Card>
-
-            <Card className="rounded-2xl border-border/60 shadow-card">
-                <CardHeader>
-                    <CardTitle>Kebutuhan Alat (Opsional)</CardTitle>
-                    <CardDescription>
-                        Alat yang diperlukan untuk jadwal prioritas tinggi /
-                        lomba — mendukung reservasi stok.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                    {equipmentRows.map((row, index) => (
-                        <div
-                            key={index}
-                            className="grid gap-3 rounded-xl border border-border/50 bg-muted/20 p-3 sm:grid-cols-[1fr_120px_40px]"
-                        >
-                            <div className="space-y-2">
-                                <Label>Alat</Label>
-                                <Select
-                                    value={row.equipment_id}
-                                    onChange={(e) =>
-                                        updateRow(
-                                            index,
-                                            "equipment_id",
-                                            e.target.value,
-                                        )
-                                    }
-                                    disabled={processing}
-                                >
-                                    <option value="">Pilih alat</option>
-                                    {equipmentOptions.map((opt) => (
-                                        <option key={opt.id} value={opt.id}>
-                                            {opt.label}
-                                        </option>
-                                    ))}
-                                </Select>
-                                <InputError
-                                    message={
-                                        errors[
-                                            `required_equipment.${index}.equipment_id`
-                                        ]
-                                    }
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Qty</Label>
-                                <Input
-                                    type="number"
-                                    min={1}
-                                    value={row.quantity}
-                                    onChange={(e) =>
-                                        updateRow(
-                                            index,
-                                            "quantity",
-                                            e.target.value,
-                                        )
-                                    }
-                                    disabled={processing}
-                                />
-                            </div>
-                            <div className="flex items-end justify-end pb-0.5">
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-9 w-9 text-destructive"
-                                    onClick={() => removeRow(index)}
-                                    disabled={
-                                        processing ||
-                                        equipmentRows.length === 1
-                                    }
-                                >
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
-                            </div>
-                        </div>
-                    ))}
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={addRow}
-                        disabled={processing}
-                    >
-                        <Plus className="mr-2 h-4 w-4" />
-                        Tambah alat
-                    </Button>
                 </CardContent>
             </Card>
         </div>

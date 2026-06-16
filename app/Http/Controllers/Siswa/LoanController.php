@@ -322,21 +322,22 @@ class LoanController extends Controller
     private function scheduleOptions(User $user, bool $futureOnly): array
     {
         return PracticumSchedule::query()
-            ->where('status', 'aktif')
+            ->forStudentSelection($futureOnly)
             ->when($user->class, fn ($q) => $q->where('kelas', $user->class))
-            ->when(
-                $futureOnly,
-                fn ($q) => $q->whereDate('tanggal', '>=', now()->toDateString()),
-                fn ($q) => $q->whereDate('tanggal', '>=', now()->subDays(60)->toDateString()),
-            )
-            ->orderByDesc('tanggal')
-            ->get(['id', 'code', 'title', 'mata_kuliah', 'kelas', 'tanggal', 'jam_mulai', 'jam_selesai', 'priority'])
+            ->orderByHari()
+            ->orderBy('jam_mulai')
+            ->orderBy('tanggal')
+            ->get(['id', 'code', 'title', 'mata_kuliah', 'kelas', 'type', 'hari', 'tanggal', 'jam_mulai', 'jam_selesai', 'priority'])
             ->map(fn ($s) => [
                 'id' => $s->id,
                 'code' => $s->code,
                 'title' => $s->title,
                 'mata_kuliah' => $s->mata_kuliah,
                 'kelas' => $s->kelas,
+                'type' => $s->type,
+                'hari' => $s->hari,
+                'hari_label' => $s->hariLabel(),
+                'jadwal_label' => $s->jadwalLabel(),
                 'tanggal' => $s->tanggal?->format('Y-m-d'),
                 'jam_mulai' => $s->jam_mulai,
                 'jam_selesai' => $s->jam_selesai,

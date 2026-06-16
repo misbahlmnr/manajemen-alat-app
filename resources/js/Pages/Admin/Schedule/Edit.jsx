@@ -9,29 +9,22 @@ export default function Edit({
     guruOptions,
     kelasOptions,
     subjectOptions,
-    equipmentOptions,
+    dayOptions,
+    typeOptions,
 }) {
-    const equipment =
-        schedule.required_equipment?.length > 0
-            ? schedule.required_equipment.map((row) => ({
-                  equipment_id: String(row.equipment_id),
-                  quantity: row.quantity,
-              }))
-            : [{ equipment_id: "", quantity: 1 }];
-
     const { data, setData, put, processing, errors } = useForm({
         title: schedule.title,
         mata_kuliah: schedule.mata_kuliah,
         kelas: schedule.kelas,
-        tanggal: schedule.tanggal,
+        type: schedule.type,
+        hari: schedule.hari ?? "",
+        tanggal: schedule.tanggal ?? "",
         jam_mulai: schedule.jam_mulai,
         jam_selesai: schedule.jam_selesai,
         ruangan: schedule.ruangan ?? "",
         guru_id: String(schedule.guru_id),
         priority: schedule.priority,
-        status: schedule.status,
         notes: schedule.notes ?? "",
-        required_equipment: equipment,
     });
 
     const submit = (e) => {
@@ -58,7 +51,8 @@ export default function Edit({
                         guruOptions={guruOptions}
                         kelasOptions={kelasOptions}
                         subjectOptions={subjectOptions}
-                        equipmentOptions={equipmentOptions}
+                        dayOptions={dayOptions}
+                        typeOptions={typeOptions}
                     />
 
                     <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-6">

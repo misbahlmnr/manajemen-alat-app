@@ -294,7 +294,7 @@ class DashboardDataService
             [
                 'id' => 'S1',
                 'title' => 'Praktik Shooting Video Dokumenter',
-                'mataKuliah' => 'Produksi Video',
+                'mataKuliah' => 'PRE (Penerapan Rangkaian Elektronika)',
                 'kelas' => 'XII TAV 1',
                 'tanggal' => $date(1),
                 'jamMulai' => '08:00',
@@ -308,7 +308,7 @@ class DashboardDataService
             [
                 'id' => 'S2',
                 'title' => 'Praktik Rekaman Podcast',
-                'mataKuliah' => 'Produksi Audio',
+                'mataKuliah' => 'PAM (Pembelajaran Alat Mikrokontroler)',
                 'kelas' => 'XII TAV 1',
                 'tanggal' => $date(2),
                 'jamMulai' => '10:00',
@@ -322,7 +322,7 @@ class DashboardDataService
             [
                 'id' => 'S3',
                 'title' => 'Praktik Lighting Studio',
-                'mataKuliah' => 'Produksi Video',
+                'mataKuliah' => 'PSRT (Penerapan Sistem Radio Televisi)',
                 'kelas' => 'XI TAV 2',
                 'tanggal' => $date(3),
                 'jamMulai' => '13:00',

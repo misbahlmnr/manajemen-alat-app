@@ -57,9 +57,7 @@ class StoreStudentLoanRequest extends FormRequest
             'practicum_schedule_id' => [
                 ($isAlat && ! $bawaPulang) ? 'required' : 'nullable',
                 'integer',
-                Rule::exists('practicum_schedules', 'id')->where(
-                    fn ($query) => $query->where('status', 'aktif'),
-                ),
+                Rule::exists('practicum_schedules', 'id'),
             ],
             'item_type' => ['required', Rule::in(['alat', 'bahan'])],
             'request_date' => ['required', 'date'],

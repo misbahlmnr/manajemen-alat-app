@@ -1,6 +1,5 @@
 import DataTable from "@/Components/DataTable";
 import SchedulePriorityBadge from "@/Components/SchedulePriorityBadge";
-import ScheduleStatusBadge from "@/Components/ScheduleStatusBadge";
 import TableRowActions from "@/Components/TableRowActions";
 
 export default function ScheduleTable({ items, pagination, onDelete }) {
@@ -30,9 +29,19 @@ export default function ScheduleTable({ items, pagination, onDelete }) {
         { accessorKey: "guru_name", header: "Guru" },
         { accessorKey: "kelas", header: "Kelas" },
         {
-            accessorKey: "tanggal_formatted",
-            header: "Tanggal",
+            accessorKey: "jadwal_label",
+            header: "Jadwal",
             meta: { cellClassName: "whitespace-nowrap" },
+            cell: ({ row }) => (
+                <div>
+                    <p className="font-medium text-foreground">
+                        {row.original.jadwal_label}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                        {row.original.type_label}
+                    </p>
+                </div>
+            ),
         },
         {
             accessorKey: "waktu_label",
@@ -48,17 +57,6 @@ export default function ScheduleTable({ items, pagination, onDelete }) {
             accessorKey: "priority",
             header: "Prioritas",
             cell: ({ getValue }) => <SchedulePriorityBadge priority={getValue()} />,
-        },
-        {
-            id: "status",
-            header: "Status",
-            accessorFn: (row) => row.status,
-            cell: ({ row }) => (
-                <ScheduleStatusBadge
-                    status={row.original.status}
-                    displayStatus={row.original.display_status}
-                />
-            ),
         },
         {
             accessorKey: "created_at_formatted",
@@ -88,7 +86,7 @@ export default function ScheduleTable({ items, pagination, onDelete }) {
             tableClassName="min-w-[960px]"
             getRowId={(row) => String(row.id)}
             emptyState="Tidak ada jadwal ditemukan"
-            initialSorting={[{ id: "tanggal_formatted", desc: true }]}
+            initialSorting={[{ id: "jadwal_label", desc: false }]}
         />
     );
 }

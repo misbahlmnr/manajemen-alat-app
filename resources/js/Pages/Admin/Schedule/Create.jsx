@@ -8,21 +8,22 @@ export default function Create({
     guruOptions,
     kelasOptions,
     subjectOptions,
-    equipmentOptions,
+    dayOptions,
+    typeOptions,
 }) {
     const { data, setData, post, processing, errors } = useForm({
         title: "",
         mata_kuliah: "",
         kelas: "",
+        type: "mingguan",
+        hari: "senin",
         tanggal: "",
         jam_mulai: "08:00",
         jam_selesai: "10:00",
         ruangan: "",
         guru_id: "",
         priority: "normal",
-        status: "draft",
         notes: "",
-        required_equipment: [{ equipment_id: "", quantity: 1 }],
     });
 
     const submit = (e) => {
@@ -37,7 +38,7 @@ export default function Create({
             <div className="animate-fade-in">
                 <PageHeader
                     title="Tambah Jadwal"
-                    subtitle="Buat jadwal praktikum baru untuk kelas TAV."
+                    subtitle="Buat jadwal mingguan atau acara khusus untuk kelas TAV."
                 />
 
                 <form onSubmit={submit} className="space-y-6">
@@ -49,7 +50,8 @@ export default function Create({
                         guruOptions={guruOptions}
                         kelasOptions={kelasOptions}
                         subjectOptions={subjectOptions}
-                        equipmentOptions={equipmentOptions}
+                        dayOptions={dayOptions}
+                        typeOptions={typeOptions}
                     />
 
                     <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-6">

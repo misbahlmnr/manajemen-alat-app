@@ -20,11 +20,10 @@ class ScheduleController extends Controller
 
         $user = $request->user();
         $search = $request->string('search')->trim();
-        $status = $request->string('status')->toString() ?: 'all';
+        $type = $request->string('type')->toString() ?: 'all';
         $kelas = $request->string('kelas')->toString() ?: 'all';
         $mataKuliah = $request->string('mata_kuliah')->toString() ?: 'all';
-        $dateFrom = $request->string('date_from')->toString();
-        $dateTo = $request->string('date_to')->toString();
+        $hari = $request->string('hari')->toString() ?: 'all';
 
         $baseQuery = PracticumSchedule::query()->where('guru_id', $user->id);
 
@@ -39,13 +38,13 @@ class ScheduleController extends Controller
                         ->orWhere('ruangan', 'like', "%{$search}%");
                 });
             })
-            ->when($status !== 'all', fn ($q) => $q->where('status', $status))
+            ->when($type !== 'all', fn ($q) => $q->where('type', $type))
             ->when($kelas !== 'all', fn ($q) => $q->where('kelas', $kelas))
             ->when($mataKuliah !== 'all', fn ($q) => $q->where('mata_kuliah', $mataKuliah))
-            ->when($dateFrom !== '', fn ($q) => $q->whereDate('tanggal', '>=', $dateFrom))
-            ->when($dateTo !== '', fn ($q) => $q->whereDate('tanggal', '<=', $dateTo))
-            ->orderByDesc('tanggal')
+            ->when($hari !== 'all', fn ($q) => $q->where('hari', $hari))
+            ->orderByHari()
             ->orderBy('jam_mulai')
+            ->orderByDesc('tanggal')
             ->paginate(10)
             ->withQueryString()
             ->through(fn (PracticumSchedule $item) => $this->formatSchedule($item));
@@ -55,9 +54,8 @@ class ScheduleController extends Controller
 
         $weekSchedules = (clone $baseQuery)
             ->with('guru:id,name')
-            ->whereBetween('tanggal', [$weekStart->toDateString(), $weekEnd->toDateString()])
-            ->whereIn('status', ['aktif', 'draft'])
-            ->orderBy('tanggal')
+            ->visibleInWeek($weekStart, $weekEnd)
+            ->orderByHari()
             ->orderBy('jam_mulai')
             ->get()
             ->map(fn (PracticumSchedule $item) => $this->formatSchedule($item));
@@ -73,14 +71,15 @@ class ScheduleController extends Controller
             'weekSchedules' => $weekSchedules,
             'filters' => [
                 'search' => $search->toString(),
-                'status' => $status,
+                'type' => $type,
                 'kelas' => $kelas,
                 'mata_kuliah' => $mataKuliah,
-                'date_from' => $dateFrom,
-                'date_to' => $dateTo,
+                'hari' => $hari,
             ],
             'kelasOptions' => config('lab.class_options'),
             'subjectOptions' => $subjectOptions,
+            'dayOptions' => config('lab.schedule_days'),
+            'typeOptions' => config('lab.schedule_types'),
         ]);
     }
 
@@ -88,10 +87,10 @@ class ScheduleController extends Controller
     {
         $this->authorize('view', $schedule);
 
-        $schedule->load(['guru:id,name,nip', 'equipment:id,code,name,available']);
+        $schedule->load(['guru:id,name,nip']);
 
         return Inertia::render('Guru/Schedule/Show', [
-            'schedule' => $this->formatSchedule($schedule, true),
+            'schedule' => $this->formatSchedule($schedule),
         ]);
     }
 }

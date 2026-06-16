@@ -538,7 +538,7 @@ export default function Create({
                                                     <span>
                                                         {isBawaPulang
                                                             ? "Tidak ada jadwal tersedia — Anda tetap bisa mengajukan tanpa memilih jadwal."
-                                                            : "Tidak ada jadwal aktif untuk kelas Anda."}
+                                                            : "Tidak ada jadwal untuk kelas Anda."}
                                                     </span>
                                                 </div>
                                             ) : (
@@ -564,17 +564,19 @@ export default function Create({
                                                             key={s.id}
                                                             value={s.id}
                                                         >
-                                                            {s.tanggal
-                                                                ? new Date(
-                                                                      s.tanggal,
-                                                                  ).toLocaleDateString(
-                                                                      "id-ID",
-                                                                      {
-                                                                          day: "2-digit",
-                                                                          month: "short",
-                                                                      },
-                                                                  )
-                                                                : ""}{" "}
+                                                            {s.jadwal_label ||
+                                                                s.hari_label ||
+                                                                (s.tanggal
+                                                                    ? new Date(
+                                                                          s.tanggal,
+                                                                      ).toLocaleDateString(
+                                                                          "id-ID",
+                                                                          {
+                                                                              day: "2-digit",
+                                                                              month: "short",
+                                                                          },
+                                                                      )
+                                                                    : "")}{" "}
                                                             •{" "}
                                                             {formatScheduleTime(
                                                                 s.jam_mulai,

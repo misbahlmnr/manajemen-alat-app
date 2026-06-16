@@ -73,12 +73,24 @@ return [
     ],
 
     'practicum_subjects' => [
-        'Produksi Video',
-        'Produksi Audio',
-        'Penyiaran',
-        'Fotografi',
-        'Editing Video',
-        'Dasar AV',
-        'Elektronika Dasar',
+        'PRE (Penerapan Rangkaian Elektronika)',
+        'PAM (Pembelajaran Alat Mikrokontroler)',
+        'PSRT (Penerapan Sistem Radio Televisi)',
+        'PISAV (Perancangan Instalasi Audio Video)',
+        'Dasar Elektronika',
+    ],
+
+    'schedule_types' => [
+        'mingguan' => 'Jadwal Mingguan',
+        'khusus' => 'Acara Khusus',
+    ],
+
+    'schedule_days' => [
+        'senin' => 'Senin',
+        'selasa' => 'Selasa',
+        'rabu' => 'Rabu',
+        'kamis' => 'Kamis',
+        'jumat' => 'Jumat',
+        'sabtu' => 'Sabtu',
     ],
 ];

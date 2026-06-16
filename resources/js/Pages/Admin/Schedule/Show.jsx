@@ -1,7 +1,6 @@
 import AppLayout from "@/Layouts/AppLayout";
 import PageHeader from "@/Components/PageHeader";
 import SchedulePriorityBadge from "@/Components/SchedulePriorityBadge";
-import ScheduleStatusBadge from "@/Components/ScheduleStatusBadge";
 import { Button } from "@/Components/ui/button";
 import {
     Card,
@@ -23,8 +22,6 @@ export default function Show({ schedule }) {
         setDeleting(true);
         router.delete(route("admin.schedules.destroy", schedule.id));
     };
-
-    const equipment = schedule.required_equipment ?? [];
 
     return (
         <AppLayout>
@@ -60,11 +57,10 @@ export default function Show({ schedule }) {
                             </p>
 
                             <div className="mt-6 space-y-4 border-t border-border pt-6">
-                                <MetaRow label="Status">
-                                    <ScheduleStatusBadge
-                                        status={schedule.status}
-                                        displayStatus={schedule.display_status}
-                                    />
+                                <MetaRow label="Jenis">
+                                    <span className="text-sm font-medium text-foreground">
+                                        {schedule.type_label}
+                                    </span>
                                 </MetaRow>
                                 <MetaRow label="Prioritas">
                                     <SchedulePriorityBadge
@@ -103,8 +99,8 @@ export default function Show({ schedule }) {
                                     value={schedule.ruangan || "—"}
                                 />
                                 <Info
-                                    label="Tanggal"
-                                    value={schedule.tanggal_formatted}
+                                    label="Jadwal"
+                                    value={schedule.jadwal_label}
                                 />
                                 <Info
                                     label="Waktu"
@@ -125,44 +121,6 @@ export default function Show({ schedule }) {
                                             value={schedule.notes}
                                         />
                                     </div>
-                                )}
-                            </CardContent>
-                        </Card>
-
-                        <Card className="rounded-2xl border-border/60 shadow-card">
-                            <CardHeader>
-                                <CardTitle>Kebutuhan Alat</CardTitle>
-                                <CardDescription>
-                                    Alat yang direncanakan untuk jadwal ini
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                {equipment.length > 0 ? (
-                                    <ul className="divide-y divide-border rounded-xl border border-border/50">
-                                        {equipment.map((row) => (
-                                            <li
-                                                key={row.equipment_id}
-                                                className="flex items-center justify-between gap-4 px-4 py-3 text-sm"
-                                            >
-                                                <div>
-                                                    <p className="font-medium text-foreground">
-                                                        {row.equipment_name}
-                                                    </p>
-                                                    <p className="font-mono text-xs text-muted-foreground">
-                                                        {row.equipment_code}
-                                                    </p>
-                                                </div>
-                                                <span className="shrink-0 rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium">
-                                                    {row.quantity} unit
-                                                </span>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                ) : (
-                                    <p className="text-sm text-muted-foreground">
-                                        Tidak ada alat yang ditambahkan untuk
-                                        jadwal ini.
-                                    </p>
                                 )}
                             </CardContent>
                         </Card>

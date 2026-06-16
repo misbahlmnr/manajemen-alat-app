@@ -15,23 +15,38 @@ class StorePracticumScheduleRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $equipment = $this->input('required_equipment', []);
-        if (is_array($equipment)) {
-            $equipment = array_values(array_filter($equipment, function ($row) {
-                return ! empty($row['equipment_id']);
-            }));
+        $merge = [];
+
+        if ($this->input('type') === 'mingguan') {
+            $merge['tanggal'] = null;
         }
 
-        $this->merge(['required_equipment' => $equipment]);
+        if ($this->input('type') === 'khusus') {
+            $merge['hari'] = null;
+        }
+
+        $this->merge($merge);
     }
 
     public function rules(): array
     {
+        $type = $this->input('type', 'mingguan');
+
         return [
             'title' => ['required', 'string', 'max:255'],
             'mata_kuliah' => ['required', 'string', 'max:100'],
             'kelas' => ['required', 'string', 'max:50'],
-            'tanggal' => ['required', 'date'],
+            'type' => ['required', Rule::in(['mingguan', 'khusus'])],
+            'hari' => [
+                Rule::requiredIf($type === 'mingguan'),
+                'nullable',
+                Rule::in(array_keys(config('lab.schedule_days'))),
+            ],
+            'tanggal' => [
+                Rule::requiredIf($type === 'khusus'),
+                'nullable',
+                'date',
+            ],
             'jam_mulai' => ['required', 'date_format:H:i'],
             'jam_selesai' => ['required', 'date_format:H:i', 'after:jam_mulai'],
             'ruangan' => ['nullable', 'string', 'max:100'],
@@ -41,11 +56,7 @@ class StorePracticumScheduleRequest extends FormRequest
                 Rule::exists(User::class, 'id')->where('role', 'guru'),
             ],
             'priority' => ['required', Rule::in(['normal', 'tinggi', 'lomba'])],
-            'status' => ['required', Rule::in(['draft', 'aktif', 'selesai', 'dibatalkan'])],
             'notes' => ['nullable', 'string', 'max:2000'],
-            'required_equipment' => ['nullable', 'array'],
-            'required_equipment.*.equipment_id' => ['required', 'integer', 'exists:equipment,id'],
-            'required_equipment.*.quantity' => ['required', 'integer', 'min:1'],
         ];
     }
 
@@ -55,13 +66,14 @@ class StorePracticumScheduleRequest extends FormRequest
             'title' => 'judul jadwal',
             'mata_kuliah' => 'mata pelajaran',
             'kelas' => 'kelas',
+            'type' => 'jenis jadwal',
+            'hari' => 'hari',
             'tanggal' => 'tanggal',
             'jam_mulai' => 'jam mulai',
             'jam_selesai' => 'jam selesai',
             'ruangan' => 'ruang/laboratorium',
             'guru_id' => 'guru pengampu',
             'priority' => 'prioritas',
-            'status' => 'status',
             'notes' => 'catatan',
         ];
     }
