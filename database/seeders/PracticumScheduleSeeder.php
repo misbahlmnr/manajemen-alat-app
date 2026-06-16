@@ -20,7 +20,7 @@ class PracticumScheduleSeeder extends Seeder
             [
                 'title' => 'Praktik Rangkaian Elektronika Dasar',
                 'mata_kuliah' => 'PRE (Penerapan Rangkaian Elektronika)',
-                'kelas' => 'X TAV 1',
+                'kelas' => 'X TE 1',
                 'type' => 'mingguan',
                 'hari' => 'senin',
                 'jam_mulai' => '08:00',
@@ -64,7 +64,7 @@ class PracticumScheduleSeeder extends Seeder
             [
                 'title' => 'Lomba Instalasi AV',
                 'mata_kuliah' => 'PISAV (Perancangan Instalasi Audio Video)',
-                'kelas' => 'XII TAV 1',
+                'kelas' => 'XII TAV 2',
                 'type' => 'khusus',
                 'tanggal' => Carbon::today()->addDays(5),
                 'jam_mulai' => '08:00',
@@ -75,7 +75,7 @@ class PracticumScheduleSeeder extends Seeder
             [
                 'title' => 'Ujian Praktik Dasar Elektronika',
                 'mata_kuliah' => 'Dasar Elektronika',
-                'kelas' => 'X TAV 2',
+                'kelas' => 'X TE 2',
                 'type' => 'khusus',
                 'tanggal' => Carbon::today()->addDays(7),
                 'jam_mulai' => '09:00',

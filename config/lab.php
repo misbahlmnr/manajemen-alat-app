@@ -36,12 +36,16 @@ return [
     ],
 
     'class_options' => [
-        'X TAV 1',
-        'X TAV 2',
+        'X TE 1',
+        'X TE 2',
+        'X TE 3',
+        'X TE 4',
         'XI TAV 1',
         'XI TAV 2',
+        'XI TAV 3',
         'XII TAV 1',
         'XII TAV 2',
+        'XII TAV 3',
     ],
 
     'jurusan_default' => 'Audio Video',
