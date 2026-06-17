@@ -79,6 +79,10 @@ class Equipment extends Model
             return 'habis';
         }
 
+        if ($this->available < $this->stock) {
+            return 'diambil';
+        }
+
         if ($this->is_low_stock) {
             return 'menipis';
         }
@@ -95,6 +99,9 @@ class Equipment extends Model
         match ($value) {
             'tidak_tersedia', 'nonaktif' => $query->where('status', 'tidak_tersedia'),
             'habis' => $query->where('status', 'tersedia')->where('available', '<=', 0),
+            'diambil' => $query->where('status', 'tersedia')
+                ->where('available', '>', 0)
+                ->whereColumn('available', '<', 'stock'),
             'menipis' => $query->where('status', 'tersedia')
                 ->where('available', '>', 0)
                 ->whereNotNull('min_stock')

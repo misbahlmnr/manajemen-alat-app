@@ -1,4 +1,4 @@
-import { StatusBadge } from "@/Components/ui/StatusBadge";
+import LoanStatusBadge from "@/Components/LoanStatusBadge";
 import CollateralStatusBadge from "@/Components/CollateralStatusBadge";
 import { cn } from "@/lib/utils";
 import {
@@ -65,7 +65,10 @@ export default function LoanDetailModal({ loan, borrower, onClose, footer }) {
                         >
                             {isBahan ? "Bahan" : "Alat"}
                         </span>
-                        <StatusBadge status={loan.status} />
+                        <LoanStatusBadge
+                            status={loan.status}
+                            itemType={loan.item_type}
+                        />
                         {!isBahan && loan.borrow_scope && (
                             <span className="inline-flex items-center gap-1 rounded bg-secondary px-2 py-0.5 text-[11px] font-medium text-foreground">
                                 <MapPin className="h-3 w-3" />

@@ -48,12 +48,22 @@ const config = {
     },
 };
 
-export default function LoanStatusBadge({ status }) {
+const bahanStatusLabels = {
+    dipinjam: "Diambil",
+    dikembalikan: "Selesai",
+};
+
+export default function LoanStatusBadge({ status, itemType }) {
     const item = config[status] ?? {
         label: status,
         dot: "bg-muted-foreground",
         className: "border-muted-foreground/20 bg-muted text-muted-foreground",
     };
+
+    const label =
+        itemType === "bahan" && bahanStatusLabels[status]
+            ? bahanStatusLabels[status]
+            : item.label;
 
     return (
         <span
@@ -63,7 +73,7 @@ export default function LoanStatusBadge({ status }) {
             )}
         >
             <span className={cn("mr-1.5 h-1.5 w-1.5 rounded-full", item.dot)} />
-            {item.label}
+            {label}
         </span>
     );
 }

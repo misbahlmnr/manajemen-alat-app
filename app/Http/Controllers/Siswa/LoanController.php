@@ -46,7 +46,7 @@ class LoanController extends Controller
             ->with([
                 'supervisor:id,name',
                 'schedule:id,code,title,mata_kuliah,kelas,tanggal,jam_mulai,jam_selesai,priority',
-                'items.equipment:id,code,name,item_type,unit',
+                'items.equipment:id,code,name,item_type,unit,image_path',
                 'collateral:id,loan_id,status,held_at,returned_at',
             ])
             ->tap(fn ($query) => $this->applyStudentLoanScope($query, $scope))
@@ -262,7 +262,7 @@ class LoanController extends Controller
         $loan->load([
             'supervisor:id,name,nip',
             'schedule:id,code,title,mata_kuliah,tanggal,kelas',
-            'items.equipment:id,code,name,item_type,category,unit',
+            'items.equipment:id,code,name,item_type,category,unit,image_path',
             'statusLogs.user:id,name',
             'collateral',
             'compensation',
@@ -428,6 +428,7 @@ class LoanController extends Controller
             'stock' => $equipment->stock,
             'unit' => $equipment->unit ?? ($isBahan ? 'pcs' : 'unit'),
             'min_stock' => $equipment->min_stock,
+            'image_url' => $equipment->image_url,
             'is_low_stock' => $isBahan
                 && $equipment->min_stock !== null
                 && $equipment->available <= $equipment->min_stock,
@@ -442,6 +443,7 @@ class LoanController extends Controller
                 'equipment_id' => $item->equipment_id,
                 'equipment_name' => $item->equipment?->name,
                 'equipment_code' => $item->equipment?->code,
+                'image_url' => $item->equipment?->image_url,
                 'quantity' => $item->quantity,
                 'unit' => $item->equipment?->unit,
             ])->values()->all()

@@ -64,7 +64,9 @@ export default function LoanTableActions({ loan, onDelete, onReject, onReturn })
                         onClick={() => post("admin.loans.mark-borrowed")}
                     >
                         <PackageCheck className="mr-2 h-4 w-4" />
-                        Tandai Dipinjam
+                        {loan.item_type === "bahan"
+                            ? "Tandai Diambil"
+                            : "Tandai Dipinjam"}
                     </DropdownMenuItem>
                 )}
                 {loan.can_return && (

@@ -1,5 +1,6 @@
 import DataTable from "@/Components/DataTable";
 import DataPagination from "@/Components/DataPagination";
+import EquipmentImage from "@/Components/Equipment/EquipmentImage";
 import { normalizePaginator } from "@/lib/paginator";
 import { Button } from "@/Components/ui/button";
 import { cn } from "@/lib/utils";
@@ -43,7 +44,14 @@ function CatalogMobileCard({ item, isBahan, cart, onAdd, maxQty }) {
 
     return (
         <div className="rounded-xl border border-border/60 bg-card p-4 shadow-sm">
-            <div className="mb-3 flex items-start justify-between gap-3">
+            <div className="mb-3 flex items-start gap-3">
+                <EquipmentImage
+                    imageUrl={item.image_url}
+                    name={item.name}
+                    itemType={isBahan ? "bahan" : "alat"}
+                    className="h-11 w-11 shrink-0 rounded-lg border border-border/60"
+                    iconClassName="h-4 w-4"
+                />
                 <div className="min-w-0 flex-1">
                     <p className="font-medium text-foreground">{item.name}</p>
                     <p className="mt-0.5 font-mono text-xs text-muted-foreground">
@@ -103,13 +111,22 @@ export default function LoanCatalogTable({
                 header: isBahan ? "Nama Bahan" : "Nama Alat",
                 accessorFn: (row) => row.name,
                 cell: ({ row }) => (
-                    <div className="min-w-[120px] max-w-xs">
-                        <p className="font-medium text-foreground">
-                            {row.original.name}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                            {row.original.category ?? row.original.code}
-                        </p>
+                    <div className="flex min-w-[120px] max-w-xs items-center gap-3">
+                        <EquipmentImage
+                            imageUrl={row.original.image_url}
+                            name={row.original.name}
+                            itemType={isBahan ? "bahan" : "alat"}
+                            className="h-10 w-10 shrink-0 rounded-lg border border-border/60"
+                            iconClassName="h-4 w-4"
+                        />
+                        <div>
+                            <p className="font-medium text-foreground">
+                                {row.original.name}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                                {row.original.category ?? row.original.code}
+                            </p>
+                        </div>
                     </div>
                 ),
             },
@@ -210,7 +227,7 @@ export default function LoanCatalogTable({
                     data={items ?? []}
                     columns={columns}
                     pagination={pagination}
-                    tableClassName="min-w-[600px]"
+                    tableClassName="min-w-[700px]"
                     getRowId={(row) => String(row.id)}
                     emptyState={
                         isBahan

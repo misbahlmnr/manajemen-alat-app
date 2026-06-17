@@ -9,19 +9,6 @@ import { Eye, FileText } from "lucide-react";
 export default function EquipmentCatalogTable({ items, pagination }) {
     const columns = [
         {
-            id: "preview",
-            header: "",
-            enableSorting: false,
-            cell: ({ row }) => (
-                <EquipmentImage
-                    imageUrl={row.original.image_url}
-                    name={row.original.name}
-                    className="h-10 w-10 rounded-lg border border-border/60"
-                    iconClassName="h-4 w-4"
-                />
-            ),
-        },
-        {
             accessorKey: "code",
             header: "Kode",
             cell: ({ getValue }) => (
@@ -35,15 +22,23 @@ export default function EquipmentCatalogTable({ items, pagination }) {
             header: "Nama Alat",
             accessorFn: (row) => row.name,
             cell: ({ row }) => (
-                <div className="min-w-[160px] max-w-xs">
-                    <p className="font-medium text-foreground">
-                        {row.original.name}
-                    </p>
-                    {row.original.description && (
-                        <p className="line-clamp-2 text-xs text-muted-foreground">
-                            {row.original.description}
+                <div className="flex min-w-[160px] max-w-xs items-center gap-3">
+                    <EquipmentImage
+                        imageUrl={row.original.image_url}
+                        name={row.original.name}
+                        className="h-10 w-10 shrink-0 rounded-lg border border-border/60"
+                        iconClassName="h-4 w-4"
+                    />
+                    <div>
+                        <p className="font-medium text-foreground">
+                            {row.original.name}
                         </p>
-                    )}
+                        {row.original.description && (
+                            <p className="line-clamp-2 text-xs text-muted-foreground">
+                                {row.original.description}
+                            </p>
+                        )}
+                    </div>
                 </div>
             ),
         },

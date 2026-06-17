@@ -527,7 +527,11 @@ function ReportPreview({
                             </>,
                             row.items_summary,
                             row.item_type_label,
-                            <LoanStatusBadge key={row.id} status={row.status} />,
+                            <LoanStatusBadge
+                                key={row.id}
+                                status={row.status}
+                                itemType={row.item_type}
+                            />,
                         ])}
                     />
                 )}

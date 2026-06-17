@@ -81,9 +81,10 @@ export default function Index({ supplies, filters, categories }) {
                     >
                         <option value="all">Semua ketersediaan</option>
                         <option value="tersedia">Tersedia</option>
+                        <option value="diambil">Sebagian Diambil</option>
                         <option value="menipis">Stok Menipis</option>
                         <option value="habis">Habis</option>
-                        <option value="nonaktif">Tidak Aktif</option>
+                        <option value="tidak_tersedia">Tidak Tersedia</option>
                     </Select>
                     <Select
                         value={data.status}

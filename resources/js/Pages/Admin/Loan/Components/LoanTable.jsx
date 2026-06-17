@@ -76,7 +76,12 @@ export default function LoanTable({
         {
             accessorKey: "status",
             header: "Status",
-            cell: ({ getValue }) => <LoanStatusBadge status={getValue()} />,
+            cell: ({ row }) => (
+                <LoanStatusBadge
+                    status={row.original.status}
+                    itemType={row.original.item_type}
+                />
+            ),
         },
         {
             accessorKey: "created_at_formatted",

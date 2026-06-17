@@ -99,7 +99,10 @@ export default function GuruLoanCard({ loan, isHistory = false }) {
                             >
                                 {loan.item_type_label}
                             </span>
-                            <LoanStatusBadge status={loan.status} />
+                            <LoanStatusBadge
+                                status={loan.status}
+                                itemType={loan.item_type}
+                            />
                         </div>
                         <p className="mt-0.5 text-xs text-muted-foreground">
                             Diajukan {loan.request_date_formatted}

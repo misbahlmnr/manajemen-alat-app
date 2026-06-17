@@ -1,6 +1,7 @@
 import DataTable from "@/Components/DataTable";
 import SupplyStockBadge from "@/Components/SupplyStockBadge";
 import InventoryStatusBadge from "@/Components/InventoryStatusBadge";
+import EquipmentImage from "@/Components/Equipment/EquipmentImage";
 import { Button } from "@/Components/ui/button";
 import { cn } from "@/lib/utils";
 import { Link } from "@inertiajs/react";
@@ -22,15 +23,24 @@ export default function GuruSupplyTable({ items, pagination }) {
             header: "Nama Bahan",
             accessorFn: (row) => row.name,
             cell: ({ row }) => (
-                <div className="min-w-[160px] max-w-xs">
-                    <p className="font-medium text-foreground">
-                        {row.original.name}
-                    </p>
-                    {row.original.description && (
-                        <p className="line-clamp-2 text-xs text-muted-foreground">
-                            {row.original.description}
+                <div className="flex min-w-[160px] max-w-xs items-center gap-3">
+                    <EquipmentImage
+                        imageUrl={row.original.image_url}
+                        name={row.original.name}
+                        itemType="bahan"
+                        className="h-10 w-10 shrink-0 rounded-lg border border-border/60"
+                        iconClassName="h-4 w-4"
+                    />
+                    <div>
+                        <p className="font-medium text-foreground">
+                            {row.original.name}
                         </p>
-                    )}
+                        {row.original.description && (
+                            <p className="line-clamp-2 text-xs text-muted-foreground">
+                                {row.original.description}
+                            </p>
+                        )}
+                    </div>
                 </div>
             ),
         },

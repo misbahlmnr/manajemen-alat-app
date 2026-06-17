@@ -84,7 +84,10 @@ export function RecentLoansTable({
                   {formatDate(loan.dueDate)}
                 </td>
                 <td className="px-3 py-3 sm:px-4 sm:py-4">
-                  <LoanStatusBadge status={loan.status} />
+                  <LoanStatusBadge
+                    status={loan.status}
+                    itemType={loan.item_type}
+                  />
                 </td>
                 {showActions && loan.status === 'diminta' && (
                   <td className="px-3 py-3 sm:px-4 sm:py-4">

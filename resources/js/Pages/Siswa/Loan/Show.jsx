@@ -1,6 +1,7 @@
 import AppLayout from "@/Layouts/AppLayout";
 import PageHeader from "@/Components/PageHeader";
 import LoanStatusBadge from "@/Components/LoanStatusBadge";
+import EquipmentImage from "@/Components/Equipment/EquipmentImage";
 import CollateralStatusBadge from "@/Components/CollateralStatusBadge";
 import { Button } from "@/Components/ui/button";
 import {
@@ -48,6 +49,7 @@ export default function Show({ loan }) {
 
     const timeline = loan.timeline ?? [];
     const items = loan.items ?? [];
+    const isBahan = loan.item_type === "bahan";
 
     return (
         <AppLayout>
@@ -107,7 +109,10 @@ export default function Show({ loan }) {
                             </p>
                             <div className="mt-6 space-y-4 border-t border-border pt-6">
                                 <MetaRow label="Status">
-                                    <LoanStatusBadge status={loan.status} />
+                                    <LoanStatusBadge
+                                        status={loan.status}
+                                        itemType={loan.item_type}
+                                    />
                                 </MetaRow>
                                 <MetaRow label="Guru Pembimbing">
                                     <span className="text-sm font-medium">
@@ -153,13 +158,21 @@ export default function Show({ loan }) {
                                     </>
                                 )}
                                 <Info
-                                    label="Dipinjam"
+                                    label={isBahan ? "Diambil" : "Dipinjam"}
                                     value={loan.borrowed_at_formatted}
                                 />
-                                <Info
-                                    label="Dikembalikan"
-                                    value={loan.returned_at_formatted}
-                                />
+                                {!isBahan && (
+                                    <Info
+                                        label="Dikembalikan"
+                                        value={loan.returned_at_formatted}
+                                    />
+                                )}
+                                {isBahan && loan.status === "dikembalikan" && (
+                                    <Info
+                                        label="Selesai"
+                                        value={loan.returned_at_formatted}
+                                    />
+                                )}
                                 {loan.notes && (
                                     <div className="sm:col-span-2">
                                         <Info label="Catatan" value={loan.notes} />
@@ -170,16 +183,27 @@ export default function Show({ loan }) {
 
                         <Card className="rounded-2xl border-border/60 shadow-card">
                             <CardHeader>
-                                <CardTitle>Item yang Dipinjam</CardTitle>
+                                <CardTitle>
+                                    {isBahan
+                                        ? "Item yang Diambil"
+                                        : "Item yang Dipinjam"}
+                                </CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <ul className="divide-y divide-border rounded-xl border border-border/50">
                                     {items.map((item) => (
                                         <li
                                             key={item.id}
-                                            className="flex justify-between gap-4 px-4 py-3 text-sm"
+                                            className="flex items-center gap-3 px-4 py-3 text-sm"
                                         >
-                                            <div>
+                                            <EquipmentImage
+                                                imageUrl={item.image_url}
+                                                name={item.equipment_name}
+                                                itemType={loan.item_type}
+                                                className="h-10 w-10 shrink-0 rounded-lg border border-border/60"
+                                                iconClassName="h-4 w-4"
+                                            />
+                                            <div className="min-w-0 flex-1">
                                                 <p className="font-medium">
                                                     {item.equipment_name}
                                                 </p>
@@ -246,6 +270,7 @@ export default function Show({ loan }) {
                                                 <span className="absolute -left-[1.6rem] top-1.5 h-2.5 w-2.5 rounded-full bg-primary" />
                                                 <LoanStatusBadge
                                                     status={entry.status}
+                                                    itemType={loan.item_type}
                                                 />
                                                 <p className="mt-1 text-xs text-muted-foreground">
                                                     {entry.created_at_formatted}

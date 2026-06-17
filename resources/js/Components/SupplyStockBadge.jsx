@@ -6,6 +6,11 @@ const config = {
         dot: "bg-emerald-500",
         className: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700",
     },
+    diambil: {
+        label: "Sebagian Diambil",
+        dot: "bg-blue-500",
+        className: "border-blue-500/20 bg-blue-500/10 text-blue-700",
+    },
     menipis: {
         label: "Stok Menipis",
         dot: "bg-amber-500",

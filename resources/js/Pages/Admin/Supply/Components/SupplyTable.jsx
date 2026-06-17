@@ -1,5 +1,7 @@
 import DataTable from "@/Components/DataTable";
 import InventoryStatusBadge from "@/Components/InventoryStatusBadge";
+import SupplyStockBadge from "@/Components/SupplyStockBadge";
+import EquipmentImage from "@/Components/Equipment/EquipmentImage";
 import TableRowActions from "@/Components/TableRowActions";
 import { cn } from "@/lib/utils";
 
@@ -19,11 +21,22 @@ export default function SupplyTable({ items, pagination, onDelete }) {
             header: "Nama Bahan",
             accessorFn: (row) => row.name,
             cell: ({ row }) => (
-                <div>
-                    <p className="font-medium text-foreground">{row.original.name}</p>
-                    {row.original.is_low_stock && (
-                        <p className="text-xs text-warning">Stok menipis</p>
-                    )}
+                <div className="flex items-center gap-3">
+                    <EquipmentImage
+                        imageUrl={row.original.image_url}
+                        name={row.original.name}
+                        itemType="bahan"
+                        className="h-10 w-10 shrink-0 rounded-lg border border-border/60"
+                        iconClassName="h-4 w-4"
+                    />
+                    <div>
+                        <p className="font-medium text-foreground">
+                            {row.original.name}
+                        </p>
+                        {row.original.is_low_stock && (
+                            <p className="text-xs text-warning">Stok menipis</p>
+                        )}
+                    </div>
                 </div>
             ),
         },
@@ -47,6 +60,15 @@ export default function SupplyTable({ items, pagination, onDelete }) {
             ),
         },
         { accessorKey: "unit", header: "Satuan" },
+        {
+            id: "stock_label",
+            header: "Ketersediaan",
+            accessorFn: (row) => row.stock_label,
+            enableSorting: false,
+            cell: ({ row }) => (
+                <SupplyStockBadge label={row.original.stock_label} />
+            ),
+        },
         {
             accessorKey: "status",
             header: "Status",
@@ -75,7 +97,7 @@ export default function SupplyTable({ items, pagination, onDelete }) {
             data={items ?? []}
             columns={columns}
             pagination={pagination}
-            tableClassName="min-w-[800px]"
+            tableClassName="min-w-[900px]"
             getRowId={(row) => String(row.id)}
             emptyState="Tidak ada bahan ditemukan"
             initialSorting={[{ id: "name", desc: false }]}

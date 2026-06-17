@@ -16,6 +16,7 @@ import { ArrowLeft } from "lucide-react";
 export default function Show({ loan }) {
     const timeline = loan.timeline ?? [];
     const items = loan.items ?? [];
+    const isBahan = loan.item_type === "bahan";
     const backRoute =
         loan.status &&
         ["dikembalikan", "ditolak", "dibatalkan"].includes(loan.status)
@@ -59,7 +60,10 @@ export default function Show({ loan }) {
                             </p>
                             <div className="mt-6 space-y-4 border-t border-border pt-6">
                                 <MetaRow label="Status">
-                                    <LoanStatusBadge status={loan.status} />
+                                    <LoanStatusBadge
+                                        status={loan.status}
+                                        itemType={loan.item_type}
+                                    />
                                 </MetaRow>
                                 {loan.is_catch_up && (
                                     <MetaRow label="Jenis">
@@ -118,13 +122,21 @@ export default function Show({ loan }) {
                                     </>
                                 )}
                                 <Info
-                                    label="Dipinjam"
+                                    label={isBahan ? "Diambil" : "Dipinjam"}
                                     value={loan.borrowed_at_formatted}
                                 />
-                                <Info
-                                    label="Dikembalikan"
-                                    value={loan.returned_at_formatted}
-                                />
+                                {!isBahan && (
+                                    <Info
+                                        label="Dikembalikan"
+                                        value={loan.returned_at_formatted}
+                                    />
+                                )}
+                                {isBahan && loan.status === "dikembalikan" && (
+                                    <Info
+                                        label="Selesai"
+                                        value={loan.returned_at_formatted}
+                                    />
+                                )}
                                 {loan.notes && (
                                     <div className="sm:col-span-2">
                                         <Info label="Catatan" value={loan.notes} />
@@ -208,6 +220,7 @@ export default function Show({ loan }) {
                                                 <span className="absolute -left-[1.6rem] top-1.5 h-2.5 w-2.5 rounded-full bg-primary" />
                                                 <LoanStatusBadge
                                                     status={entry.status}
+                                                    itemType={loan.item_type}
                                                 />
                                                 <p className="mt-1 text-xs text-muted-foreground">
                                                     {entry.created_at_formatted}

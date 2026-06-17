@@ -156,6 +156,7 @@ export default function Index({
                         >
                             <option value="all">Semua stok</option>
                             <option value="aman">Stok aman</option>
+                            <option value="diambil">Sebagian diambil</option>
                             <option value="menipis">Stok menipis</option>
                             <option value="habis">Habis</option>
                         </Select>

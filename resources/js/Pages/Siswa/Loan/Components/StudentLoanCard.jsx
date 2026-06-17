@@ -1,4 +1,5 @@
 import LoanStatusBadge from "@/Components/LoanStatusBadge";
+import EquipmentImage from "@/Components/Equipment/EquipmentImage";
 import { Button } from "@/Components/ui/button";
 import { cn } from "@/lib/utils";
 import { Link } from "@inertiajs/react";
@@ -8,9 +9,7 @@ import {
     CheckCircle2,
     Clock,
     MapPin,
-    Package,
     User,
-    Wrench,
 } from "lucide-react";
 import {
     getLoanRemaining,
@@ -63,6 +62,7 @@ export default function StudentLoanCard({
     const visibleItems = items.slice(0, MAX_VISIBLE_ITEMS);
     const hiddenCount = items.length - visibleItems.length;
     const isTerlambat = loan.status === "terlambat" || loan.is_overdue;
+    const previewItem = items[0];
 
     return (
         <article
@@ -75,18 +75,13 @@ export default function StudentLoanCard({
         >
             <div className="flex flex-col gap-3 border-b border-border/60 bg-muted/20 px-4 py-3 sm:flex-row sm:items-start sm:justify-between sm:px-5">
                 <div className="flex min-w-0 flex-1 items-start gap-3">
-                    <div
-                        className={cn(
-                            "flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl",
-                            isBahan ? "bg-warning/15" : "bg-primary/15",
-                        )}
-                    >
-                        {isBahan ? (
-                            <Package className="h-5 w-5 text-warning" />
-                        ) : (
-                            <Wrench className="h-5 w-5 text-primary" />
-                        )}
-                    </div>
+                    <EquipmentImage
+                        imageUrl={previewItem?.image_url}
+                        name={previewItem?.equipment_name ?? loan.code}
+                        itemType={loan.item_type}
+                        className="h-11 w-11 shrink-0 rounded-xl border border-border/60"
+                        iconClassName="h-5 w-5"
+                    />
                     <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
                             <Link
@@ -105,7 +100,10 @@ export default function StudentLoanCard({
                             >
                                 {loan.item_type_label}
                             </span>
-                            <LoanStatusBadge status={loan.status} />
+                            <LoanStatusBadge
+                                status={loan.status}
+                                itemType={loan.item_type}
+                            />
                         </div>
                         <p className="mt-0.5 text-xs text-muted-foreground">
                             Diajukan {loan.request_date_formatted}
@@ -143,9 +141,16 @@ export default function StudentLoanCard({
                             {visibleItems.map((item) => (
                                 <li
                                     key={item.id ?? item.equipment_id}
-                                    className="flex items-center justify-between gap-2 rounded-lg bg-secondary/40 px-3 py-2 text-sm"
+                                    className="flex items-center gap-3 rounded-lg bg-secondary/40 px-3 py-2 text-sm"
                                 >
-                                    <span className="min-w-0 font-medium text-foreground">
+                                    <EquipmentImage
+                                        imageUrl={item.image_url}
+                                        name={item.equipment_name ?? "Barang"}
+                                        itemType={loan.item_type}
+                                        className="h-9 w-9 shrink-0 rounded-lg border border-border/40"
+                                        iconClassName="h-3.5 w-3.5"
+                                    />
+                                    <span className="min-w-0 flex-1 font-medium text-foreground">
                                         {item.equipment_name ?? "Barang"}
                                         {item.equipment_code && (
                                             <span className="ml-1.5 font-mono text-xs font-normal text-muted-foreground">
@@ -153,7 +158,7 @@ export default function StudentLoanCard({
                                             </span>
                                         )}
                                     </span>
-                                    <span className="flex-shrink-0 tabular-nums text-muted-foreground">
+                                    <span className="shrink-0 tabular-nums text-muted-foreground">
                                         ×{item.quantity}{" "}
                                         {item.unit ?? "unit"}
                                     </span>
