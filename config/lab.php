@@ -103,6 +103,17 @@ return [
         'sabtu' => 'Sabtu',
     ],
 
+    'inventory_statuses' => [
+        'tersedia' => 'Tersedia',
+        'tidak_tersedia' => 'Tidak Tersedia',
+    ],
+
+    'equipment_conditions' => [
+        'baik' => 'Baik',
+        'rusak_ringan' => 'Rusak Ringan',
+        'rusak_berat' => 'Rusak Berat',
+    ],
+
     'user_import' => [
         'default_password' => env('LAB_USER_IMPORT_DEFAULT_PASSWORD', 'Password123'),
         'max_rows' => (int) env('LAB_USER_IMPORT_MAX_ROWS', 500),

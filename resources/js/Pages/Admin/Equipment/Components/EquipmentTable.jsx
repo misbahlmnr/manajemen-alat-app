@@ -1,7 +1,8 @@
 import DataTable from "@/Components/DataTable";
-import StatusBadge from "@/Components/StatusBadge";
+import InventoryStatusBadge from "@/Components/InventoryStatusBadge";
+import ConditionBreakdown from "@/Components/ConditionBreakdown";
+import EquipmentImage from "@/Components/Equipment/EquipmentImage";
 import TableRowActions from "@/Components/TableRowActions";
-import ConditionBadge from "./ConditionBadge";
 
 export default function EquipmentTable({ items, pagination, onDelete }) {
     const columns = [
@@ -19,35 +20,55 @@ export default function EquipmentTable({ items, pagination, onDelete }) {
             header: "Nama Alat",
             accessorFn: (row) => row.name,
             cell: ({ row }) => (
-                <div>
-                    <p className="font-medium text-foreground">{row.original.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                        {row.original.location}
-                    </p>
+                <div className="flex items-center gap-3">
+                    <EquipmentImage
+                        imageUrl={row.original.image_url}
+                        name={row.original.name}
+                        className="h-10 w-10 shrink-0 rounded-lg border border-border/60"
+                        iconClassName="h-4 w-4"
+                    />
+                    <div>
+                        <p className="font-medium text-foreground">
+                            {row.original.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                            {row.original.location}
+                        </p>
+                    </div>
                 </div>
             ),
         },
         { accessorKey: "category", header: "Kategori" },
         {
             id: "stock",
-            header: "Stok",
+            header: "Stok Baik",
             accessorFn: (row) => row.available,
             cell: ({ row }) => (
                 <>
                     <span className="font-medium">{row.original.available}</span>
-                    <span className="text-muted-foreground"> / {row.original.stock}</span>
+                    <span className="text-muted-foreground">
+                        {" "}
+                        / {row.original.qty_baik} baik ({row.original.stock} total)
+                    </span>
                 </>
             ),
         },
         {
-            accessorKey: "condition",
+            id: "condition",
             header: "Kondisi",
-            cell: ({ getValue }) => <ConditionBadge condition={getValue()} />,
+            cell: ({ row }) => (
+                <ConditionBreakdown
+                    breakdown={row.original.condition_breakdown}
+                    compact
+                />
+            ),
         },
         {
             accessorKey: "status",
             header: "Status",
-            cell: ({ getValue }) => <StatusBadge status={getValue()} />,
+            cell: ({ getValue }) => (
+                <InventoryStatusBadge status={getValue()} />
+            ),
         },
         {
             id: "actions",

@@ -123,7 +123,7 @@ class GuruReportDataService
             ->all();
 
         $lowStock = Supply::query()
-            ->where('status', 'active')
+            ->where('status', 'tersedia')
             ->whereNotNull('min_stock')
             ->whereColumn('available', '<=', 'min_stock')
             ->orderBy('available')
@@ -158,7 +158,7 @@ class GuruReportDataService
                 'total_bahan' => Supply::count(),
                 'alat_available' => Equipment::alat()->sum('available'),
                 'low_stock_bahan' => Supply::query()
-                    ->where('status', 'active')
+                    ->where('status', 'tersedia')
                     ->whereNotNull('min_stock')
                     ->whereColumn('available', '<=', 'min_stock')
                     ->count(),

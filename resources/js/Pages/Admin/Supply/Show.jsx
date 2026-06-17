@@ -1,6 +1,7 @@
 import AppLayout from "@/Layouts/AppLayout";
 import PageHeader from "@/Components/PageHeader";
-import StatusBadge from "@/Components/StatusBadge";
+import InventoryStatusBadge from "@/Components/InventoryStatusBadge";
+import EquipmentImage from "@/Components/Equipment/EquipmentImage";
 import { Button } from "@/Components/ui/button";
 import {
     Card,
@@ -49,6 +50,13 @@ export default function Show({ supply }) {
                 <div className="grid gap-6 lg:grid-cols-3">
                     <Card className="rounded-2xl border-border/60 shadow-card lg:col-span-1">
                         <CardContent className="p-6">
+                            <EquipmentImage
+                                imageUrl={supply.image_url}
+                                name={supply.name}
+                                itemType="bahan"
+                                className="mb-4 aspect-square w-full rounded-xl border border-border/60"
+                                iconClassName="h-12 w-12"
+                            />
                             <p className="font-mono text-xs font-medium uppercase tracking-wider text-muted-foreground">
                                 {supply.code}
                             </p>
@@ -65,7 +73,7 @@ export default function Show({ supply }) {
 
                             <div className="mt-6 space-y-4 border-t border-border pt-6">
                                 <MetaRow label="Status">
-                                    <StatusBadge status={supply.status} />
+                                    <InventoryStatusBadge status={supply.status} />
                                 </MetaRow>
                                 <MetaRow label="Satuan">
                                     <span className="text-sm font-medium text-foreground">

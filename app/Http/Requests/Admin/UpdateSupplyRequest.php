@@ -30,7 +30,8 @@ class UpdateSupplyRequest extends FormRequest
             'min_stock' => ['nullable', 'integer', 'min:0'],
             'location' => ['nullable', 'string', 'max:100'],
             'description' => ['nullable', 'string', 'max:2000'],
-            'status' => ['required', Rule::in(['active', 'inactive'])],
+            'status' => ['required', Rule::in(['tersedia', 'tidak_tersedia'])],
+            'image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
         ];
     }
 

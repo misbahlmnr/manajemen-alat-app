@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Siswa;
 
 use App\Http\Controllers\Controller;
 use App\Models\Supply;
+use App\Support\EquipmentFormatter;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -66,36 +67,18 @@ class SupplyController extends Controller
 
     private function formatSupply(Supply $supply, bool $detailed = false): array
     {
-        $data = [
-            'id' => $supply->id,
-            'code' => $supply->code,
-            'name' => $supply->name,
-            'category' => $supply->category,
-            'stock' => $supply->stock,
-            'available' => $supply->available,
-            'unit' => $supply->unit ?? 'pcs',
-            'min_stock' => $supply->min_stock,
-            'location' => $supply->location ?? '—',
-            'description' => $supply->description,
-            'status' => $supply->status,
-            'stock_label' => $supply->stock_label,
-            'is_low_stock' => $supply->is_low_stock,
-            'can_request' => $supply->status === 'active' && $supply->available > 0,
+        return [
+            ...EquipmentFormatter::format($supply, $detailed),
+            'can_request' => $supply->status === 'tersedia' && $supply->available > 0,
             'show_url' => route('siswa.supplies.show', $supply),
             'request_url' => $this->requestUrl($supply),
+            'location' => $supply->location ?? '—',
         ];
-
-        if ($detailed) {
-            $data['created_at_formatted'] = $supply->created_at?->translatedFormat('d M Y');
-            $data['updated_at_formatted'] = $supply->updated_at?->translatedFormat('d M Y H:i');
-        }
-
-        return $data;
     }
 
     private function requestUrl(Supply $supply): ?string
     {
-        if ($supply->status !== 'active' || $supply->available <= 0) {
+        if ($supply->status !== 'tersedia' || $supply->available <= 0) {
             return null;
         }
 

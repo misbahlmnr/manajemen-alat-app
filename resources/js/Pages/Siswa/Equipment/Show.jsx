@@ -1,8 +1,9 @@
 import AppLayout from "@/Layouts/AppLayout";
 import PageHeader from "@/Components/PageHeader";
 import AvailabilityBadge from "@/Components/AvailabilityBadge";
-import StatusBadge from "@/Components/StatusBadge";
-import ConditionBadge from "@/Pages/Admin/Equipment/Components/ConditionBadge";
+import InventoryStatusBadge from "@/Components/InventoryStatusBadge";
+import ConditionBreakdown from "@/Components/ConditionBreakdown";
+import EquipmentImage from "@/Components/Equipment/EquipmentImage";
 import { Button } from "@/Components/ui/button";
 import {
     Card,
@@ -40,6 +41,12 @@ export default function Show({ equipment }) {
                 <div className="grid gap-6 lg:grid-cols-3">
                     <Card className="rounded-2xl border-border/60 shadow-card lg:col-span-1">
                         <CardContent className="p-6">
+                            <EquipmentImage
+                                imageUrl={equipment.image_url}
+                                name={equipment.name}
+                                className="mb-4 aspect-square w-full rounded-xl border border-border/60"
+                                iconClassName="h-12 w-12"
+                            />
                             <p className="font-mono text-xs font-medium uppercase tracking-wider text-muted-foreground">
                                 {equipment.code}
                             </p>
@@ -57,11 +64,13 @@ export default function Show({ equipment }) {
                                     />
                                 </MetaRow>
                                 <MetaRow label="Status alat">
-                                    <StatusBadge status={equipment.status} />
+                                    <InventoryStatusBadge
+                                        status={equipment.status}
+                                    />
                                 </MetaRow>
                                 <MetaRow label="Kondisi">
-                                    <ConditionBadge
-                                        condition={equipment.condition}
+                                    <ConditionBreakdown
+                                        breakdown={equipment.condition_breakdown}
                                     />
                                 </MetaRow>
                                 <MetaRow label="Lokasi">
@@ -106,18 +115,18 @@ export default function Show({ equipment }) {
                             <CardHeader>
                                 <CardTitle>Stok & Ketersediaan</CardTitle>
                                 <CardDescription>
-                                    Unit tersedia untuk peminjaman
+                                    Hanya unit kondisi baik yang dapat dipinjam
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <div className="grid gap-4 sm:grid-cols-3">
                                     <StockStat
-                                        label="Tersedia"
+                                        label="Baik tersedia"
                                         value={equipment.available}
                                         highlight
                                     />
                                     <StockStat
-                                        label="Dipinjam"
+                                        label="Baik dipinjam"
                                         value={equipment.borrowed}
                                     />
                                     <StockStat
@@ -125,10 +134,6 @@ export default function Show({ equipment }) {
                                         value={equipment.stock}
                                     />
                                 </div>
-                                <p className="mt-4 text-sm text-muted-foreground">
-                                    Alat harus dikembalikan sebelum batas waktu
-                                    setelah peminjaman disetujui.
-                                </p>
                             </CardContent>
                         </Card>
 

@@ -182,8 +182,8 @@ export default function Index({
                             className="rounded-xl border-border/60 bg-card shadow-sm"
                         >
                             <option value="all">Semua status</option>
-                            <option value="active">Aktif</option>
-                            <option value="inactive">Nonaktif</option>
+                            <option value="tersedia">Tersedia</option>
+                            <option value="tidak_tersedia">Tidak Tersedia</option>
                         </Select>
                         {!isBahan && (
                             <Select

@@ -14,12 +14,13 @@ export default function Create({ categoryOptions, unitOptions }) {
         min_stock: "",
         location: "",
         description: "",
-        status: "active",
+        status: "tersedia",
+        image: null,
     });
 
     const submit = (e) => {
         e.preventDefault();
-        post(route("admin.supplies.store"));
+        post(route("admin.supplies.store"), { forceFormData: true });
     };
 
     return (

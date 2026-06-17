@@ -2,13 +2,13 @@
 
 namespace App\Services\Report;
 
+use App\Models\Equipment;
 use App\Models\Loan;
 use App\Models\LoanCollateral;
 use App\Models\LoanCompensation;
 use App\Models\PracticumSchedule;
 use App\Models\Supply;
 use App\Models\User;
-use App\Models\Equipment;
 use App\Services\Loan\LoanWorkflowService;
 use App\Services\Report\Concerns\FormatsReportData;
 use Carbon\Carbon;
@@ -155,7 +155,7 @@ class AdminReportDataService
             ->all();
 
         $lowStock = Supply::query()
-            ->where('status', 'active')
+            ->where('status', 'tersedia')
             ->whereNotNull('min_stock')
             ->whereColumn('available', '<=', 'min_stock')
             ->orderBy('available')
@@ -182,7 +182,7 @@ class AdminReportDataService
                 'total_bahan' => Supply::count(),
                 'alat_available' => Equipment::alat()->sum('available'),
                 'low_stock_bahan' => Supply::query()
-                    ->where('status', 'active')
+                    ->where('status', 'tersedia')
                     ->whereNotNull('min_stock')
                     ->whereColumn('available', '<=', 'min_stock')
                     ->count(),
@@ -223,5 +223,4 @@ class AdminReportDataService
             ->when($from, fn ($q) => $q->whereDate('request_date', '>=', $from))
             ->when($to, fn ($q) => $q->whereDate('request_date', '<=', $to));
     }
-
 }

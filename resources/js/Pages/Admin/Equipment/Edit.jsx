@@ -5,20 +5,26 @@ import { Head, Link, useForm } from "@inertiajs/react";
 import EquipmentForm from "./Components/EquipmentForm";
 
 export default function Edit({ equipment, categoryOptions }) {
-    const { data, setData, put, processing, errors } = useForm({
+    const { data, setData, post, processing, errors } = useForm({
         name: equipment.name ?? "",
         category: equipment.category ?? "",
         stock: equipment.stock ?? 1,
         available: equipment.available ?? 0,
-        condition: equipment.condition ?? "baik",
+        qty_baik: equipment.qty_baik ?? equipment.stock ?? 1,
+        qty_rusak_ringan: equipment.qty_rusak_ringan ?? 0,
+        qty_rusak_berat: equipment.qty_rusak_berat ?? 0,
         location: equipment.location ?? "",
         description: equipment.description ?? "",
-        status: equipment.status ?? "active",
+        status: equipment.status ?? "tersedia",
+        image: null,
+        _method: "put",
     });
 
     const submit = (e) => {
         e.preventDefault();
-        put(route("admin.equipment.update", equipment.id));
+        post(route("admin.equipment.update", equipment.id), {
+            forceFormData: true,
+        });
     };
 
     return (
@@ -35,6 +41,7 @@ export default function Edit({ equipment, categoryOptions }) {
                         errors={errors}
                         processing={processing}
                         categoryOptions={categoryOptions}
+                        existingImageUrl={equipment.image_url}
                     />
 
                     <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-6">

@@ -1,6 +1,6 @@
 import DataTable from "@/Components/DataTable";
 import SupplyStockBadge from "@/Components/SupplyStockBadge";
-import StatusBadge from "@/Components/StatusBadge";
+import InventoryStatusBadge from "@/Components/InventoryStatusBadge";
 import { Button } from "@/Components/ui/button";
 import { cn } from "@/lib/utils";
 import { Link } from "@inertiajs/react";
@@ -74,7 +74,9 @@ export default function GuruSupplyTable({ items, pagination }) {
         {
             accessorKey: "status",
             header: "Status",
-            cell: ({ getValue }) => <StatusBadge status={getValue()} />,
+            cell: ({ getValue }) => (
+                <InventoryStatusBadge status={getValue()} />
+            ),
         },
         {
             accessorKey: "location",

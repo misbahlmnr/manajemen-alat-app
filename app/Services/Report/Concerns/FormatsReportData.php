@@ -28,8 +28,9 @@ trait FormatsReportData
             'available' => $item->available,
             'borrowed' => max(0, $item->stock - $item->available),
             'unit' => $item->unit ?? ($itemType === 'alat' ? 'unit' : 'pcs'),
-            'condition' => $item->condition,
-            'condition_label' => $this->conditionLabel($item->condition),
+            'condition_breakdown' => $item->condition_breakdown,
+            'condition_label' => $this->formatConditionBreakdownLabel($item),
+            'image_url' => $item->image_url,
             'location' => $item->location ?? '—',
             'status' => $item->status,
             'availability_label' => $item->availability_label,
@@ -87,6 +88,21 @@ trait FormatsReportData
         ];
     }
 
+    protected function formatConditionBreakdownLabel(Equipment $item): string
+    {
+        $parts = [];
+
+        foreach ($item->condition_breakdown as $key => $qty) {
+            if ($qty <= 0) {
+                continue;
+            }
+
+            $parts[] = $this->conditionLabel($key)." ({$qty})";
+        }
+
+        return $parts !== [] ? implode(', ', $parts) : '—';
+    }
+
     protected function conditionLabel(?string $condition): string
     {
         return match ($condition) {
@@ -132,8 +148,8 @@ trait FormatsReportData
                 'alat' => $collection->where('item_type', 'alat')->count(),
                 'bahan' => $collection->where('item_type', 'bahan')->count(),
                 'tersedia' => $collection->sum('available'),
-                'baik' => $collection->where('condition', 'baik')->count(),
-                'rusak' => $collection->whereIn('condition', ['rusak_ringan', 'rusak_berat'])->count(),
+                'baik' => $collection->sum(fn ($row) => $row['condition_breakdown']['baik'] ?? 0),
+                'rusak' => $collection->sum(fn ($row) => ($row['condition_breakdown']['rusak_ringan'] ?? 0) + ($row['condition_breakdown']['rusak_berat'] ?? 0)),
                 'low_stock' => $collection->where('is_low_stock', true)->count(),
             ],
         ];

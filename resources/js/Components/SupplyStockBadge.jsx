@@ -16,8 +16,13 @@ const config = {
         dot: "bg-red-500",
         className: "border-red-500/20 bg-red-500/10 text-red-700",
     },
+    tidak_tersedia: {
+        label: "Tidak Tersedia",
+        dot: "bg-slate-400",
+        className: "border-slate-500/20 bg-slate-500/10 text-slate-600",
+    },
     nonaktif: {
-        label: "Tidak Aktif",
+        label: "Tidak Tersedia",
         dot: "bg-slate-400",
         className: "border-slate-500/20 bg-slate-500/10 text-slate-600",
     },

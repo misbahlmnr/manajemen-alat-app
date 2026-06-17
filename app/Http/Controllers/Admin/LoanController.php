@@ -156,7 +156,7 @@ class LoanController extends Controller
     {
         return User::query()
             ->where('role', 'siswa')
-            ->where('status', 'active')
+            ->where('status', 'tersedia')
             ->orderBy('name')
             ->get(['id', 'name', 'class'])
             ->map(fn (User $u) => [
@@ -173,7 +173,7 @@ class LoanController extends Controller
     {
         return User::query()
             ->where('role', 'guru')
-            ->where('status', 'active')
+            ->where('status', 'tersedia')
             ->orderBy('name')
             ->get(['id', 'name'])
             ->map(fn (User $u) => ['id' => $u->id, 'name' => $u->name])

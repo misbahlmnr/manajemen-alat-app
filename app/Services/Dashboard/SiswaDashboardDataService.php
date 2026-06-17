@@ -8,7 +8,6 @@ use App\Models\PracticumSchedule;
 use App\Models\User;
 use App\Services\Dashboard\Concerns\FormatsDashboardLoan;
 use App\Services\Loan\LoanWorkflowService;
-use Carbon\Carbon;
 
 class SiswaDashboardDataService
 {
@@ -39,9 +38,9 @@ class SiswaDashboardDataService
 
         $availableEquipment = Equipment::query()
             ->alat()
-            ->where('status', 'active')
+            ->where('status', 'tersedia')
             ->where('available', '>', 0)
-            ->where('condition', '!=', 'rusak_berat')
+            ->where('qty_baik', '>', 0)
             ->orderByDesc('available')
             ->limit(8)
             ->get()
@@ -53,7 +52,8 @@ class SiswaDashboardDataService
                 'itemType' => 'alat',
                 'stock' => $item->stock,
                 'available' => $item->available,
-                'condition' => $item->condition,
+                'condition_breakdown' => $item->condition_breakdown,
+                'image_url' => $item->image_url,
                 'location' => $item->location ?? '—',
                 'description' => $item->description,
                 'availability_label' => $item->availability_label,

@@ -1,12 +1,26 @@
 import DataTable from "@/Components/DataTable";
 import AvailabilityBadge from "@/Components/AvailabilityBadge";
+import ConditionBreakdown from "@/Components/ConditionBreakdown";
+import EquipmentImage from "@/Components/Equipment/EquipmentImage";
 import { Button } from "@/Components/ui/button";
-import ConditionBadge from "@/Pages/Admin/Equipment/Components/ConditionBadge";
 import { Link } from "@inertiajs/react";
 import { Eye, FileText } from "lucide-react";
 
 export default function EquipmentCatalogTable({ items, pagination }) {
     const columns = [
+        {
+            id: "preview",
+            header: "",
+            enableSorting: false,
+            cell: ({ row }) => (
+                <EquipmentImage
+                    imageUrl={row.original.image_url}
+                    name={row.original.name}
+                    className="h-10 w-10 rounded-lg border border-border/60"
+                    iconClassName="h-4 w-4"
+                />
+            ),
+        },
         {
             accessorKey: "code",
             header: "Kode",
@@ -40,7 +54,7 @@ export default function EquipmentCatalogTable({ items, pagination }) {
         },
         {
             id: "stock",
-            header: "Stok",
+            header: "Stok Baik",
             accessorFn: (row) => row.available,
             cell: ({ row }) => (
                 <span className="tabular-nums">
@@ -49,15 +63,20 @@ export default function EquipmentCatalogTable({ items, pagination }) {
                     </span>
                     <span className="text-muted-foreground">
                         {" "}
-                        / {row.original.stock}
+                        / {row.original.qty_baik} baik
                     </span>
                 </span>
             ),
         },
         {
-            accessorKey: "condition",
+            id: "condition",
             header: "Kondisi",
-            cell: ({ getValue }) => <ConditionBadge condition={getValue()} />,
+            cell: ({ row }) => (
+                <ConditionBreakdown
+                    breakdown={row.original.condition_breakdown}
+                    compact
+                />
+            ),
         },
         {
             id: "availability",

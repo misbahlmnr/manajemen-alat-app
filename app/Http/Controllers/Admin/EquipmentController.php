@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreEquipmentRequest;
 use App\Http\Requests\Admin\UpdateEquipmentRequest;
 use App\Models\Equipment;
+use App\Services\Equipment\EquipmentImageService;
+use App\Support\EquipmentFormatter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -35,11 +37,11 @@ class EquipmentController extends Controller
             })
             ->when($category !== 'all', fn ($q) => $q->where('category', $category))
             ->when($status !== 'all', fn ($q) => $q->where('status', $status))
-            ->when($condition !== 'all', fn ($q) => $q->where('condition', $condition))
+            ->when($condition !== 'all', fn ($q) => $q->conditionFilter($condition))
             ->latest()
             ->paginate(10)
             ->withQueryString()
-            ->through(fn (Equipment $item) => $this->formatEquipment($item));
+            ->through(fn (Equipment $item) => EquipmentFormatter::format($item));
 
         $categories = Equipment::alat()
             ->select('category')
@@ -75,13 +77,21 @@ class EquipmentController extends Controller
         ]);
     }
 
-    public function store(StoreEquipmentRequest $request): RedirectResponse
+    public function store(StoreEquipmentRequest $request, EquipmentImageService $images): RedirectResponse
     {
-        Equipment::create([
-            ...$request->validated(),
+        $data = collect($request->validated())->except(['image'])->all();
+
+        $equipment = Equipment::create([
+            ...$data,
             'code' => Equipment::generateCode('alat'),
             'item_type' => 'alat',
         ]);
+
+        if ($request->hasFile('image')) {
+            $equipment->update([
+                'image_path' => $images->store($equipment, $request->file('image')),
+            ]);
+        }
 
         return redirect()
             ->route('admin.equipment.index')
@@ -94,7 +104,7 @@ class EquipmentController extends Controller
         $this->ensureAlat($equipment);
 
         return Inertia::render('Admin/Equipment/Show', [
-            'equipment' => $this->formatEquipment($equipment),
+            'equipment' => EquipmentFormatter::format($equipment),
         ]);
     }
 
@@ -110,26 +120,35 @@ class EquipmentController extends Controller
             ->pluck('category');
 
         return Inertia::render('Admin/Equipment/Edit', [
-            'equipment' => $this->formatEquipment($equipment),
+            'equipment' => EquipmentFormatter::format($equipment),
             'categoryOptions' => $categories,
         ]);
     }
 
-    public function update(UpdateEquipmentRequest $request, Equipment $equipment): RedirectResponse
+    public function update(UpdateEquipmentRequest $request, Equipment $equipment, EquipmentImageService $images): RedirectResponse
     {
         $this->ensureAlat($equipment);
-        $equipment->update($request->validated());
+
+        $data = collect($request->validated())->except(['image'])->all();
+        $equipment->update($data);
+
+        if ($request->hasFile('image')) {
+            $equipment->update([
+                'image_path' => $images->store($equipment, $request->file('image')),
+            ]);
+        }
 
         return redirect()
             ->route('admin.equipment.show', $equipment)
             ->with('success', 'Alat berhasil diperbarui.');
     }
 
-    public function destroy(Equipment $equipment): RedirectResponse
+    public function destroy(Equipment $equipment, EquipmentImageService $images): RedirectResponse
     {
         $this->authorize('delete', $equipment);
         $this->ensureAlat($equipment);
 
+        $images->delete($equipment);
         $equipment->delete();
 
         return redirect()
@@ -142,24 +161,5 @@ class EquipmentController extends Controller
         if ($equipment->item_type !== 'alat') {
             abort(404);
         }
-    }
-
-    private function formatEquipment(Equipment $equipment): array
-    {
-        return [
-            'id' => $equipment->id,
-            'code' => $equipment->code,
-            'name' => $equipment->name,
-            'category' => $equipment->category,
-            'stock' => $equipment->stock,
-            'available' => $equipment->available,
-            'condition' => $equipment->condition,
-            'location' => $equipment->location,
-            'description' => $equipment->description,
-            'status' => $equipment->status,
-            'availability_label' => $equipment->availability_label,
-            'created_at_formatted' => $equipment->created_at?->translatedFormat('d M Y'),
-            'updated_at_formatted' => $equipment->updated_at?->translatedFormat('d M Y H:i'),
-        ];
     }
 }

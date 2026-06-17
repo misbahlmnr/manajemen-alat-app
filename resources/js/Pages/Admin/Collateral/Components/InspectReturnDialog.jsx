@@ -18,6 +18,7 @@ export default function InspectReturnDialog({
     const [damageDescription, setDamageDescription] = useState("");
     const [amount, setAmount] = useState("");
     const [description, setDescription] = useState("");
+    const [damageLevel, setDamageLevel] = useState("rusak_ringan");
 
     if (!open) return null;
 
@@ -29,6 +30,7 @@ export default function InspectReturnDialog({
             notes: notes || null,
             missing_items: needsDetail ? missingItems || null : null,
             damage_description: needsDetail ? damageDescription || null : null,
+            damage_level: result === "rusak" ? damageLevel : null,
             amount: needsDetail && amount ? parseInt(amount, 10) : null,
             description: needsDetail ? description || null : null,
         });
@@ -83,6 +85,22 @@ export default function InspectReturnDialog({
                             className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                         />
                     </div>
+
+                    {result === "rusak" && (
+                        <div className="space-y-2">
+                            <Label>Tingkat kerusakan *</Label>
+                            <Select
+                                value={damageLevel}
+                                onChange={(e) =>
+                                    setDamageLevel(e.target.value)
+                                }
+                                disabled={loading}
+                            >
+                                <option value="rusak_ringan">Rusak Ringan</option>
+                                <option value="rusak_berat">Rusak Berat</option>
+                            </Select>
+                        </div>
+                    )}
 
                     {needsDetail && (
                         <>

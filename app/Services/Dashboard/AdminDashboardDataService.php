@@ -42,7 +42,7 @@ class AdminDashboardDataService
             ->all();
 
         $lowStockSupplies = Supply::query()
-            ->where('status', 'active')
+            ->where('status', 'tersedia')
             ->whereNotNull('min_stock')
             ->whereColumn('available', '<=', 'min_stock')
             ->orderBy('available')

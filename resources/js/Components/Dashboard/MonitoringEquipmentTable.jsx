@@ -1,6 +1,6 @@
 import AvailabilityBadge from "@/Components/AvailabilityBadge";
 import DataPagination from "@/Components/DataPagination";
-import ConditionBadge from "@/Pages/Admin/Equipment/Components/ConditionBadge";
+import ConditionBreakdown from "@/Components/ConditionBreakdown";
 import { Button } from "@/Components/ui/button";
 import { Link } from "@inertiajs/react";
 import { Eye } from "lucide-react";
@@ -103,8 +103,9 @@ export function MonitoringEquipmentTable({
                                         )}
                                 </td>
                                 <td className="px-4 py-4">
-                                    <ConditionBadge
-                                        condition={item.condition}
+                                    <ConditionBreakdown
+                                        breakdown={item.condition_breakdown}
+                                        compact
                                     />
                                 </td>
                                 <td className="px-4 py-4">

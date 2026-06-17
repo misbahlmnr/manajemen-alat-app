@@ -11,15 +11,16 @@ import {
 import { Head, Link, router } from "@inertiajs/react";
 import { Pencil } from "lucide-react";
 import { useState } from "react";
-import ConditionBadge from "./Components/ConditionBadge";
-import StatusBadge from "@/Components/StatusBadge";
+import ConditionBreakdown from "@/Components/ConditionBreakdown";
+import InventoryStatusBadge from "@/Components/InventoryStatusBadge";
+import EquipmentImage from "@/Components/Equipment/EquipmentImage";
 import DeleteEquipmentDialog from "./Components/DeleteEquipmentDialog";
 
 export default function Show({ equipment }) {
     const [deleteOpen, setDeleteOpen] = useState(false);
     const [deleting, setDeleting] = useState(false);
 
-    const borrowed = Math.max(0, equipment.stock - equipment.available);
+    const borrowed = Math.max(0, equipment.qty_baik - equipment.available);
 
     const handleDelete = () => {
         setDeleting(true);
@@ -51,6 +52,12 @@ export default function Show({ equipment }) {
                 <div className="grid gap-6 lg:grid-cols-3">
                     <Card className="rounded-2xl border-border/60 shadow-card lg:col-span-1">
                         <CardContent className="p-6">
+                            <EquipmentImage
+                                imageUrl={equipment.image_url}
+                                name={equipment.name}
+                                className="mb-4 aspect-square w-full rounded-xl border border-border/60"
+                                iconClassName="h-12 w-12"
+                            />
                             <p className="font-mono text-xs font-medium uppercase tracking-wider text-muted-foreground">
                                 {equipment.code}
                             </p>
@@ -63,11 +70,11 @@ export default function Show({ equipment }) {
 
                             <div className="mt-6 space-y-4 border-t border-border pt-6">
                                 <MetaRow label="Status alat">
-                                    <StatusBadge status={equipment.status} />
+                                    <InventoryStatusBadge status={equipment.status} />
                                 </MetaRow>
                                 <MetaRow label="Kondisi">
-                                    <ConditionBadge
-                                        condition={equipment.condition}
+                                    <ConditionBreakdown
+                                        breakdown={equipment.condition_breakdown}
                                     />
                                 </MetaRow>
                                 <MetaRow label="Lokasi">

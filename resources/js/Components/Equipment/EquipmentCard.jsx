@@ -1,3 +1,5 @@
+import EquipmentImage from '@/Components/Equipment/EquipmentImage';
+import ConditionBreakdown from '@/Components/ConditionBreakdown';
 import { Camera, Mic, Cable, Monitor, Lightbulb, Headphones, Video, Box } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -19,9 +21,18 @@ export function EquipmentCard({ equipment, onBorrow, showBorrowButton = true }) 
     <div className="equipment-card animate-slide-up">
       {/* Header */}
       <div className="flex items-start gap-4">
+        {equipment.image_url ? (
+          <EquipmentImage
+            imageUrl={equipment.image_url}
+            name={equipment.name}
+            className="h-14 w-14 shrink-0 rounded-xl border border-border/60"
+            iconClassName="h-6 w-6"
+          />
+        ) : (
         <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
           <Icon className="w-7 h-7 text-primary" />
         </div>
+        )}
         <div className="flex-1 min-w-0">
           <h3 className="font-semibold text-foreground truncate">{equipment.name}</h3>
           <p className="text-sm text-muted-foreground">{equipment.category}</p>
@@ -45,7 +56,7 @@ export function EquipmentCard({ equipment, onBorrow, showBorrowButton = true }) 
               ? 'bg-success/10 text-success' 
               : 'bg-destructive/10 text-destructive'
           )}>
-            {equipment.available} / {equipment.stock} unit
+            {equipment.available} / {equipment.qty_baik ?? equipment.stock} baik
           </span>
         </div>
       </div>
@@ -56,20 +67,11 @@ export function EquipmentCard({ equipment, onBorrow, showBorrowButton = true }) 
         <span className="font-medium text-foreground">{equipment.location}</span>
       </div>
 
-      {/* Condition Badge */}
-      <div className="mt-3 flex items-center justify-between">
-        <span className={cn(
-          "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium",
-          equipment.condition === 'baik' 
-            ? 'bg-success/10 text-success'
-            : equipment.condition === 'rusak_ringan'
-            ? 'bg-warning/10 text-warning'
-            : 'bg-destructive/10 text-destructive'
-        )}>
-          {equipment.condition === 'baik' ? 'Kondisi Baik' : 
-           equipment.condition === 'rusak_ringan' ? 'Rusak Ringan' : 'Rusak Berat'}
-        </span>
+      <div className="mt-3">
+        <ConditionBreakdown breakdown={equipment.condition_breakdown} compact />
+      </div>
 
+      <div className="mt-3 flex items-center justify-end">
         {showBorrowButton && equipment.available > 0 && (
           <button
             onClick={onBorrow}

@@ -1,6 +1,7 @@
 import DataTable from "@/Components/DataTable";
 import SupplyStockBadge from "@/Components/SupplyStockBadge";
-import StatusBadge from "@/Components/StatusBadge";
+import InventoryStatusBadge from "@/Components/InventoryStatusBadge";
+import EquipmentImage from "@/Components/Equipment/EquipmentImage";
 import { Button } from "@/Components/ui/button";
 import { cn } from "@/lib/utils";
 import { Link } from "@inertiajs/react";
@@ -8,6 +9,20 @@ import { Eye, PackagePlus } from "lucide-react";
 
 export default function SupplyCatalogTable({ items, pagination }) {
     const columns = [
+        {
+            id: "preview",
+            header: "",
+            enableSorting: false,
+            cell: ({ row }) => (
+                <EquipmentImage
+                    imageUrl={row.original.image_url}
+                    name={row.original.name}
+                    itemType="bahan"
+                    className="h-10 w-10 rounded-lg border border-border/60"
+                    iconClassName="h-4 w-4"
+                />
+            ),
+        },
         {
             accessorKey: "code",
             header: "Kode",
@@ -77,7 +92,9 @@ export default function SupplyCatalogTable({ items, pagination }) {
         {
             accessorKey: "status",
             header: "Status",
-            cell: ({ getValue }) => <StatusBadge status={getValue()} />,
+            cell: ({ getValue }) => (
+                <InventoryStatusBadge status={getValue()} />
+            ),
         },
         {
             accessorKey: "location",

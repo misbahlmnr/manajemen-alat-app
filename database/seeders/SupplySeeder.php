@@ -277,7 +277,7 @@ class SupplySeeder extends Seeder
                     ->where('name', $item['name'])
                     ->where('item_type', 'bahan')
                     ->value('code') ?? Equipment::generateCode('bahan'),
-                'status' => 'active',
+                'status' => 'tersedia',
             ]);
         }
     }

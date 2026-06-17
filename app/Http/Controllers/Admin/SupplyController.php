@@ -7,6 +7,8 @@ use App\Http\Requests\Admin\StoreSupplyRequest;
 use App\Http\Requests\Admin\UpdateSupplyRequest;
 use App\Models\Equipment;
 use App\Models\Supply;
+use App\Services\Equipment\EquipmentImageService;
+use App\Support\EquipmentFormatter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -37,7 +39,7 @@ class SupplyController extends Controller
             ->latest()
             ->paginate(10)
             ->withQueryString()
-            ->through(fn (Supply $item) => $this->formatSupply($item));
+            ->through(fn (Supply $item) => EquipmentFormatter::format($item));
 
         $categories = Supply::query()
             ->select('category')
@@ -73,13 +75,20 @@ class SupplyController extends Controller
         ]);
     }
 
-    public function store(StoreSupplyRequest $request): RedirectResponse
+    public function store(StoreSupplyRequest $request, EquipmentImageService $images): RedirectResponse
     {
-        Supply::create([
-            ...$request->validated(),
+        $data = collect($request->validated())->except(['image'])->all();
+
+        $supply = Supply::create([
+            ...$data,
             'code' => Equipment::generateCode('bahan'),
-            'condition' => 'baik',
         ]);
+
+        if ($request->hasFile('image')) {
+            $supply->update([
+                'image_path' => $images->store($supply, $request->file('image')),
+            ]);
+        }
 
         return redirect()
             ->route('admin.supplies.index')
@@ -91,14 +100,14 @@ class SupplyController extends Controller
         $this->authorize('view', $supply);
 
         return Inertia::render('Admin/Supply/Show', [
-            'supply' => $this->formatSupply($supply),
+            'supply' => EquipmentFormatter::format($supply),
         ]);
     }
 
     public function edit(Supply $supply): Response
     {
         $this->authorize('update', $supply);
-        
+
         $categories = Supply::query()
             ->select('category')
             ->distinct()
@@ -106,49 +115,37 @@ class SupplyController extends Controller
             ->pluck('category');
 
         return Inertia::render('Admin/Supply/Edit', [
-            'supply' => $this->formatSupply($supply),
+            'supply' => EquipmentFormatter::format($supply),
             'categoryOptions' => $categories,
             'unitOptions' => config('lab.supply_units'),
         ]);
     }
 
-    public function update(UpdateSupplyRequest $request, Supply $supply): RedirectResponse
+    public function update(UpdateSupplyRequest $request, Supply $supply, EquipmentImageService $images): RedirectResponse
     {
-        $supply->update($request->validated());
+        $data = collect($request->validated())->except(['image'])->all();
+        $supply->update($data);
+
+        if ($request->hasFile('image')) {
+            $supply->update([
+                'image_path' => $images->store($supply, $request->file('image')),
+            ]);
+        }
 
         return redirect()
             ->route('admin.supplies.show', $supply)
             ->with('success', 'Bahan berhasil diperbarui.');
     }
 
-    public function destroy(Supply $supply): RedirectResponse
+    public function destroy(Supply $supply, EquipmentImageService $images): RedirectResponse
     {
         $this->authorize('delete', $supply);
 
+        $images->delete($supply);
         $supply->delete();
 
         return redirect()
             ->route('admin.supplies.index')
             ->with('success', 'Bahan berhasil dihapus.');
-    }
-
-    private function formatSupply(Supply $supply): array
-    {
-        return [
-            'id' => $supply->id,
-            'code' => $supply->code,
-            'name' => $supply->name,
-            'category' => $supply->category,
-            'stock' => $supply->stock,
-            'available' => $supply->available,
-            'unit' => $supply->unit,
-            'min_stock' => $supply->min_stock,
-            'location' => $supply->location,
-            'description' => $supply->description,
-            'status' => $supply->status,
-            'is_low_stock' => $supply->is_low_stock,
-            'created_at_formatted' => $supply->created_at?->translatedFormat('d M Y'),
-            'updated_at_formatted' => $supply->updated_at?->translatedFormat('d M Y H:i'),
-        ];
     }
 }

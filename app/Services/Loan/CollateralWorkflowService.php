@@ -82,6 +82,12 @@ class CollateralWorkflowService
             );
 
             $this->loanWorkflow->restoreStock($loan);
+
+            if ($result === 'rusak' && filled($data['damage_level'] ?? null)) {
+                app(\App\Services\Equipment\EquipmentConditionService::class)
+                    ->applyReturnDamage($loan, $data['damage_level']);
+            }
+
             $loan->update([
                 'status' => 'dikembalikan',
                 'returned_at' => now(),

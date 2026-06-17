@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Siswa;
 
 use App\Http\Controllers\Controller;
 use App\Models\Equipment;
+use App\Support\EquipmentFormatter;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -33,7 +34,7 @@ class EquipmentController extends Controller
             })
             ->when($category !== 'all', fn ($q) => $q->where('category', $category))
             ->when($status !== 'all', fn ($q) => $q->where('status', $status))
-            ->when($condition !== 'all', fn ($q) => $q->where('condition', $condition))
+            ->when($condition !== 'all', fn ($q) => $q->conditionFilter($condition))
             ->availability($availability)
             ->orderBy('name')
             ->paginate(10)
@@ -78,39 +79,21 @@ class EquipmentController extends Controller
 
     private function formatEquipment(Equipment $equipment, bool $detailed = false): array
     {
-        $borrowed = max(0, $equipment->stock - $equipment->available);
-
         $data = [
-            'id' => $equipment->id,
-            'code' => $equipment->code,
-            'name' => $equipment->name,
-            'category' => $equipment->category,
-            'stock' => $equipment->stock,
-            'available' => $equipment->available,
-            'borrowed' => $borrowed,
-            'condition' => $equipment->condition,
-            'location' => $equipment->location ?? '—',
-            'description' => $equipment->description,
-            'status' => $equipment->status,
-            'availability_label' => $equipment->availability_label,
-            'can_borrow' => $equipment->status === 'active'
-                && $equipment->available > 0
-                && $equipment->condition !== 'rusak_berat',
+            ...EquipmentFormatter::format($equipment, $detailed),
+            'borrowed' => max(0, $equipment->qty_baik - $equipment->available),
+            'can_borrow' => $equipment->status === 'tersedia' && $equipment->available > 0,
             'show_url' => route('siswa.equipment.show', $equipment),
             'borrow_url' => $this->borrowUrl($equipment),
+            'location' => $equipment->location ?? '—',
         ];
-
-        if ($detailed) {
-            $data['created_at_formatted'] = $equipment->created_at?->translatedFormat('d M Y');
-            $data['updated_at_formatted'] = $equipment->updated_at?->translatedFormat('d M Y H:i');
-        }
 
         return $data;
     }
 
     private function borrowUrl(Equipment $equipment): ?string
     {
-        if ($equipment->status !== 'active' || $equipment->available <= 0 || $equipment->condition === 'rusak_berat') {
+        if ($equipment->status !== 'tersedia' || $equipment->available <= 0) {
             return null;
         }
 

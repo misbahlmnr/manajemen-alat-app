@@ -185,6 +185,11 @@ class LoanWorkflowService
                     'items' => 'Barang tidak valid untuk jenis peminjaman ini.',
                 ]);
             }
+            if ($equipment->status !== 'tersedia') {
+                throw ValidationException::withMessages([
+                    'items' => "{$equipment->name} sedang tidak tersedia untuk dipinjam.",
+                ]);
+            }
             if ($equipment->available < (int) $row['quantity']) {
                 throw ValidationException::withMessages([
                     'items' => "Stok {$equipment->name} tidak mencukupi (tersedia: {$equipment->available}).",

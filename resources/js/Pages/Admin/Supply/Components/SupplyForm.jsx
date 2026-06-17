@@ -10,6 +10,9 @@ import { Input } from "@/Components/ui/input";
 import { Label } from "@/Components/ui/label";
 import { Select } from "@/Components/ui/select";
 
+import EquipmentImage from "@/Components/Equipment/EquipmentImage";
+import { useEffect, useState } from "react";
+
 export default function SupplyForm({
     data,
     setData,
@@ -17,7 +20,22 @@ export default function SupplyForm({
     processing,
     categoryOptions = [],
     unitOptions = [],
+    existingImageUrl = null,
 }) {
+    const [previewUrl, setPreviewUrl] = useState(null);
+
+    useEffect(() => {
+        if (!data.image) {
+            setPreviewUrl(null);
+            return;
+        }
+
+        const url = URL.createObjectURL(data.image);
+        setPreviewUrl(url);
+
+        return () => URL.revokeObjectURL(url);
+    }, [data.image]);
+
     return (
         <div className="grid gap-6">
             <Card className="rounded-2xl border-border/60 shadow-card">
@@ -86,8 +104,8 @@ export default function SupplyForm({
                             onChange={(e) => setData("status", e.target.value)}
                             disabled={processing}
                         >
-                            <option value="active">Aktif</option>
-                            <option value="inactive">Nonaktif</option>
+                            <option value="tersedia">Tersedia</option>
+                            <option value="tidak_tersedia">Tidak Tersedia</option>
                         </Select>
                         <InputError message={errors.status} />
                     </div>
@@ -104,6 +122,29 @@ export default function SupplyForm({
                             disabled={processing}
                         />
                         <InputError message={errors.location} />
+                    </div>
+
+                    <div className="space-y-2 sm:col-span-2">
+                        <Label htmlFor="image">Gambar Bahan</Label>
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+                            <EquipmentImage
+                                imageUrl={previewUrl ?? existingImageUrl}
+                                name={data.name || "Bahan"}
+                                itemType="bahan"
+                                className="h-28 w-28 shrink-0 rounded-xl border border-border/60"
+                            />
+                            <input
+                                id="image"
+                                type="file"
+                                accept="image/*"
+                                disabled={processing}
+                                onChange={(e) =>
+                                    setData("image", e.target.files[0] ?? null)
+                                }
+                                className="block w-full cursor-pointer rounded-xl border border-border/60 bg-card px-3 py-2 text-sm file:mr-4 file:rounded-lg file:border-0 file:bg-primary file:px-4 file:py-2 file:text-sm file:font-medium file:text-primary-foreground"
+                            />
+                        </div>
+                        <InputError message={errors.image} />
                     </div>
 
                     <div className="space-y-2 sm:col-span-2">

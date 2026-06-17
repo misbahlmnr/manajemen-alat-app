@@ -5,7 +5,7 @@ import { Head, Link, useForm } from "@inertiajs/react";
 import SupplyForm from "./Components/SupplyForm";
 
 export default function Edit({ supply, categoryOptions, unitOptions }) {
-    const { data, setData, put, processing, errors } = useForm({
+    const { data, setData, post, processing, errors } = useForm({
         name: supply.name,
         category: supply.category,
         stock: supply.stock,
@@ -15,11 +15,15 @@ export default function Edit({ supply, categoryOptions, unitOptions }) {
         location: supply.location ?? "",
         description: supply.description ?? "",
         status: supply.status,
+        image: null,
+        _method: "put",
     });
 
     const submit = (e) => {
         e.preventDefault();
-        put(route("admin.supplies.update", supply.id));
+        post(route("admin.supplies.update", supply.id), {
+            forceFormData: true,
+        });
     };
 
     return (
@@ -40,6 +44,7 @@ export default function Edit({ supply, categoryOptions, unitOptions }) {
                         processing={processing}
                         categoryOptions={categoryOptions}
                         unitOptions={unitOptions}
+                        existingImageUrl={supply.image_url}
                     />
 
                     <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-6">

@@ -1,5 +1,5 @@
 import DataTable from "@/Components/DataTable";
-import StatusBadge from "@/Components/StatusBadge";
+import InventoryStatusBadge from "@/Components/InventoryStatusBadge";
 import TableRowActions from "@/Components/TableRowActions";
 import { cn } from "@/lib/utils";
 
@@ -50,7 +50,9 @@ export default function SupplyTable({ items, pagination, onDelete }) {
         {
             accessorKey: "status",
             header: "Status",
-            cell: ({ getValue }) => <StatusBadge status={getValue()} />,
+            cell: ({ getValue }) => (
+                <InventoryStatusBadge status={getValue()} />
+            ),
         },
         { accessorKey: "created_at_formatted", header: "Dibuat" },
         {

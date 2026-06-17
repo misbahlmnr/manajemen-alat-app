@@ -91,7 +91,7 @@ export default function Index({ equipment, filters, categories }) {
                         <option value="dipinjam">Sebagian Dipinjam</option>
                         <option value="habis">Tidak Tersedia</option>
                         <option value="rusak">Dalam Perbaikan</option>
-                        <option value="nonaktif">Nonaktif</option>
+                        <option value="tidak_tersedia">Tidak Tersedia</option>
                     </Select>
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                         <Select
@@ -100,8 +100,8 @@ export default function Index({ equipment, filters, categories }) {
                             className="rounded-xl border-border/60 bg-card shadow-sm"
                         >
                             <option value="all">Semua status</option>
-                            <option value="active">Aktif</option>
-                            <option value="inactive">Nonaktif</option>
+                            <option value="tersedia">Tersedia</option>
+                            <option value="tidak_tersedia">Tidak Tersedia</option>
                         </Select>
                         <Select
                             value={data.condition}

@@ -318,7 +318,7 @@ class LoanController extends Controller
         return [
             'supervisorOptions' => User::query()
                 ->where('role', 'guru')
-                ->where('status', 'active')
+                ->where('status', 'tersedia')
                 ->orderBy('name')
                 ->get(['id', 'name'])
                 ->map(fn (User $u) => ['id' => $u->id, 'name' => $u->name])
@@ -365,7 +365,7 @@ class LoanController extends Controller
             : collect();
 
         $query = Equipment::query()
-            ->where('status', 'active')
+            ->where('status', 'tersedia')
             ->where(function ($q) use ($currentEquipmentIds) {
                 $q->where('available', '>', 0);
                 if ($currentEquipmentIds->isNotEmpty()) {
@@ -401,7 +401,7 @@ class LoanController extends Controller
 
         $query = Equipment::query()
             ->where('id', $id)
-            ->where('status', 'active')
+            ->where('status', 'tersedia')
             ->where('available', '>', 0);
 
         if ($itemType === 'alat') {

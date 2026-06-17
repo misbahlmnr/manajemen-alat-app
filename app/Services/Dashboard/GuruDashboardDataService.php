@@ -12,6 +12,7 @@ use Carbon\Carbon;
 class GuruDashboardDataService
 {
     use FormatsDashboardLoan;
+
     public function forUser(User $user): array
     {
         $supervised = Loan::query()->where('supervisor_id', $user->id);
@@ -77,8 +78,8 @@ class GuruDashboardDataService
 
         $equipment = Equipment::query()
             ->alat()
-            ->where('status', 'active')
-            ->whereColumn('available', '<', 'stock')
+            ->where('status', 'tersedia')
+            ->whereColumn('available', '<', 'qty_baik')
             ->orderBy('name')
             ->limit(6)
             ->get()
@@ -89,8 +90,9 @@ class GuruDashboardDataService
                 'category' => $item->category,
                 'stock' => $item->stock,
                 'available' => $item->available,
-                'borrowed' => max(0, $item->stock - $item->available),
-                'condition' => $item->condition,
+                'borrowed' => max(0, $item->qty_baik - $item->available),
+                'condition_breakdown' => $item->condition_breakdown,
+                'image_url' => $item->image_url,
                 'location' => $item->location ?? '—',
                 'description' => $item->description,
                 'status' => $item->status,
@@ -110,6 +112,4 @@ class GuruDashboardDataService
             'upcomingSchedules' => $upcomingSchedules,
         ];
     }
-
-
 }

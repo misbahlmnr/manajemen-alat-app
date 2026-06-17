@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Guru;
 use App\Http\Controllers\Controller;
 use App\Models\Equipment;
 use App\Models\Supply;
+use App\Support\EquipmentFormatter;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -46,7 +47,7 @@ class InventarisController extends Controller
             })
             ->when($category !== 'all', fn ($q) => $q->where('category', $category))
             ->when($status !== 'all', fn ($q) => $q->where('status', $status))
-            ->when($condition !== 'all', fn ($q) => $q->where('condition', $condition))
+            ->when($condition !== 'all', fn ($q) => $q->conditionFilter($condition))
             ->availability($availability)
             ->orderBy('name')
             ->paginate(10)
@@ -149,56 +150,20 @@ class InventarisController extends Controller
 
     private function formatAlat(Equipment $equipment, bool $detailed = false): array
     {
-        $borrowed = max(0, $equipment->stock - $equipment->available);
-
-        $data = [
-            'id' => $equipment->id,
-            'code' => $equipment->code,
-            'name' => $equipment->name,
-            'category' => $equipment->category,
-            'stock' => $equipment->stock,
-            'available' => $equipment->available,
-            'borrowed' => $borrowed,
-            'condition' => $equipment->condition,
-            'location' => $equipment->location ?? '—',
-            'description' => $equipment->description,
-            'status' => $equipment->status,
-            'availability_label' => $equipment->availability_label,
+        return [
+            ...EquipmentFormatter::format($equipment, $detailed),
+            'borrowed' => max(0, $equipment->qty_baik - $equipment->available),
             'show_url' => route('guru.inventaris.alat.show', $equipment),
+            'location' => $equipment->location ?? '—',
         ];
-
-        if ($detailed) {
-            $data['created_at_formatted'] = $equipment->created_at?->translatedFormat('d M Y');
-            $data['updated_at_formatted'] = $equipment->updated_at?->translatedFormat('d M Y H:i');
-        }
-
-        return $data;
     }
 
     private function formatBahan(Supply $supply, bool $detailed = false): array
     {
-        $data = [
-            'id' => $supply->id,
-            'code' => $supply->code,
-            'name' => $supply->name,
-            'category' => $supply->category,
-            'stock' => $supply->stock,
-            'available' => $supply->available,
-            'unit' => $supply->unit ?? 'pcs',
-            'min_stock' => $supply->min_stock,
-            'is_low_stock' => $supply->min_stock !== null && $supply->available <= $supply->min_stock,
-            'stock_label' => $supply->stock_label,
-            'location' => $supply->location ?? '—',
-            'description' => $supply->description,
-            'status' => $supply->status,
+        return [
+            ...EquipmentFormatter::format($supply, $detailed),
             'show_url' => route('guru.inventaris.bahan.show', $supply),
+            'location' => $supply->location ?? '—',
         ];
-
-        if ($detailed) {
-            $data['created_at_formatted'] = $supply->created_at?->translatedFormat('d M Y');
-            $data['updated_at_formatted'] = $supply->updated_at?->translatedFormat('d M Y H:i');
-        }
-
-        return $data;
     }
 }

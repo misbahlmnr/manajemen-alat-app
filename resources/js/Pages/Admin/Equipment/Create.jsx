@@ -10,15 +10,18 @@ export default function Create({ categoryOptions }) {
         category: "",
         stock: 1,
         available: 1,
-        condition: "baik",
+        qty_baik: 1,
+        qty_rusak_ringan: 0,
+        qty_rusak_berat: 0,
         location: "",
         description: "",
-        status: "active",
+        status: "tersedia",
+        image: null,
     });
 
     const submit = (e) => {
         e.preventDefault();
-        post(route("admin.equipment.store"));
+        post(route("admin.equipment.store"), { forceFormData: true });
     };
 
     return (
