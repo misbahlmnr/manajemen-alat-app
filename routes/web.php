@@ -4,8 +4,8 @@ use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\EquipmentController;
 use App\Http\Controllers\Admin\LoanCollateralController;
 use App\Http\Controllers\Admin\LoanController;
-use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\PracticumScheduleController;
+use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\SupplyController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Guru\DashboardController as GuruDashboardController;
@@ -42,6 +42,9 @@ Route::get('/dashboard', function () {
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('users/import', [UserController::class, 'importForm'])->name('users.import');
+    Route::post('users/import', [UserController::class, 'import'])->name('users.import.store');
+    Route::get('users/import/template', [UserController::class, 'downloadImportTemplate'])->name('users.import.template');
     Route::resource('users', UserController::class);
     Route::post('users/{user}/reset-password', [UserController::class, 'resetPassword'])
         ->name('users.reset-password');

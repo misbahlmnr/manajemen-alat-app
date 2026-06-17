@@ -3,14 +3,17 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\ImportUsersRequest;
 use App\Http\Requests\Admin\StoreUserRequest;
 use App\Http\Requests\Admin\UpdateUserRequest;
 use App\Models\User;
+use App\Services\User\UserImportService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class UserController extends Controller
 {
@@ -61,6 +64,64 @@ class UserController extends Controller
         return Inertia::render('Admin/User/Create', [
             'classOptions' => config('lab.class_options'),
         ]);
+    }
+
+    public function importForm(): Response
+    {
+        $this->authorize('create', User::class);
+
+        return Inertia::render('Admin/User/Import', [
+            'classOptions' => config('lab.class_options'),
+            'defaultPasswordHint' => (string) config('lab.user_import.default_password', 'Password123'),
+            'importErrors' => session('import_errors', []),
+            'importSummary' => session('import_summary'),
+        ]);
+    }
+
+    public function import(ImportUsersRequest $request, UserImportService $importService): RedirectResponse
+    {
+        $this->authorize('create', User::class);
+
+        $result = $importService->importFromFile($request->file('file'));
+
+        if ($result->errors !== [] && $result->imported === 0 && isset($result->errors[0])) {
+            return redirect()
+                ->route('admin.users.import')
+                ->with('error', $result->errors[0])
+                ->with('import_errors', $result->errors)
+                ->with('import_summary', [
+                    'imported' => $result->imported,
+                    'failed' => max($result->failed, count($result->errors)),
+                ]);
+        }
+
+        $summary = [
+            'imported' => $result->imported,
+            'failed' => $result->failed,
+        ];
+
+        if ($result->hasFailures()) {
+            $message = $result->imported > 0
+                ? "{$result->imported} pengguna berhasil diimpor. {$result->failed} baris gagal."
+                : "Import gagal. {$result->failed} baris memiliki error.";
+
+            return redirect()
+                ->route('admin.users.import')
+                ->with($result->imported > 0 ? 'success' : 'error', $message)
+                ->with('import_errors', $result->errors)
+                ->with('import_summary', $summary);
+        }
+
+        return redirect()
+            ->route('admin.users.index')
+            ->with('success', "{$result->imported} pengguna berhasil diimpor.");
+    }
+
+    public function downloadImportTemplate(UserImportService $importService): StreamedResponse
+    {
+        $this->authorize('create', User::class);
+
+        return $importService->downloadTemplate();
     }
 
     public function store(StoreUserRequest $request): RedirectResponse

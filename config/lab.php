@@ -102,4 +102,10 @@ return [
         'jumat' => 'Jumat',
         'sabtu' => 'Sabtu',
     ],
+
+    'user_import' => [
+        'default_password' => env('LAB_USER_IMPORT_DEFAULT_PASSWORD', 'Password123'),
+        'max_rows' => (int) env('LAB_USER_IMPORT_MAX_ROWS', 500),
+        'allowed_extensions' => ['xlsx', 'xls', 'csv'],
+    ],
 ];

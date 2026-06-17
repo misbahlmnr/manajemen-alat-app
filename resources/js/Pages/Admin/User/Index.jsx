@@ -5,7 +5,7 @@ import { paginatorTotal } from "@/lib/paginator";
 import { Button } from "@/Components/ui/button";
 import { Input } from "@/Components/ui/input";
 import { Head, Link, router, useForm } from "@inertiajs/react";
-import { Plus, Search, Users } from "lucide-react";
+import { Plus, Search, Upload, Users } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import UserTable from "./Components/UserTable";
 import RoleFilterTabs from "./Components/RoleFilterTabs";
@@ -62,6 +62,12 @@ export default function Index({ users, filters, roleCounts }) {
                     title="Kelola Pengguna"
                     subtitle={`${total} pengguna terdaftar`}
                 >
+                    <Button variant="outline" asChild>
+                        <Link href={route("admin.users.import")}>
+                            <Upload className="mr-2 h-4 w-4" />
+                            Import Excel
+                        </Link>
+                    </Button>
                     <Button asChild>
                         <Link href={route("admin.users.create")}>
                             <Plus className="mr-2 h-4 w-4" />
