@@ -61,6 +61,13 @@ export default function Show({ loan }) {
                                 <MetaRow label="Status">
                                     <LoanStatusBadge status={loan.status} />
                                 </MetaRow>
+                                {loan.is_catch_up && (
+                                    <MetaRow label="Jenis">
+                                        <span className="rounded-full bg-amber-500/15 px-2.5 py-0.5 text-xs font-medium text-amber-800 dark:text-amber-200">
+                                            Lanjutan praktikum
+                                        </span>
+                                    </MetaRow>
+                                )}
                                 <MetaRow label="Siswa">
                                     <span className="text-sm font-medium">
                                         {loan.borrower_name}

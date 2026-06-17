@@ -110,6 +110,7 @@ class LoanController extends Controller
                 'item_type' => $type,
                 'request_date' => now()->toDateString(),
                 'borrow_scope' => 'lab',
+                'borrow_reason' => 'reguler',
                 'supervisor_id' => '',
                 'practicum_schedule_id' => '',
                 'due_at' => '',
@@ -139,6 +140,9 @@ class LoanController extends Controller
             'code' => Loan::generateCode(),
             'status' => 'diminta',
             'borrow_scope' => $validated['borrow_scope'] ?? 'lab',
+            'borrow_reason' => $validated['item_type'] === 'alat' && ($validated['borrow_scope'] ?? 'lab') === 'lab'
+                ? ($validated['borrow_reason'] ?? 'reguler')
+                : null,
             'due_at' => $validated['item_type'] === 'alat' ? ($validated['due_at'] ?? null) : null,
         ]);
 
@@ -155,6 +159,8 @@ class LoanController extends Controller
             $message = 'Pengambilan bahan berhasil dicatat! Menunggu verifikasi admin.';
         } elseif (($validated['borrow_scope'] ?? 'lab') === 'bawa_pulang') {
             $message = 'Permintaan terkirim! Siapkan kartu pelajar untuk diserahkan saat pengambilan alat.';
+        } elseif (($validated['borrow_reason'] ?? 'reguler') === 'lanjutan') {
+            $message = 'Permintaan lanjutan praktikum terkirim! Menunggu persetujuan guru pembimbing.';
         } else {
             $message = 'Permintaan peminjaman terkirim! Menunggu verifikasi admin.';
         }
@@ -202,6 +208,7 @@ class LoanController extends Controller
                     : '',
                 'request_date' => $loan->request_date?->format('Y-m-d') ?? now()->toDateString(),
                 'borrow_scope' => $loan->borrow_scope ?? 'lab',
+                'borrow_reason' => $loan->borrow_reason ?? 'reguler',
                 'due_at' => $loan->due_at?->format('Y-m-d\TH:i') ?? '',
                 'purpose' => $loan->purpose ?? '',
                 'notes' => $loan->notes ?? $loan->purpose ?? '',
@@ -227,6 +234,9 @@ class LoanController extends Controller
             'purpose' => $validated['purpose'],
             'notes' => $validated['notes'] ?? null,
             'borrow_scope' => $loan->isAlat() ? ($validated['borrow_scope'] ?? 'lab') : null,
+            'borrow_reason' => $loan->isAlat() && ($validated['borrow_scope'] ?? 'lab') === 'lab'
+                ? ($validated['borrow_reason'] ?? 'reguler')
+                : null,
             'due_at' => $loan->isAlat() ? ($validated['due_at'] ?? null) : null,
         ]);
 
@@ -469,7 +479,10 @@ class LoanController extends Controller
             'notes' => $loan->notes,
             'rejection_reason' => $loan->rejection_reason,
             'borrow_scope' => $loan->borrow_scope,
-            'borrow_scope_label' => $loan->borrow_scope === 'bawa_pulang' ? 'Bawa Pulang' : 'Pakai di Lab',
+            'borrow_scope_label' => $loan->borrowLocationLabel(),
+            'borrow_reason' => $loan->borrow_reason,
+            'borrow_reason_label' => $loan->borrowReasonLabel(),
+            'is_catch_up' => $loan->isCatchUp(),
             'items_summary' => $itemsSummary ?: '—',
             'items_count' => $itemsCount,
             'total_quantity' => collect($items)->sum('quantity'),

@@ -84,6 +84,11 @@ return [
         'Dasar Elektronika',
     ],
 
+    'borrow_reasons' => [
+        'reguler' => 'Sesuai jadwal mapel',
+        'lanjutan' => 'Lanjutan praktikum di lab',
+    ],
+
     'schedule_types' => [
         'mingguan' => 'Jadwal Mingguan',
         'khusus' => 'Acara Khusus',

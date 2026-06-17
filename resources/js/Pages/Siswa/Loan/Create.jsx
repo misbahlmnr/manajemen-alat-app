@@ -158,8 +158,44 @@ export default function Create({
     };
 
     const isBawaPulang = !isBahan && data.borrow_scope === "bawa_pulang";
+    const isLanjutan = !isBahan && data.borrow_reason === "lanjutan";
     const scheduleRequired = !isBahan && !isBawaPulang;
     const scheduleList = isBawaPulang ? schedulesWithPast : schedules;
+
+    const borrowMode = isBawaPulang
+        ? "bawa_pulang"
+        : isLanjutan
+          ? "lab_lanjutan"
+          : "lab_reguler";
+
+    const setBorrowMode = (mode) => {
+        if (mode === "bawa_pulang") {
+            setData((prev) => ({
+                ...prev,
+                borrow_scope: "bawa_pulang",
+                borrow_reason: "reguler",
+                collateral_agreed: false,
+            }));
+            return;
+        }
+
+        if (mode === "lab_lanjutan") {
+            setData((prev) => ({
+                ...prev,
+                borrow_scope: "lab",
+                borrow_reason: "lanjutan",
+                collateral_agreed: false,
+            }));
+            return;
+        }
+
+        setData((prev) => ({
+            ...prev,
+            borrow_scope: "lab",
+            borrow_reason: "reguler",
+            collateral_agreed: false,
+        }));
+    };
 
     const selectedSchedule = useMemo(
         () =>
@@ -176,16 +212,37 @@ export default function Create({
         }
 
         const s = scheduleList.find((x) => String(x.id) === String(scheduleId));
-        if (!s?.tanggal) {
-            setData("practicum_schedule_id", scheduleId);
+        if (!s) {
             return;
         }
+
+        if (isLanjutan) {
+            setData((prev) => ({
+                ...prev,
+                practicum_schedule_id: scheduleId,
+            }));
+            return;
+        }
+
+        if (s.tanggal) {
+            const end = formatScheduleTime(s.jam_selesai);
+            setData((prev) => ({
+                ...prev,
+                practicum_schedule_id: scheduleId,
+                request_date: s.tanggal,
+                due_at: end ? `${s.tanggal}T${end}` : `${s.tanggal}T23:59`,
+            }));
+            return;
+        }
+
         const end = formatScheduleTime(s.jam_selesai);
         setData((prev) => ({
             ...prev,
             practicum_schedule_id: scheduleId,
-            request_date: s.tanggal,
-            due_at: end ? `${s.tanggal}T${end}` : `${s.tanggal}T23:59`,
+            due_at:
+                prev.request_date && end
+                    ? `${prev.request_date}T${end}`
+                    : prev.due_at,
         }));
     };
 
@@ -218,6 +275,9 @@ export default function Create({
 
             if (!isBahan) {
                 payload.borrow_scope = formData.borrow_scope;
+                if (formData.borrow_scope === "lab") {
+                    payload.borrow_reason = formData.borrow_reason || "reguler";
+                }
                 if (formData.practicum_schedule_id) {
                     payload.practicum_schedule_id =
                         formData.practicum_schedule_id;
@@ -256,6 +316,12 @@ export default function Create({
         setData("item_type", tab);
     }, [tab]);
 
+    const lanjutanExplanation = (
+        data.notes?.trim() ||
+        data.purpose?.trim() ||
+        ""
+    ).length;
+
     const canSubmit =
         cart.length > 0 &&
         data.supervisor_id &&
@@ -263,6 +329,7 @@ export default function Create({
             ((!scheduleRequired || data.practicum_schedule_id) &&
                 data.request_date &&
                 data.due_at &&
+                (!isLanjutan || lanjutanExplanation >= 10) &&
                 (!collateralRequired || data.collateral_agreed))) &&
         (data.notes?.trim() || data.purpose?.trim());
 
@@ -506,7 +573,9 @@ export default function Create({
                                         <div className="space-y-1.5">
                                             <label className="flex items-center gap-1.5 text-sm font-medium">
                                                 <CalendarDays className="h-3.5 w-3.5" />{" "}
-                                                Jadwal Praktikum
+                                                {isBawaPulang
+                                                    ? "Jadwal Praktikum"
+                                                    : "Mapel / Jadwal Referensi"}
                                                 {isBawaPulang ? (
                                                     <span className="text-xs font-normal text-muted-foreground">
                                                         (opsional)
@@ -517,6 +586,21 @@ export default function Create({
                                                     </span>
                                                 )}
                                             </label>
+                                            {isLanjutan && (
+                                                <p className="text-xs text-muted-foreground">
+                                                    Pilih mapel yang ingin
+                                                    dilanjutkan. Tanggal pinjam
+                                                    boleh di hari lain dari
+                                                    jadwal mapel.
+                                                </p>
+                                            )}
+                                            {!isBawaPulang && !isLanjutan && (
+                                                <p className="text-xs text-muted-foreground">
+                                                    Tanggal pinjam harus sesuai
+                                                    hari jadwal mapel yang
+                                                    dipilih.
+                                                </p>
+                                            )}
                                             {isBawaPulang && (
                                                 <p className="text-xs text-muted-foreground">
                                                     Boleh dikosongkan jika
@@ -656,44 +740,82 @@ export default function Create({
                                                 <label
                                                     className={cn(
                                                         "flex cursor-pointer items-start gap-2 rounded-lg border p-2.5",
-                                                        data.borrow_scope ===
-                                                            "lab"
+                                                        borrowMode ===
+                                                            "lab_reguler"
                                                             ? "border-primary bg-primary/5"
                                                             : "border-border",
                                                     )}
                                                 >
                                                     <input
                                                         type="radio"
-                                                        name="borrow_scope"
-                                                        value="lab"
+                                                        name="borrow_mode"
+                                                        value="lab_reguler"
                                                         checked={
-                                                            data.borrow_scope ===
-                                                            "lab"
+                                                            borrowMode ===
+                                                            "lab_reguler"
                                                         }
                                                         onChange={() =>
-                                                            setData((prev) => ({
-                                                                ...prev,
-                                                                borrow_scope: "lab",
-                                                                collateral_agreed: false,
-                                                            }))
+                                                            setBorrowMode(
+                                                                "lab_reguler",
+                                                            )
                                                         }
                                                         className="mt-0.5"
                                                     />
                                                     <div className="text-sm">
                                                         <p className="font-medium">
-                                                            Pakai di Lab
+                                                            Pakai di Lab —
+                                                            sesuai jadwal mapel
                                                         </p>
                                                         <p className="text-xs text-muted-foreground">
-                                                            Alat tidak dibawa
-                                                            keluar. Tanpa
-                                                            jaminan.
+                                                            Pinjam pada hari
+                                                            jadwal mapel. Tanpa
+                                                            jaminan kartu.
                                                         </p>
                                                     </div>
                                                 </label>
                                                 <label
                                                     className={cn(
                                                         "flex cursor-pointer items-start gap-2 rounded-lg border p-2.5",
-                                                        data.borrow_scope ===
+                                                        borrowMode ===
+                                                            "lab_lanjutan"
+                                                            ? "border-primary bg-primary/5"
+                                                            : "border-border",
+                                                    )}
+                                                >
+                                                    <input
+                                                        type="radio"
+                                                        name="borrow_mode"
+                                                        value="lab_lanjutan"
+                                                        checked={
+                                                            borrowMode ===
+                                                            "lab_lanjutan"
+                                                        }
+                                                        onChange={() =>
+                                                            setBorrowMode(
+                                                                "lab_lanjutan",
+                                                            )
+                                                        }
+                                                        className="mt-0.5"
+                                                    />
+                                                    <div className="text-sm">
+                                                        <p className="font-medium">
+                                                            Pakai di Lab —
+                                                            lanjutan praktikum
+                                                        </p>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            Untuk melanjutkan
+                                                            tugas yang belum
+                                                            selesai di jam
+                                                            mapel. Boleh pinjam
+                                                            di hari lain. Tanpa
+                                                            jaminan kartu.
+                                                        </p>
+                                                    </div>
+                                                </label>
+                                                <label
+                                                    className={cn(
+                                                        "flex cursor-pointer items-start gap-2 rounded-lg border p-2.5",
+                                                        borrowMode ===
                                                             "bawa_pulang"
                                                             ? "border-warning bg-warning/5"
                                                             : "border-border",
@@ -701,18 +823,16 @@ export default function Create({
                                                 >
                                                     <input
                                                         type="radio"
-                                                        name="borrow_scope"
+                                                        name="borrow_mode"
                                                         value="bawa_pulang"
                                                         checked={
-                                                            data.borrow_scope ===
+                                                            borrowMode ===
                                                             "bawa_pulang"
                                                         }
                                                         onChange={() =>
-                                                            setData((prev) => ({
-                                                                ...prev,
-                                                                borrow_scope:
-                                                                    "bawa_pulang",
-                                                            }))
+                                                            setBorrowMode(
+                                                                "bawa_pulang",
+                                                            )
                                                         }
                                                         className="mt-0.5"
                                                     />
@@ -730,6 +850,9 @@ export default function Create({
                                             </div>
                                             <InputError
                                                 message={errors.borrow_scope}
+                                            />
+                                            <InputError
+                                                message={errors.borrow_reason}
                                             />
                                         </div>
 
@@ -833,7 +956,9 @@ export default function Create({
                                         placeholder={
                                             isBahan
                                                 ? "Untuk praktikum..."
-                                                : "Untuk tugas praktik..."
+                                                : isLanjutan
+                                                  ? "Jelaskan progress yang belum selesai dan alasan lanjutan praktikum..."
+                                                  : "Untuk tugas praktik..."
                                         }
                                         className="form-input min-h-[72px] resize-none"
                                         required

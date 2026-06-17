@@ -24,6 +24,7 @@ class Loan extends Model
         'notes',
         'rejection_reason',
         'borrow_scope',
+        'borrow_reason',
     ];
 
     protected function casts(): array
@@ -79,6 +80,42 @@ class Loan extends Model
     public function requiresCollateral(): bool
     {
         return $this->isAlat() && $this->borrow_scope === 'bawa_pulang';
+    }
+
+    public function isCatchUp(): bool
+    {
+        return $this->borrow_reason === 'lanjutan';
+    }
+
+    public function borrowReasonLabel(): ?string
+    {
+        if (! $this->borrow_reason) {
+            return null;
+        }
+
+        return config("lab.borrow_reasons.{$this->borrow_reason}");
+    }
+
+    public function borrowScopeLabel(): string
+    {
+        if ($this->borrow_scope === 'bawa_pulang') {
+            return 'Bawa Pulang';
+        }
+
+        return 'Pakai di Lab';
+    }
+
+    public function borrowLocationLabel(): string
+    {
+        if ($this->borrow_scope === 'bawa_pulang') {
+            return 'Bawa Pulang';
+        }
+
+        if ($this->isCatchUp()) {
+            return 'Pakai di Lab — Lanjutan praktikum';
+        }
+
+        return 'Pakai di Lab';
     }
 
     public static function generateCode(): string

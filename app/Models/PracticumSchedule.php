@@ -68,6 +68,21 @@ class PracticumSchedule extends Model
         return $this->tanggal?->translatedFormat('d M Y') ?? '—';
     }
 
+    public function matchesRequestDate(Carbon|string $date): bool
+    {
+        $date = $date instanceof Carbon ? $date->copy()->startOfDay() : Carbon::parse($date)->startOfDay();
+
+        if ($this->isKhusus()) {
+            return $this->tanggal !== null && $date->isSameDay($this->tanggal);
+        }
+
+        if ($this->isMingguan() && $this->hari) {
+            return (self::HARI_BY_ISO[$date->dayOfWeekIso] ?? null) === $this->hari;
+        }
+
+        return false;
+    }
+
     public function scopeVisibleInWeek(Builder $query, Carbon $weekStart, Carbon $weekEnd): Builder
     {
         $isoDays = collect(self::HARI_ORDER)
