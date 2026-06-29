@@ -77,11 +77,14 @@ return [
     ],
 
     'practicum_subjects' => [
+        'DTE (Dasar Teknik Elektronika)',
+        'TPMM (Teknik Pemrograman Mikroprosessor dan Mikrokontroller)',
+        'PMM (Pemrograman Mikroprosessor dan Mikrokontroller)',
         'PRE (Penerapan Rangkaian Elektronika)',
-        'PAM (Pembelajaran Alat Mikrokontroler)',
         'PSRT (Penerapan Sistem Radio Televisi)',
-        'PISAV (Perancangan Instalasi Audio Video)',
-        'Dasar Elektronika',
+        'PISAV (Penerapan dan Instalasi Sistem Audio Video)',
+        'PPPAV (Perawatan dan Perbaikan Peralatan Audio dan Video)',
+        'PKK (Produk Kreatif dan Kewirausahaan)',
     ],
 
     'borrow_reasons' => [
