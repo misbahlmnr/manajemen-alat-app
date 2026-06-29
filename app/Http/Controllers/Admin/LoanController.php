@@ -138,7 +138,11 @@ class LoanController extends Controller
         $this->authorize('processReturn', $loan);
         $this->workflow->processReturn($loan, $request->validated('note'), $request->user());
 
-        return back()->with('success', 'Pengembalian berhasil diproses.');
+        $message = $loan->fresh()->status === 'menunggu_inspeksi'
+            ? 'Pengembalian diajukan. Menunggu inspeksi.'
+            : 'Pengembalian berhasil diproses.';
+
+        return back()->with('success', $message);
     }
 
     private function syncItems(Loan $loan, array $rows): void
@@ -234,6 +238,7 @@ class LoanController extends Controller
             'can_inspect' => $loan->status === 'menunggu_inspeksi',
             'can_edit' => false,
             'requires_collateral' => $loan->requiresCollateral(),
+            'requires_return_inspection' => $loan->requiresReturnInspection(),
             'collateral_id' => $loan->collateral?->id,
             'collateral_code' => $loan->collateral?->code,
             'collateral_status' => $loan->collateral?->status,

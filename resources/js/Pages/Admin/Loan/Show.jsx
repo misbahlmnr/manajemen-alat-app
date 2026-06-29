@@ -127,9 +127,7 @@ export default function Show({ loan }) {
                     {loan.can_return && (
                         <Button onClick={() => setReturnOpen(true)}>
                             <RotateCcw className="mr-2 h-4 w-4" />
-                            {loan.requires_collateral
-                                ? "Ajukan Inspeksi"
-                                : "Proses Pengembalian"}
+                            Ajukan Inspeksi
                         </Button>
                     )}
                     <Button
@@ -367,6 +365,7 @@ export default function Show({ loan }) {
                 open={returnOpen}
                 onOpenChange={setReturnOpen}
                 itemName={loan.code}
+                requiresInspection={loan.requires_return_inspection}
                 onConfirm={handleReturn}
                 loading={returning}
             />

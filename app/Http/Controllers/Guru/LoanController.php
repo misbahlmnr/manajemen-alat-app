@@ -175,6 +175,7 @@ class LoanController extends Controller
             'created_at_formatted' => $loan->created_at?->translatedFormat('d M Y'),
             'due_at_iso' => $loan->due_at?->toIso8601String(),
             'requires_collateral' => $loan->requiresCollateral(),
+            'requires_return_inspection' => $loan->requiresReturnInspection(),
             'collateral_status' => $loan->collateral?->status,
             'is_overdue' => $loan->status === 'terlambat',
         ];

@@ -248,6 +248,7 @@ export default function Index({
                 open={!!returnTarget}
                 onOpenChange={(open) => !open && setReturnTarget(null)}
                 itemName={returnTarget?.code}
+                requiresInspection={returnTarget?.requires_return_inspection}
                 onConfirm={handleReturn}
                 loading={returning}
             />

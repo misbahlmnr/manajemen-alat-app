@@ -98,7 +98,7 @@ class LoanWorkflowService
             ]);
         }
 
-        if ($loan->requiresCollateral()) {
+        if ($loan->requiresReturnInspection()) {
             app(CollateralWorkflowService::class)->requestReturnInspection($loan, $note, $actor);
 
             return;

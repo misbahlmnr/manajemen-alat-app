@@ -295,7 +295,7 @@ class LoanController extends Controller
 
         $fresh = $loan->fresh();
 
-        $message = $fresh && $fresh->requiresCollateral()
+        $message = $fresh && $fresh->requiresReturnInspection()
             ? 'Pengembalian diajukan. Menunggu inspeksi admin.'
             : 'Pengembalian berhasil diajukan.';
 
@@ -492,6 +492,7 @@ class LoanController extends Controller
             'created_at_formatted' => $loan->created_at?->translatedFormat('d M Y'),
             'due_at_iso' => $loan->due_at?->toIso8601String(),
             'requires_collateral' => $loan->requiresCollateral(),
+            'requires_return_inspection' => $loan->requiresReturnInspection(),
             'collateral_id' => $loan->collateral?->id,
             'collateral_code' => $loan->collateral?->code,
             'collateral_status' => $loan->collateral?->status,

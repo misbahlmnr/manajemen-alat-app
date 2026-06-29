@@ -82,6 +82,11 @@ class Loan extends Model
         return $this->isAlat() && $this->borrow_scope === 'bawa_pulang';
     }
 
+    public function requiresReturnInspection(): bool
+    {
+        return $this->isAlat();
+    }
+
     public function isCatchUp(): bool
     {
         return $this->borrow_reason === 'lanjutan';

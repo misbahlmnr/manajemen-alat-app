@@ -295,7 +295,7 @@ export default function Index({ loans, filters, tabCounts, statusOptions }) {
                     returnTarget?.items_summary ??
                     returnTarget?.code
                 }
-                requiresInspection={returnTarget?.requires_collateral}
+                requiresInspection={returnTarget?.requires_return_inspection}
                 onConfirm={handleReturn}
                 loading={returning}
             />

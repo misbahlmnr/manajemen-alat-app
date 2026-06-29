@@ -75,7 +75,7 @@ export default function LoanTableActions({ loan, onDelete, onReject, onReturn })
                         onClick={() => onReturn(loan)}
                     >
                         <RotateCcw className="mr-2 h-4 w-4" />
-                        Proses Pengembalian
+                        Ajukan Inspeksi
                     </DropdownMenuItem>
                 )}
                 <DropdownMenuSeparator />

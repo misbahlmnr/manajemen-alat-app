@@ -7,6 +7,7 @@ export default function ReturnLoanDialog({
     open,
     onOpenChange,
     itemName,
+    requiresInspection = false,
     onConfirm,
     loading,
 }) {
@@ -39,12 +40,16 @@ export default function ReturnLoanDialog({
                 )}
             >
                 <h2 className="text-lg font-semibold text-foreground">
-                    Proses pengembalian
+                    {requiresInspection
+                        ? "Ajukan inspeksi pengembalian"
+                        : "Proses pengembalian"}
                 </h2>
                 <p className="mt-2 text-sm text-muted-foreground">
                     Konfirmasi pengembalian untuk{" "}
                     <strong className="text-foreground">{itemName}</strong>.
-                    Stok alat akan dikembalikan.
+                    {requiresInspection
+                        ? " Status akan menunggu inspeksi admin sebelum stok dikembalikan."
+                        : " Stok alat akan dikembalikan."}
                 </p>
                 <div className="mt-4 space-y-2">
                     <Label htmlFor="return-note">Catatan (opsional)</Label>

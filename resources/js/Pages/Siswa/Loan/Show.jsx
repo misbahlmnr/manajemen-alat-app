@@ -298,7 +298,7 @@ export default function Show({ loan }) {
                 open={returnOpen}
                 onOpenChange={setReturnOpen}
                 itemName={loan.code}
-                requiresInspection={loan.requires_collateral}
+                requiresInspection={loan.requires_return_inspection}
                 onConfirm={handleReturn}
                 loading={returning}
             />

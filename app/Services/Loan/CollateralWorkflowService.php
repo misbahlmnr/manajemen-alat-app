@@ -36,10 +36,10 @@ class CollateralWorkflowService
 
     public function requestReturnInspection(Loan $loan, ?string $note, User $actor): void
     {
-        if (! $loan->requiresCollateral()) {
-            $this->loanWorkflow->processReturn($loan, $note, $actor);
-
-            return;
+        if (! $loan->isAlat()) {
+            throw ValidationException::withMessages([
+                'status' => 'Inspeksi pengembalian hanya untuk peminjaman alat.',
+            ]);
         }
 
         if (! in_array($loan->status, ['dipinjam', 'terlambat'], true)) {
