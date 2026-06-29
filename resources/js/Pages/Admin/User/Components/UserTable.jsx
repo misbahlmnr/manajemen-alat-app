@@ -42,6 +42,19 @@ export default function UserTable({ users, pagination, onDelete }) {
                 cell: ({ getValue }) => <RoleBadge role={getValue()} />,
             },
             {
+                accessorKey: "class",
+                header: "Kelas",
+                cell: ({ row }) => {
+                    const user = row.original;
+
+                    return (
+                        <span className="text-muted-foreground">
+                            {user.role === "siswa" ? user.class || "—" : "—"}
+                        </span>
+                    );
+                },
+            },
+            {
                 accessorKey: "status",
                 header: "Status",
                 cell: ({ getValue }) => <StatusBadge status={getValue()} />,
