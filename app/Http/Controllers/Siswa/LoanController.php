@@ -318,7 +318,7 @@ class LoanController extends Controller
         return [
             'supervisorOptions' => User::query()
                 ->where('role', 'guru')
-                ->where('status', 'tersedia')
+                ->where('status', 'active')
                 ->orderBy('name')
                 ->get(['id', 'name'])
                 ->map(fn (User $u) => ['id' => $u->id, 'name' => $u->name])
