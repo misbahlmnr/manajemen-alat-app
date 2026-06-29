@@ -68,27 +68,33 @@ class SiswaDashboardDataService
             ->all();
 
         $class = $user->class;
+        $now = now();
 
-        $upcomingSchedules = PracticumSchedule::query()
+        $todaySchedules = PracticumSchedule::query()
             ->when($class, fn ($q) => $q->where('kelas', $class))
             ->forStudentSelection(futureOnly: true)
-            ->orderByHari()
-            ->orderBy('jam_mulai')
-            ->limit(5)
             ->get()
-            ->map(fn (PracticumSchedule $schedule) => [
-                'id' => $schedule->id,
-                'title' => $schedule->title,
-                'mata_kuliah' => $schedule->mata_kuliah,
-                'kelas' => $schedule->kelas,
-                'type' => $schedule->type,
-                'jadwal_label' => $schedule->jadwalLabel(),
-                'tanggal' => $schedule->tanggal?->format('Y-m-d'),
-                'jamMulai' => substr((string) $schedule->jam_mulai, 0, 5),
-                'jamSelesai' => substr((string) $schedule->jam_selesai, 0, 5),
-                'ruangan' => $schedule->ruangan,
-                'priority' => $schedule->priority,
-            ])
+            ->filter(fn (PracticumSchedule $schedule) => $schedule->matchesRequestDate($now))
+            ->sortBy(fn (PracticumSchedule $schedule) => substr((string) $schedule->jam_mulai, 0, 5))
+            ->map(function (PracticumSchedule $schedule) use ($now) {
+                $endAt = $schedule->occurrenceEndAt($now);
+                $isFinished = $endAt !== null && $endAt->lt($now);
+
+                return [
+                    'id' => $schedule->id,
+                    'title' => $schedule->title,
+                    'mata_kuliah' => $schedule->mata_kuliah,
+                    'kelas' => $schedule->kelas,
+                    'type' => $schedule->type,
+                    'jadwal_label' => $schedule->jadwalLabel(),
+                    'is_finished' => $isFinished,
+                    'tanggal' => $schedule->tanggal?->format('Y-m-d'),
+                    'jamMulai' => substr((string) $schedule->jam_mulai, 0, 5),
+                    'jamSelesai' => substr((string) $schedule->jam_selesai, 0, 5),
+                    'ruangan' => $schedule->ruangan,
+                    'priority' => $schedule->priority,
+                ];
+            })
             ->values()
             ->all();
 
@@ -99,7 +105,7 @@ class SiswaDashboardDataService
         return [
             'loans' => $loans,
             'equipment' => $availableEquipment,
-            'upcomingSchedules' => $upcomingSchedules,
+            'todaySchedules' => $todaySchedules,
             'hasPendingCompensation' => $compensationLoan !== null,
             'compensationLoanId' => $compensationLoan['id'] ?? null,
         ];

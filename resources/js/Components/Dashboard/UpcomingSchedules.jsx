@@ -6,15 +6,6 @@ const priorityLabel = {
     normal: { text: "Normal", className: "bg-secondary text-muted-foreground" },
 };
 
-function formatScheduleDate(dateStr) {
-    if (!dateStr) return "";
-    return new Date(dateStr).toLocaleDateString("id-ID", {
-        weekday: "long",
-        day: "2-digit",
-        month: "short",
-    });
-}
-
 export function UpcomingSchedules({ schedules }) {
     if (!schedules?.length) return null;
 
@@ -22,7 +13,7 @@ export function UpcomingSchedules({ schedules }) {
         <div className="mt-6 rounded-2xl border border-border bg-card p-6">
             <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
                 <CalendarDays className="h-5 w-5 text-primary" />
-                Jadwal Praktikum Terdekat
+                Jadwal Hari Ini
             </h2>
             <ul className="space-y-2">
                 {schedules.map((s) => {
@@ -32,14 +23,37 @@ export function UpcomingSchedules({ schedules }) {
                     return (
                         <li
                             key={s.id}
-                            className="flex items-center justify-between gap-3 rounded-lg bg-secondary/40 p-3"
+                            className={`flex items-center justify-between gap-3 rounded-lg p-3 ${
+                                s.is_finished
+                                    ? "bg-secondary/20 opacity-60"
+                                    : "bg-secondary/40"
+                            }`}
                         >
                             <div className="min-w-0">
-                                <p className="truncate text-sm font-medium">
-                                    {s.title}
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <p
+                                        className={`truncate text-sm font-medium ${
+                                            s.is_finished
+                                                ? "text-muted-foreground line-through"
+                                                : ""
+                                        }`}
+                                    >
+                                        {s.title}
+                                    </p>
+                                    {s.is_finished ? (
+                                        <span className="shrink-0 rounded bg-secondary px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                                            Selesai
+                                        </span>
+                                    ) : (
+                                        <span className="shrink-0 rounded bg-success/15 px-2 py-0.5 text-[10px] font-medium text-success">
+                                            Belum selesai
+                                        </span>
+                                    )}
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                    {s.mata_kuliah}
                                 </p>
                                 <p className="text-xs text-muted-foreground">
-                                    {formatScheduleDate(s.tanggal)} •{" "}
                                     {s.jamMulai}-{s.jamSelesai}
                                     {s.ruangan ? ` • ${s.ruangan}` : ""}
                                 </p>

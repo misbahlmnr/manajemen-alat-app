@@ -7,7 +7,7 @@ export default function Index({
     loans = [],
     equipment = [],
     notifications = [],
-    upcomingSchedules = [],
+    todaySchedules = [],
     hasPendingCompensation = false,
     compensationLoanId = null,
 }) {
@@ -28,7 +28,7 @@ export default function Index({
                     loans={loans}
                     equipment={equipment}
                     notifications={notifications}
-                    upcomingSchedules={upcomingSchedules}
+                    todaySchedules={todaySchedules}
                     hasPendingCompensation={hasPendingCompensation}
                     compensationLoanId={compensationLoanId}
                 />

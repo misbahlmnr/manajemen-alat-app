@@ -12,7 +12,7 @@ import { Bell, ClipboardCheck, FileText, Package, Wrench } from "lucide-react";
 export default function SiswaDashboard({
     loans,
     equipment,
-    upcomingSchedules,
+    todaySchedules,
     hasPendingCompensation = false,
     compensationLoanId = null,
 }) {
@@ -87,7 +87,7 @@ export default function SiswaDashboard({
                 />
             )}
 
-            <UpcomingSchedules schedules={upcomingSchedules} />
+            <UpcomingSchedules schedules={todaySchedules} />
 
             {myActive.length > 0 && (
                 <div className="mt-8">

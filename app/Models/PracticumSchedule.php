@@ -83,6 +83,67 @@ class PracticumSchedule extends Model
         return false;
     }
 
+    public function nextOccurrence(?Carbon $from = null): ?Carbon
+    {
+        $from = ($from ?? now())->copy();
+        $jamMulai = $this->normalizeTime($this->jam_mulai) ?? '00:00:00';
+
+        if ($this->isKhusus()) {
+            if ($this->tanggal === null) {
+                return null;
+            }
+
+            $occurrence = $this->tanggal->copy()->setTimeFromTimeString($jamMulai);
+
+            return $occurrence->copy()->startOfDay()->gte($from->copy()->startOfDay())
+                ? $occurrence
+                : null;
+        }
+
+        if ($this->isMingguan() && $this->hari) {
+            $date = self::nextDateForHari($this->hari, $from->copy()->startOfDay());
+
+            return $date->setTimeFromTimeString($jamMulai);
+        }
+
+        return null;
+    }
+
+    public function occurrenceEndAt(?Carbon $from = null): ?Carbon
+    {
+        $start = $this->nextOccurrence($from);
+
+        if ($start === null) {
+            return null;
+        }
+
+        $jamSelesai = $this->normalizeTime($this->jam_selesai) ?? '23:59:59';
+
+        return $start->copy()->startOfDay()->setTimeFromTimeString($jamSelesai);
+    }
+
+    public function isActive(?Carbon $at = null): bool
+    {
+        $at = $at ?? now();
+        $end = $this->occurrenceEndAt($at);
+
+        return $end !== null && $end->gte($at);
+    }
+
+    public static function nextDateForHari(string $hari, ?Carbon $from = null): Carbon
+    {
+        $from = ($from ?? Carbon::today())->copy()->startOfDay();
+        $targetIso = self::hariToIso($hari);
+
+        if ($targetIso === null) {
+            return $from;
+        }
+
+        $diff = ($targetIso - $from->dayOfWeekIso + 7) % 7;
+
+        return $from->copy()->addDays($diff);
+    }
+
     public function scopeVisibleInWeek(Builder $query, Carbon $weekStart, Carbon $weekEnd): Builder
     {
         $isoDays = collect(self::HARI_ORDER)
@@ -157,6 +218,31 @@ class PracticumSchedule extends Model
         }
 
         return false;
+    }
+
+    private static function hariToIso(string $hari): ?int
+    {
+        return match ($hari) {
+            'senin' => 1,
+            'selasa' => 2,
+            'rabu' => 3,
+            'kamis' => 4,
+            'jumat' => 5,
+            'sabtu' => 6,
+            'minggu' => 7,
+            default => null,
+        };
+    }
+
+    private function normalizeTime(mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        $time = substr((string) $value, 0, 8);
+
+        return strlen($time) === 5 ? "{$time}:00" : $time;
     }
 
     private const HARI_BY_ISO = [
