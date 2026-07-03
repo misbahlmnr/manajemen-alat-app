@@ -330,7 +330,6 @@ class LoanController extends Controller
                 ->values()
                 ->all(),
             'todaySchedules' => $this->schedulesForToday($user, $loan),
-            'schedulesWithPast' => $this->scheduleOptions($user, futureOnly: false),
             'labRoomOptions' => $this->labRoomOptions(),
         ];
     }

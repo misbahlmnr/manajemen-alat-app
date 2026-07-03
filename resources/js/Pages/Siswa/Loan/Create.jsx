@@ -40,7 +40,6 @@ export default function Create({
     defaults,
     supervisorOptions = [],
     todaySchedules = [],
-    schedulesWithPast = [],
     labRoomOptions = [],
 }) {
     const isEdit = Boolean(loan);
@@ -163,11 +162,8 @@ export default function Create({
     const isPakaiDiLab = !isBahan && !isBawaPulang && !isPribadi;
     const scheduleRequired = isPakaiDiLab;
     const matpelDisabled = isPribadi;
-    const scheduleList = isBawaPulang
-        ? schedulesWithPast
-        : isPakaiDiLab
-          ? todaySchedules
-          : [];
+    const scheduleList =
+        isPakaiDiLab || isBawaPulang ? todaySchedules : [];
 
     const usageLocation = isBawaPulang
         ? "bawa_pulang"
@@ -181,6 +177,8 @@ export default function Create({
                 ...prev,
                 borrow_scope: "bawa_pulang",
                 borrow_reason: "reguler",
+                practicum_schedule_id: "",
+                supervisor_id: "",
                 usage_room: "",
                 collateral_agreed: false,
             }));
@@ -223,7 +221,8 @@ export default function Create({
             setData((prev) => ({
                 ...prev,
                 practicum_schedule_id: "",
-                supervisor_id: isPakaiDiLab ? "" : prev.supervisor_id,
+                supervisor_id:
+                    isPakaiDiLab || isBawaPulang ? "" : prev.supervisor_id,
             }));
             return;
         }
@@ -242,12 +241,15 @@ export default function Create({
             ...prev,
             practicum_schedule_id: scheduleId,
             supervisor_id: s.guru_id ? String(s.guru_id) : prev.supervisor_id,
-            request_date: isPakaiDiLab ? requestDate : prev.request_date,
+            request_date:
+                isPakaiDiLab || isBawaPulang ? requestDate : prev.request_date,
             due_at: isPakaiDiLab || isBawaPulang ? dueAt : prev.due_at,
         }));
     };
 
-    const supervisorLocked = isPakaiDiLab && Boolean(selectedSchedule?.guru_id);
+    const supervisorLocked =
+        (isPakaiDiLab || isBawaPulang) &&
+        Boolean(selectedSchedule?.guru_id);
 
     const totalItems = cart.reduce((s, i) => s + i.quantity, 0);
     const collateralRequired =
@@ -749,16 +751,13 @@ export default function Create({
                                                 </span>
                                             )}
                                         </label>
-                                        {isPakaiDiLab && (
+                                        {(isPakaiDiLab || isBawaPulang) && (
                                             <p className="text-xs text-muted-foreground">
                                                 Hanya jadwal mata pelajaran hari
                                                 ini untuk kelas Anda.
-                                            </p>
-                                        )}
-                                        {isBawaPulang && (
-                                            <p className="text-xs text-muted-foreground">
-                                                Boleh dikosongkan jika tidak
-                                                terkait jadwal mapel.
+                                                {isBawaPulang
+                                                    ? " Kosongkan jika tidak ada jadwal hari ini."
+                                                    : ""}
                                             </p>
                                         )}
                                         {scheduleList.length === 0 ? (
@@ -773,7 +772,7 @@ export default function Create({
                                                 <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
                                                 <span>
                                                     {isBawaPulang
-                                                        ? "Tidak ada jadwal tersedia — Anda tetap bisa mengajukan tanpa memilih mapel."
+                                                        ? "Tidak ada jadwal mapel hari ini — Anda tetap bisa mengajukan tanpa memilih mapel."
                                                         : "Tidak ada jadwal mapel hari ini untuk kelas Anda."}
                                                 </span>
                                             </div>

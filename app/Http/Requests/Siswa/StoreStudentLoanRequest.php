@@ -166,8 +166,31 @@ class StoreStudentLoanRequest extends FormRequest
             }
 
             if (
+                $bawaPulang
+                && $schedule
+                && ! $schedule->matchesRequestDate(now())
+            ) {
+                $validator->errors()->add(
+                    'practicum_schedule_id',
+                    'Mata pelajaran harus dari jadwal hari ini.',
+                );
+            }
+
+            if (
                 ! $bawaPulang
                 && $borrowReason === 'reguler'
+                && $schedule
+                && $this->filled('request_date')
+                && ! $schedule->matchesRequestDate($this->input('request_date'))
+            ) {
+                $validator->errors()->add(
+                    'request_date',
+                    'Tanggal pengajuan harus sesuai jadwal mata pelajaran hari ini.',
+                );
+            }
+
+            if (
+                $bawaPulang
                 && $schedule
                 && $this->filled('request_date')
                 && ! $schedule->matchesRequestDate($this->input('request_date'))
@@ -183,7 +206,7 @@ class StoreStudentLoanRequest extends FormRequest
                 && $this->filled('supervisor_id')
                 && $schedule->guru_id
                 && (int) $schedule->guru_id !== (int) $this->input('supervisor_id')
-                && $borrowReason === 'reguler'
+                && ($bawaPulang || $borrowReason === 'reguler')
             ) {
                 $validator->errors()->add(
                     'supervisor_id',
