@@ -5,6 +5,7 @@ namespace App\Http\Requests\Siswa;
 use App\Models\Equipment;
 use App\Models\PracticumSchedule;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -211,6 +212,18 @@ class StoreStudentLoanRequest extends FormRequest
                 $validator->errors()->add(
                     'supervisor_id',
                     'Guru pembimbing harus sesuai dengan guru mata pelajaran yang dipilih.',
+                );
+            }
+
+            if (
+                $this->isMethod('post')
+                && $itemType === 'alat'
+                && $this->filled('due_at')
+                && Carbon::parse($this->input('due_at'))->lte(now())
+            ) {
+                $validator->errors()->add(
+                    'due_at',
+                    'Batas pengembalian harus setelah waktu sekarang.',
                 );
             }
         });

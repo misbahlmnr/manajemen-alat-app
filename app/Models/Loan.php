@@ -145,4 +145,25 @@ class Loan extends Model
     {
         return $this->item_type === 'alat';
     }
+
+    public function isActivelyBorrowed(): bool
+    {
+        return $this->isAlat()
+            && in_array($this->status, ['dipinjam', 'terlambat'], true);
+    }
+
+    public function isOverdue(): bool
+    {
+        if (! $this->isAlat()) {
+            return false;
+        }
+
+        if ($this->status === 'terlambat') {
+            return true;
+        }
+
+        return $this->status === 'dipinjam'
+            && $this->due_at !== null
+            && $this->due_at->isPast();
+    }
 }

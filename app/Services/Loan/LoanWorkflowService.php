@@ -92,7 +92,7 @@ class LoanWorkflowService
 
     public function processReturn(Loan $loan, ?string $note, User $actor): void
     {
-        if (! $loan->isAlat() || ! in_array($loan->status, ['dipinjam', 'terlambat'], true)) {
+        if (! $loan->isActivelyBorrowed()) {
             throw ValidationException::withMessages([
                 'status' => 'Pengembalian hanya untuk peminjaman alat yang sedang dipinjam.',
             ]);
@@ -176,7 +176,7 @@ class LoanWorkflowService
         }
     }
 
-    public function validateStockForItems(array $items, string $itemType): void
+    public function validateStockForItems(array $items, string $itemType, ?int $borrowerId = null): void
     {
         foreach ($items as $row) {
             $equipment = Equipment::query()->find($row['equipment_id']);
@@ -191,6 +191,20 @@ class LoanWorkflowService
                 ]);
             }
             if ($equipment->available < (int) $row['quantity']) {
+                if ($borrowerId) {
+                    $activeLoan = Loan::query()
+                        ->where('borrower_id', $borrowerId)
+                        ->whereIn('status', ['dipinjam', 'terlambat', 'menunggu_inspeksi'])
+                        ->whereHas('items', fn ($q) => $q->where('equipment_id', $equipment->id))
+                        ->first(['id', 'code']);
+
+                    if ($activeLoan) {
+                        throw ValidationException::withMessages([
+                            'items' => "{$equipment->name} masih dalam peminjaman aktif ({$activeLoan->code}). Ajukan pengembalian terlebih dahulu.",
+                        ]);
+                    }
+                }
+
                 throw ValidationException::withMessages([
                     'items' => "Stok {$equipment->name} tidak mencukupi (tersedia: {$equipment->available}).",
                 ]);

@@ -73,7 +73,6 @@ class LoanPolicy
     {
         return $user->isSiswa()
             && $loan->borrower_id === $user->id
-            && $loan->isAlat()
-            && in_array($loan->status, ['dipinjam', 'terlambat'], true);
+            && $loan->isActivelyBorrowed();
     }
 }

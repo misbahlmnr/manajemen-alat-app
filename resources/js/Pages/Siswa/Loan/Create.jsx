@@ -30,6 +30,20 @@ function formatScheduleTime(value) {
     return String(value).slice(0, 5);
 }
 
+function buildDueAt(requestDate, end) {
+    const raw = end ? `${requestDate}T${end}` : `${requestDate}T23:59`;
+    const parsed = new Date(raw);
+    if (Number.isNaN(parsed.getTime())) {
+        return raw;
+    }
+
+    const minDue = new Date(Date.now() + 60 * 60 * 1000);
+    const effective = parsed.getTime() < minDue.getTime() ? minDue : parsed;
+    const pad = (value) => String(value).padStart(2, "0");
+
+    return `${effective.getFullYear()}-${pad(effective.getMonth() + 1)}-${pad(effective.getDate())}T${pad(effective.getHours())}:${pad(effective.getMinutes())}`;
+}
+
 export default function Create({
     loan = null,
     loanType,
@@ -41,6 +55,7 @@ export default function Create({
     supervisorOptions = [],
     todaySchedules = [],
     labRoomOptions = [],
+    overdueLoans = [],
 }) {
     const isEdit = Boolean(loan);
     const resolvedType =
@@ -235,7 +250,7 @@ export default function Create({
         const today = new Date().toISOString().slice(0, 10);
         const end = formatScheduleTime(s.jam_selesai);
         const requestDate = s.tanggal || today;
-        const dueAt = end ? `${requestDate}T${end}` : `${requestDate}T23:59`;
+        const dueAt = buildDueAt(requestDate, end);
 
         setData((prev) => ({
             ...prev,
@@ -361,6 +376,35 @@ export default function Create({
                         </Link>
                     )}
                 </div>
+
+                {overdueLoans.length > 0 && tab === "alat" && (
+                    <div className="mb-6 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+                        <p className="font-medium">
+                            Anda memiliki {overdueLoans.length} peminjaman
+                            terlambat.
+                        </p>
+                        <p className="mt-1 text-destructive/90">
+                            Ajukan pengembalian untuk alat yang sama sebelum
+                            meminjam ulang. Peminjaman alat lain tetap dapat
+                            diajukan.
+                        </p>
+                        <ul className="mt-2 list-inside list-disc">
+                            {overdueLoans.map((overdueLoan) => (
+                                <li key={overdueLoan.id}>
+                                    <Link
+                                        href={overdueLoan.show_url}
+                                        className="font-medium underline underline-offset-2"
+                                    >
+                                        {overdueLoan.code}
+                                    </Link>
+                                    {overdueLoan.items_summary
+                                        ? ` — ${overdueLoan.items_summary}`
+                                        : ""}
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
 
                 {!isEdit && (
                 <div className="mb-6 flex w-full flex-wrap items-center gap-2 rounded-lg bg-secondary p-1 sm:w-fit">

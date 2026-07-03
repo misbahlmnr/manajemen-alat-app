@@ -42,7 +42,7 @@ class CollateralWorkflowService
             ]);
         }
 
-        if (! in_array($loan->status, ['dipinjam', 'terlambat'], true)) {
+        if (! $loan->isActivelyBorrowed()) {
             throw ValidationException::withMessages([
                 'status' => 'Pengembalian hanya untuk peminjaman aktif.',
             ]);

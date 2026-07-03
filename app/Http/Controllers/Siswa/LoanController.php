@@ -88,19 +88,22 @@ class LoanController extends Controller
     public function create(Request $request): Response
     {
         $this->authorize('create', Loan::class);
+        $this->workflow->syncOverdue();
 
+        $user = $request->user();
         $type = $request->string('type')->toString() === 'bahan' ? 'bahan' : 'alat';
         $prefillEquipmentId = $request->integer('equipment_id') ?: null;
         $prefillSupplyId = $request->integer('supply_id') ?: null;
 
         $prefillId = $type === 'bahan' ? $prefillSupplyId : $prefillEquipmentId;
 
-        $options = $this->formOptions($request->user());
+        $options = $this->formOptions($user);
         $prefillItem = $this->resolvePrefillCatalogItem($prefillId, $type);
 
         return Inertia::render('Siswa/Loan/Create', [
             'loanType' => $type,
             'prefillItem' => $prefillItem,
+            'overdueLoans' => $this->overdueLoansFor($user),
             'catalog' => $this->paginatedCatalog($request, $type),
             'catalogFilters' => [
                 'search' => $request->string('catalog_search')->trim()->toString(),
@@ -128,12 +131,17 @@ class LoanController extends Controller
     public function store(StoreStudentLoanRequest $request): RedirectResponse
     {
         $this->authorize('create', Loan::class);
+        $this->workflow->syncOverdue();
 
         $validated = $request->validated();
         $items = $validated['items'];
         unset($validated['items'], $validated['collateral_agreed']);
 
-        $this->workflow->validateStockForItems($items, $validated['item_type']);
+        $this->workflow->validateStockForItems(
+            $items,
+            $validated['item_type'],
+            $request->user()->id,
+        );
 
         $loan = Loan::create([
             ...$validated,
@@ -183,6 +191,7 @@ class LoanController extends Controller
         return Inertia::render('Siswa/Loan/Create', [
             'loan' => $this->formatLoan($loan, true),
             'loanType' => $loan->item_type,
+            'overdueLoans' => $this->overdueLoansFor($request->user()),
             'catalog' => $this->paginatedCatalog($request, $loan->item_type, $loan),
             'catalogFilters' => [
                 'search' => $request->string('catalog_search')->trim()->toString(),
@@ -228,7 +237,11 @@ class LoanController extends Controller
         $items = $validated['items'];
         unset($validated['items'], $validated['collateral_agreed'], $validated['item_type']);
 
-        $this->workflow->validateStockForItems($items, $loan->item_type);
+        $this->workflow->validateStockForItems(
+            $items,
+            $loan->item_type,
+            $request->user()->id,
+        );
 
         $loan->update([
             'supervisor_id' => $validated['supervisor_id'],
@@ -262,6 +275,8 @@ class LoanController extends Controller
     public function show(Loan $loan): Response
     {
         $this->authorize('view', $loan);
+        $this->workflow->syncOverdue();
+        $loan->refresh();
 
         $loan->load([
             'supervisor:id,name,nip',
@@ -290,6 +305,9 @@ class LoanController extends Controller
 
     public function requestReturn(Request $request, Loan $loan): RedirectResponse
     {
+        $this->workflow->syncOverdue();
+        $loan->refresh();
+
         $this->authorize('requestReturn', $loan);
 
         $request->validate([
@@ -557,7 +575,7 @@ class LoanController extends Controller
             'can_cancel' => auth()->user()?->can('cancel', $loan) ?? false,
             'can_edit' => auth()->user()?->can('update', $loan) ?? false,
             'can_request_return' => auth()->user()?->can('requestReturn', $loan) ?? false,
-            'is_overdue' => $loan->status === 'terlambat',
+            'is_overdue' => $loan->isOverdue(),
         ];
 
         if ($detailed || $loan->relationLoaded('items')) {
@@ -587,6 +605,36 @@ class LoanController extends Controller
         }
 
         return $data;
+    }
+
+    private function overdueLoansFor(User $user): array
+    {
+        return Loan::query()
+            ->where('borrower_id', $user->id)
+            ->where('item_type', 'alat')
+            ->where(function ($query) {
+                $query->where('status', 'terlambat')
+                    ->orWhere(function ($inner) {
+                        $inner->where('status', 'dipinjam')
+                            ->whereNotNull('due_at')
+                            ->where('due_at', '<', now());
+                    });
+            })
+            ->with(['items.equipment:id,name'])
+            ->latest()
+            ->get()
+            ->map(fn (Loan $loan) => [
+                'id' => $loan->id,
+                'code' => $loan->code,
+                'status' => $loan->status,
+                'items_summary' => $loan->items
+                    ->map(fn ($item) => $item->equipment?->name)
+                    ->filter()
+                    ->join(', '),
+                'show_url' => route('siswa.loans.show', $loan),
+            ])
+            ->values()
+            ->all();
     }
 
     private function applyStudentLoanScope($query, string $scope): void
