@@ -16,11 +16,22 @@ export default function Index({ notificationFeed, unreadCount = 0 }) {
     const items = notificationFeed?.data ?? [];
 
     const markAllRead = () => {
-        router.post(route("notifications.read-all"), {}, { preserveScroll: true });
+        router.post(route("notifications.read-all"), {}, {
+            preserveScroll: true,
+            only: ["notificationFeed", "unreadCount", "notifications", "unreadNotifications"],
+        });
     };
 
-    const markRead = (id) => {
-        router.post(route("notifications.read", id), {}, { preserveScroll: true });
+    const markRead = (id, thenNavigate = null) => {
+        router.post(route("notifications.read", id), {}, {
+            preserveScroll: true,
+            only: ["notificationFeed", "unreadCount", "notifications", "unreadNotifications"],
+            onSuccess: () => {
+                if (thenNavigate) {
+                    router.visit(thenNavigate);
+                }
+            },
+        });
     };
 
     return (
@@ -97,16 +108,16 @@ export default function Index({ notificationFeed, unreadCount = 0 }) {
                                         )}
                                         {item.action_url && (
                                             <Button
-                                                asChild
+                                                variant="outline"
                                                 size="sm"
-                                                onClick={() => {
-                                                    if (!item.read) markRead(item.id);
-                                                }}
+                                                onClick={() =>
+                                                    item.read
+                                                        ? router.visit(item.action_url)
+                                                        : markRead(item.id, item.action_url)
+                                                }
                                             >
-                                                <Link href={item.action_url}>
-                                                    <ExternalLink className="mr-2 h-4 w-4" />
-                                                    Lihat
-                                                </Link>
+                                                <ExternalLink className="mr-2 h-4 w-4" />
+                                                Lihat
                                             </Button>
                                         )}
                                     </div>

@@ -146,9 +146,15 @@ export default function Show({ loan }) {
                                             value={loan.due_at_formatted}
                                         />
                                         <Info
-                                            label="Lokasi"
+                                            label="Kebutuhan penggunaan"
                                             value={loan.borrow_scope_label}
                                         />
+                                        {loan.usage_room && (
+                                            <Info
+                                                label="Lokasi ruang/lab"
+                                                value={loan.usage_room}
+                                            />
+                                        )}
                                         {loan.schedule_title && (
                                             <Info
                                                 label="Jadwal praktikum"

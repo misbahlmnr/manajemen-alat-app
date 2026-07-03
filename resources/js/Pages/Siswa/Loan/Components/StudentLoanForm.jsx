@@ -110,7 +110,7 @@ export default function StudentLoanForm({
                             </div>
 
                             <div className="space-y-2 sm:col-span-2">
-                                <Label>Lokasi Penggunaan *</Label>
+                                <Label>Kebutuhan Penggunaan *</Label>
                                 <Select
                                     value={data.borrow_scope ?? "lab"}
                                     onChange={(e) => {

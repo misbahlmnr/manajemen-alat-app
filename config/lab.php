@@ -88,8 +88,8 @@ return [
     ],
 
     'borrow_reasons' => [
-        'reguler' => 'Sesuai jadwal mapel',
-        'lanjutan' => 'Lanjutan praktikum di lab',
+        'reguler' => 'Pakai di lab',
+        'lanjutan' => 'Pribadi',
     ],
 
     'schedule_types' => [

@@ -116,6 +116,7 @@ class LoanController extends Controller
                 'due_at' => '',
                 'purpose' => '',
                 'notes' => '',
+                'usage_room' => '',
                 'collateral_agreed' => false,
                 'items' => $prefillId
                     ? [['equipment_id' => (string) $prefillId, 'quantity' => 1]]
@@ -143,6 +144,7 @@ class LoanController extends Controller
             'borrow_reason' => $validated['item_type'] === 'alat' && ($validated['borrow_scope'] ?? 'lab') === 'lab'
                 ? ($validated['borrow_reason'] ?? 'reguler')
                 : null,
+            'usage_room' => $validated['usage_room'] ?? null,
             'due_at' => $validated['item_type'] === 'alat' ? ($validated['due_at'] ?? null) : null,
         ]);
 
@@ -160,7 +162,7 @@ class LoanController extends Controller
         } elseif (($validated['borrow_scope'] ?? 'lab') === 'bawa_pulang') {
             $message = 'Permintaan terkirim! Siapkan kartu pelajar untuk diserahkan saat pengambilan alat.';
         } elseif (($validated['borrow_reason'] ?? 'reguler') === 'lanjutan') {
-            $message = 'Permintaan lanjutan praktikum terkirim! Menunggu persetujuan guru pembimbing.';
+            $message = 'Permintaan peminjaman pribadi terkirim! Menunggu persetujuan guru pembimbing.';
         } else {
             $message = 'Permintaan peminjaman terkirim! Menunggu verifikasi admin.';
         }
@@ -176,7 +178,7 @@ class LoanController extends Controller
 
         $loan->load('items.equipment');
 
-        $options = $this->formOptions($request->user());
+        $options = $this->formOptions($request->user(), $loan);
 
         return Inertia::render('Siswa/Loan/Create', [
             'loan' => $this->formatLoan($loan, true),
@@ -212,6 +214,7 @@ class LoanController extends Controller
                 'due_at' => $loan->due_at?->format('Y-m-d\TH:i') ?? '',
                 'purpose' => $loan->purpose ?? '',
                 'notes' => $loan->notes ?? $loan->purpose ?? '',
+                'usage_room' => $loan->usage_room ?? '',
                 'collateral_agreed' => false,
             ],
         ]);
@@ -237,6 +240,7 @@ class LoanController extends Controller
             'borrow_reason' => $loan->isAlat() && ($validated['borrow_scope'] ?? 'lab') === 'lab'
                 ? ($validated['borrow_reason'] ?? 'reguler')
                 : null,
+            'usage_room' => $validated['usage_room'] ?? null,
             'due_at' => $loan->isAlat() ? ($validated['due_at'] ?? null) : null,
         ]);
 
@@ -314,7 +318,7 @@ class LoanController extends Controller
         }
     }
 
-    private function formOptions(User $user): array
+    private function formOptions(User $user, ?Loan $loan = null): array
     {
         return [
             'supervisorOptions' => User::query()
@@ -325,37 +329,90 @@ class LoanController extends Controller
                 ->map(fn (User $u) => ['id' => $u->id, 'name' => $u->name])
                 ->values()
                 ->all(),
-            'schedules' => $this->scheduleOptions($user, futureOnly: true),
+            'todaySchedules' => $this->schedulesForToday($user, $loan),
             'schedulesWithPast' => $this->scheduleOptions($user, futureOnly: false),
+            'labRoomOptions' => $this->labRoomOptions(),
         ];
     }
 
-    private function scheduleOptions(User $user, bool $futureOnly): array
+    private function labRoomOptions(): array
     {
+        return PracticumSchedule::query()
+            ->whereNotNull('ruangan')
+            ->where('ruangan', '!=', '')
+            ->distinct()
+            ->orderBy('ruangan')
+            ->pluck('ruangan')
+            ->values()
+            ->all();
+    }
+
+    private function schedulesForToday(User $user, ?Loan $loan = null): array
+    {
+        $today = $this->scheduleOptions($user, todayOnly: true);
+
+        if (! $loan?->practicum_schedule_id) {
+            return $today;
+        }
+
+        $exists = collect($today)->contains(
+            fn (array $schedule) => (int) $schedule['id'] === (int) $loan->practicum_schedule_id
+        );
+
+        if ($exists) {
+            return $today;
+        }
+
+        $current = PracticumSchedule::query()
+            ->with('guru:id,name')
+            ->find($loan->practicum_schedule_id);
+
+        if (! $current) {
+            return $today;
+        }
+
+        return array_merge($today, [$this->formatScheduleOption($current)]);
+    }
+
+    private function scheduleOptions(User $user, bool $futureOnly = true, bool $todayOnly = false): array
+    {
+        $now = now();
+
         return PracticumSchedule::query()
             ->forStudentSelection($futureOnly)
             ->when($user->class, fn ($q) => $q->where('kelas', $user->class))
+            ->with('guru:id,name')
             ->orderByHari()
             ->orderBy('jam_mulai')
             ->orderBy('tanggal')
-            ->get(['id', 'code', 'title', 'mata_kuliah', 'kelas', 'type', 'hari', 'tanggal', 'jam_mulai', 'jam_selesai', 'priority'])
-            ->map(fn ($s) => [
-                'id' => $s->id,
-                'code' => $s->code,
-                'title' => $s->title,
-                'mata_kuliah' => $s->mata_kuliah,
-                'kelas' => $s->kelas,
-                'type' => $s->type,
-                'hari' => $s->hari,
-                'hari_label' => $s->hariLabel(),
-                'jadwal_label' => $s->jadwalLabel(),
-                'tanggal' => $s->tanggal?->format('Y-m-d'),
-                'jam_mulai' => $s->jam_mulai,
-                'jam_selesai' => $s->jam_selesai,
-                'priority' => $s->priority,
-            ])
+            ->get(['id', 'code', 'title', 'mata_kuliah', 'kelas', 'type', 'hari', 'tanggal', 'jam_mulai', 'jam_selesai', 'priority', 'guru_id'])
+            ->when($todayOnly, fn ($collection) => $collection->filter(
+                fn (PracticumSchedule $schedule) => $schedule->matchesRequestDate($now)
+            ))
+            ->map(fn (PracticumSchedule $schedule) => $this->formatScheduleOption($schedule))
             ->values()
             ->all();
+    }
+
+    private function formatScheduleOption(PracticumSchedule $schedule): array
+    {
+        return [
+            'id' => $schedule->id,
+            'code' => $schedule->code,
+            'title' => $schedule->title,
+            'mata_kuliah' => $schedule->mata_kuliah,
+            'kelas' => $schedule->kelas,
+            'type' => $schedule->type,
+            'hari' => $schedule->hari,
+            'hari_label' => $schedule->hariLabel(),
+            'jadwal_label' => $schedule->jadwalLabel(),
+            'tanggal' => $schedule->tanggal?->format('Y-m-d'),
+            'jam_mulai' => $schedule->jam_mulai,
+            'jam_selesai' => $schedule->jam_selesai,
+            'priority' => $schedule->priority,
+            'guru_id' => $schedule->guru_id,
+            'guru_name' => $schedule->guru?->name,
+        ];
     }
 
     private function paginatedCatalog(Request $request, string $itemType, ?Loan $loan = null)
@@ -485,6 +542,7 @@ class LoanController extends Controller
             'borrow_scope_label' => $loan->borrowLocationLabel(),
             'borrow_reason' => $loan->borrow_reason,
             'borrow_reason_label' => $loan->borrowReasonLabel(),
+            'usage_room' => $loan->usage_room,
             'is_catch_up' => $loan->isCatchUp(),
             'items_summary' => $itemsSummary ?: '—',
             'items_count' => $itemsCount,

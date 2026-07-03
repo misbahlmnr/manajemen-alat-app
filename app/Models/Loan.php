@@ -25,6 +25,7 @@ class Loan extends Model
         'rejection_reason',
         'borrow_scope',
         'borrow_reason',
+        'usage_room',
     ];
 
     protected function casts(): array
@@ -117,7 +118,7 @@ class Loan extends Model
         }
 
         if ($this->isCatchUp()) {
-            return 'Pakai di Lab — Lanjutan praktikum';
+            return 'Pribadi';
         }
 
         return 'Pakai di Lab';

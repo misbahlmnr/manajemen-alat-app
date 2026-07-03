@@ -39,8 +39,9 @@ export default function Create({
     catalogFilters,
     defaults,
     supervisorOptions = [],
-    schedules = [],
+    todaySchedules = [],
     schedulesWithPast = [],
+    labRoomOptions = [],
 }) {
     const isEdit = Boolean(loan);
     const resolvedType =
@@ -158,32 +159,41 @@ export default function Create({
     };
 
     const isBawaPulang = !isBahan && data.borrow_scope === "bawa_pulang";
-    const isLanjutan = !isBahan && data.borrow_reason === "lanjutan";
-    const scheduleRequired = !isBahan && !isBawaPulang;
-    const scheduleList = isBawaPulang ? schedulesWithPast : schedules;
+    const isPribadi = !isBahan && data.borrow_reason === "lanjutan";
+    const isPakaiDiLab = !isBahan && !isBawaPulang && !isPribadi;
+    const scheduleRequired = isPakaiDiLab;
+    const matpelDisabled = isPribadi;
+    const scheduleList = isBawaPulang
+        ? schedulesWithPast
+        : isPakaiDiLab
+          ? todaySchedules
+          : [];
 
-    const borrowMode = isBawaPulang
+    const usageLocation = isBawaPulang
         ? "bawa_pulang"
-        : isLanjutan
-          ? "lab_lanjutan"
-          : "lab_reguler";
+        : isPribadi
+          ? "pribadi"
+          : "pakai_di_lab";
 
-    const setBorrowMode = (mode) => {
-        if (mode === "bawa_pulang") {
+    const setUsageLocation = (location) => {
+        if (location === "bawa_pulang") {
             setData((prev) => ({
                 ...prev,
                 borrow_scope: "bawa_pulang",
                 borrow_reason: "reguler",
+                usage_room: "",
                 collateral_agreed: false,
             }));
             return;
         }
 
-        if (mode === "lab_lanjutan") {
+        if (location === "pribadi") {
             setData((prev) => ({
                 ...prev,
                 borrow_scope: "lab",
                 borrow_reason: "lanjutan",
+                practicum_schedule_id: "",
+                supervisor_id: "",
                 collateral_agreed: false,
             }));
             return;
@@ -193,6 +203,9 @@ export default function Create({
             ...prev,
             borrow_scope: "lab",
             borrow_reason: "reguler",
+            practicum_schedule_id: "",
+            supervisor_id: "",
+            usage_room: "",
             collateral_agreed: false,
         }));
     };
@@ -207,7 +220,11 @@ export default function Create({
 
     const applySchedule = (scheduleId) => {
         if (!scheduleId) {
-            setData((prev) => ({ ...prev, practicum_schedule_id: "" }));
+            setData((prev) => ({
+                ...prev,
+                practicum_schedule_id: "",
+                supervisor_id: isPakaiDiLab ? "" : prev.supervisor_id,
+            }));
             return;
         }
 
@@ -216,35 +233,21 @@ export default function Create({
             return;
         }
 
-        if (isLanjutan) {
-            setData((prev) => ({
-                ...prev,
-                practicum_schedule_id: scheduleId,
-            }));
-            return;
-        }
-
-        if (s.tanggal) {
-            const end = formatScheduleTime(s.jam_selesai);
-            setData((prev) => ({
-                ...prev,
-                practicum_schedule_id: scheduleId,
-                request_date: s.tanggal,
-                due_at: end ? `${s.tanggal}T${end}` : `${s.tanggal}T23:59`,
-            }));
-            return;
-        }
-
+        const today = new Date().toISOString().slice(0, 10);
         const end = formatScheduleTime(s.jam_selesai);
+        const requestDate = s.tanggal || today;
+        const dueAt = end ? `${requestDate}T${end}` : `${requestDate}T23:59`;
+
         setData((prev) => ({
             ...prev,
             practicum_schedule_id: scheduleId,
-            due_at:
-                prev.request_date && end
-                    ? `${prev.request_date}T${end}`
-                    : prev.due_at,
+            supervisor_id: s.guru_id ? String(s.guru_id) : prev.supervisor_id,
+            request_date: isPakaiDiLab ? requestDate : prev.request_date,
+            due_at: isPakaiDiLab || isBawaPulang ? dueAt : prev.due_at,
         }));
     };
+
+    const supervisorLocked = isPakaiDiLab && Boolean(selectedSchedule?.guru_id);
 
     const totalItems = cart.reduce((s, i) => s + i.quantity, 0);
     const collateralRequired =
@@ -288,6 +291,9 @@ export default function Create({
                         ? 1
                         : 0;
                 }
+                if (formData.usage_room) {
+                    payload.usage_room = formData.usage_room;
+                }
             }
 
             return payload;
@@ -316,12 +322,6 @@ export default function Create({
         setData("item_type", tab);
     }, [tab]);
 
-    const lanjutanExplanation = (
-        data.notes?.trim() ||
-        data.purpose?.trim() ||
-        ""
-    ).length;
-
     const canSubmit =
         cart.length > 0 &&
         data.supervisor_id &&
@@ -329,7 +329,7 @@ export default function Create({
             ((!scheduleRequired || data.practicum_schedule_id) &&
                 data.request_date &&
                 data.due_at &&
-                (!isLanjutan || lanjutanExplanation >= 10) &&
+                (!isPribadi || data.usage_room?.trim()) &&
                 (!collateralRequired || data.collateral_agreed))) &&
         (data.notes?.trim() || data.purpose?.trim());
 
@@ -540,11 +540,337 @@ export default function Create({
                             )}
 
                             <form onSubmit={submit} className="space-y-4">
+                                {!isBahan && (
+                                    <div className="space-y-2">
+                                        <label className="flex items-center gap-1.5 text-sm font-medium">
+                                            <MapPin className="h-3.5 w-3.5" />{" "}
+                                            Kebutuhan Penggunaan
+                                        </label>
+                                        <div className="space-y-2">
+                                            <label
+                                                className={cn(
+                                                    "flex cursor-pointer items-start gap-2 rounded-lg border p-2.5",
+                                                    usageLocation ===
+                                                        "pakai_di_lab"
+                                                        ? "border-primary bg-primary/5"
+                                                        : "border-border",
+                                                )}
+                                            >
+                                                <input
+                                                    type="radio"
+                                                    name="usage_location"
+                                                    value="pakai_di_lab"
+                                                    checked={
+                                                        usageLocation ===
+                                                        "pakai_di_lab"
+                                                    }
+                                                    onChange={() =>
+                                                        setUsageLocation(
+                                                            "pakai_di_lab",
+                                                        )
+                                                    }
+                                                    className="mt-0.5"
+                                                    disabled={processing}
+                                                />
+                                                <div className="text-sm">
+                                                    <p className="font-medium">
+                                                        Pakai di Lab
+                                                    </p>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        Sesuai mata pelajaran
+                                                        dan jadwal hari ini.
+                                                    </p>
+                                                </div>
+                                            </label>
+                                            <label
+                                                className={cn(
+                                                    "flex cursor-pointer items-start gap-2 rounded-lg border p-2.5",
+                                                    usageLocation === "pribadi"
+                                                        ? "border-primary bg-primary/5"
+                                                        : "border-border",
+                                                )}
+                                            >
+                                                <input
+                                                    type="radio"
+                                                    name="usage_location"
+                                                    value="pribadi"
+                                                    checked={
+                                                        usageLocation ===
+                                                        "pribadi"
+                                                    }
+                                                    onChange={() =>
+                                                        setUsageLocation(
+                                                            "pribadi",
+                                                        )
+                                                    }
+                                                    className="mt-0.5"
+                                                    disabled={processing}
+                                                />
+                                                <div className="text-sm">
+                                                    <p className="font-medium">
+                                                        Pribadi
+                                                    </p>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        Penggunaan di luar jam
+                                                        mapel. Tanpa jaminan
+                                                        kartu.
+                                                    </p>
+                                                </div>
+                                            </label>
+                                            <label
+                                                className={cn(
+                                                    "flex cursor-pointer items-start gap-2 rounded-lg border p-2.5",
+                                                    usageLocation ===
+                                                        "bawa_pulang"
+                                                        ? "border-warning bg-warning/5"
+                                                        : "border-border",
+                                                )}
+                                            >
+                                                <input
+                                                    type="radio"
+                                                    name="usage_location"
+                                                    value="bawa_pulang"
+                                                    checked={
+                                                        usageLocation ===
+                                                        "bawa_pulang"
+                                                    }
+                                                    onChange={() =>
+                                                        setUsageLocation(
+                                                            "bawa_pulang",
+                                                        )
+                                                    }
+                                                    className="mt-0.5"
+                                                    disabled={processing}
+                                                />
+                                                <div className="text-sm">
+                                                    <p className="font-medium">
+                                                        Bawa Pulang
+                                                    </p>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        Wajib jaminan kartu
+                                                        pelajar.
+                                                    </p>
+                                                </div>
+                                            </label>
+                                        </div>
+                                        <InputError message={errors.borrow_scope} />
+                                        <InputError message={errors.borrow_reason} />
+                                    </div>
+                                )}
+
+                                {!isBahan && matpelDisabled && (
+                                    <div className="space-y-1.5">
+                                        <label className="flex items-center gap-1.5 text-sm font-medium">
+                                            <CalendarDays className="h-3.5 w-3.5" />{" "}
+                                            Mata Pelajaran
+                                        </label>
+                                        <select
+                                            className="form-input opacity-60"
+                                            disabled
+                                        >
+                                            <option>
+                                                Tidak diperlukan untuk
+                                                penggunaan pribadi
+                                            </option>
+                                        </select>
+                                    </div>
+                                )}
+
+                                {!isBahan && isPribadi && (
+                                    <div className="space-y-1.5">
+                                        <label className="flex items-center gap-1.5 text-sm font-medium">
+                                            <MapPin className="h-3.5 w-3.5" />{" "}
+                                            Lokasi Ruang / Lab
+                                            <span className="text-destructive">
+                                                *
+                                            </span>
+                                        </label>
+                                        <p className="text-xs text-muted-foreground">
+                                            Alat tetap digunakan di dalam lab.
+                                            Pilih ruang yang akan dipakai.
+                                        </p>
+                                        {labRoomOptions.length > 0 ? (
+                                            <select
+                                                value={data.usage_room}
+                                                onChange={(e) =>
+                                                    setData(
+                                                        "usage_room",
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                className="form-input"
+                                                disabled={processing}
+                                            >
+                                                <option value="">
+                                                    Pilih ruang/lab...
+                                                </option>
+                                                {labRoomOptions.map((room) => (
+                                                    <option
+                                                        key={room}
+                                                        value={room}
+                                                    >
+                                                        {room}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        ) : (
+                                            <input
+                                                type="text"
+                                                value={data.usage_room}
+                                                onChange={(e) =>
+                                                    setData(
+                                                        "usage_room",
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                placeholder="Contoh: Lab AV-1"
+                                                className="form-input"
+                                                disabled={processing}
+                                            />
+                                        )}
+                                        <InputError
+                                            message={errors.usage_room}
+                                        />
+                                    </div>
+                                )}
+
+                                {!isBahan && !matpelDisabled && (
+                                    <div className="space-y-1.5">
+                                        <label className="flex items-center gap-1.5 text-sm font-medium">
+                                            <CalendarDays className="h-3.5 w-3.5" />{" "}
+                                            Mata Pelajaran
+                                            {isBawaPulang ? (
+                                                <span className="text-xs font-normal text-muted-foreground">
+                                                    (opsional)
+                                                </span>
+                                            ) : (
+                                                <span className="text-destructive">
+                                                    *
+                                                </span>
+                                            )}
+                                        </label>
+                                        {isPakaiDiLab && (
+                                            <p className="text-xs text-muted-foreground">
+                                                Hanya jadwal mata pelajaran hari
+                                                ini untuk kelas Anda.
+                                            </p>
+                                        )}
+                                        {isBawaPulang && (
+                                            <p className="text-xs text-muted-foreground">
+                                                Boleh dikosongkan jika tidak
+                                                terkait jadwal mapel.
+                                            </p>
+                                        )}
+                                        {scheduleList.length === 0 ? (
+                                            <div
+                                                className={cn(
+                                                    "flex items-start gap-2 rounded-lg p-2.5 text-xs",
+                                                    isBawaPulang
+                                                        ? "bg-secondary/60 text-muted-foreground"
+                                                        : "bg-destructive/10 text-destructive",
+                                                )}
+                                            >
+                                                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
+                                                <span>
+                                                    {isBawaPulang
+                                                        ? "Tidak ada jadwal tersedia — Anda tetap bisa mengajukan tanpa memilih mapel."
+                                                        : "Tidak ada jadwal mapel hari ini untuk kelas Anda."}
+                                                </span>
+                                            </div>
+                                        ) : (
+                                            <select
+                                                value={data.practicum_schedule_id}
+                                                onChange={(e) =>
+                                                    applySchedule(e.target.value)
+                                                }
+                                                className="form-input"
+                                                disabled={processing}
+                                            >
+                                                <option value="">
+                                                    {isBawaPulang
+                                                        ? "Tanpa mapel / pilih jika ada..."
+                                                        : "Pilih mata pelajaran..."}
+                                                </option>
+                                                {scheduleList.map((s) => (
+                                                    <option
+                                                        key={s.id}
+                                                        value={s.id}
+                                                    >
+                                                        {s.mata_kuliah} •{" "}
+                                                        {formatScheduleTime(
+                                                            s.jam_mulai,
+                                                        )}
+                                                        –
+                                                        {formatScheduleTime(
+                                                            s.jam_selesai,
+                                                        )}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        )}
+                                        <InputError
+                                            message={
+                                                errors.practicum_schedule_id
+                                            }
+                                        />
+                                        {selectedSchedule && (
+                                            <div
+                                                className={cn(
+                                                    "space-y-1 rounded-lg border p-2.5 text-xs",
+                                                    selectedSchedule.priority ===
+                                                        "lomba"
+                                                        ? "border-destructive/30 bg-destructive/5"
+                                                        : selectedSchedule.priority ===
+                                                            "tinggi"
+                                                          ? "border-warning/30 bg-warning/5"
+                                                          : "border-border bg-secondary/40",
+                                                )}
+                                            >
+                                                <p className="font-medium">
+                                                    {selectedSchedule.mata_kuliah}{" "}
+                                                    • {selectedSchedule.kelas}
+                                                </p>
+                                                <p className="text-muted-foreground">
+                                                    {selectedSchedule.jadwal_label ||
+                                                        selectedSchedule.hari_label}{" "}
+                                                    •{" "}
+                                                    {formatScheduleTime(
+                                                        selectedSchedule.jam_mulai,
+                                                    )}
+                                                    –
+                                                    {formatScheduleTime(
+                                                        selectedSchedule.jam_selesai,
+                                                    )}
+                                                </p>
+                                                {selectedSchedule.guru_name && (
+                                                    <p className="text-muted-foreground">
+                                                        Guru:{" "}
+                                                        {selectedSchedule.guru_name}
+                                                    </p>
+                                                )}
+                                                {selectedSchedule.priority ===
+                                                    "lomba" && (
+                                                    <p className="flex items-center gap-1 font-medium text-destructive">
+                                                        <Trophy className="h-3 w-3" />{" "}
+                                                        Prioritas Tinggi — Lomba
+                                                    </p>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
                                 <div className="space-y-1.5">
                                     <label className="flex items-center gap-1.5 text-sm font-medium">
                                         <User className="h-3.5 w-3.5" /> Guru
                                         Pembimbing
                                     </label>
+                                    {supervisorLocked && (
+                                        <p className="text-xs text-muted-foreground">
+                                            Terisi otomatis dari mata pelajaran
+                                            yang dipilih.
+                                        </p>
+                                    )}
                                     <select
                                         value={data.supervisor_id}
                                         onChange={(e) =>
@@ -554,7 +880,9 @@ export default function Create({
                                             )
                                         }
                                         className="form-input"
-                                        disabled={processing}
+                                        disabled={
+                                            processing || supervisorLocked
+                                        }
                                     >
                                         <option value="">Pilih guru...</option>
                                         {supervisorOptions.map((t) => (
@@ -572,287 +900,52 @@ export default function Create({
                                     <>
                                         <div className="space-y-1.5">
                                             <label className="flex items-center gap-1.5 text-sm font-medium">
-                                                <CalendarDays className="h-3.5 w-3.5" />{" "}
-                                                {isBawaPulang
-                                                    ? "Jadwal Praktikum"
-                                                    : "Mapel / Jadwal Referensi"}
-                                                {isBawaPulang ? (
-                                                    <span className="text-xs font-normal text-muted-foreground">
-                                                        (opsional)
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-destructive">
-                                                        *
-                                                    </span>
-                                                )}
+                                                <Calendar className="h-3.5 w-3.5" />{" "}
+                                                Tanggal Pengajuan
                                             </label>
-                                            {isLanjutan && (
-                                                <p className="text-xs text-muted-foreground">
-                                                    Pilih mapel yang ingin
-                                                    dilanjutkan. Tanggal pinjam
-                                                    boleh di hari lain dari
-                                                    jadwal mapel.
-                                                </p>
-                                            )}
-                                            {!isBawaPulang && !isLanjutan && (
-                                                <p className="text-xs text-muted-foreground">
-                                                    Tanggal pinjam harus sesuai
-                                                    hari jadwal mapel yang
-                                                    dipilih.
-                                                </p>
-                                            )}
-                                            {isBawaPulang && (
-                                                <p className="text-xs text-muted-foreground">
-                                                    Boleh dikosongkan jika
-                                                    tugas belum dikerjakan atau
-                                                    jadwal praktikum sudah
-                                                    lewat.
-                                                </p>
-                                            )}
-                                            {scheduleList.length === 0 ? (
-                                                <div
-                                                    className={cn(
-                                                        "flex items-start gap-2 rounded-lg p-2.5 text-xs",
-                                                        isBawaPulang
-                                                            ? "bg-secondary/60 text-muted-foreground"
-                                                            : "bg-destructive/10 text-destructive",
-                                                    )}
-                                                >
-                                                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
-                                                    <span>
-                                                        {isBawaPulang
-                                                            ? "Tidak ada jadwal tersedia — Anda tetap bisa mengajukan tanpa memilih jadwal."
-                                                            : "Tidak ada jadwal untuk kelas Anda."}
-                                                    </span>
-                                                </div>
-                                            ) : (
-                                                <select
-                                                    value={
-                                                        data.practicum_schedule_id
-                                                    }
-                                                    onChange={(e) =>
-                                                        applySchedule(
-                                                            e.target.value,
-                                                        )
-                                                    }
-                                                    className="form-input"
-                                                    disabled={processing}
-                                                >
-                                                    <option value="">
-                                                        {isBawaPulang
-                                                            ? "Tanpa jadwal / pilih jika ada..."
-                                                            : "Pilih jadwal..."}
-                                                    </option>
-                                                    {scheduleList.map((s) => (
-                                                        <option
-                                                            key={s.id}
-                                                            value={s.id}
-                                                        >
-                                                            {s.jadwal_label ||
-                                                                s.hari_label ||
-                                                                (s.tanggal
-                                                                    ? new Date(
-                                                                          s.tanggal,
-                                                                      ).toLocaleDateString(
-                                                                          "id-ID",
-                                                                          {
-                                                                              day: "2-digit",
-                                                                              month: "short",
-                                                                          },
-                                                                      )
-                                                                    : "")}{" "}
-                                                            •{" "}
-                                                            {formatScheduleTime(
-                                                                s.jam_mulai,
-                                                            )}{" "}
-                                                            — {s.title}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            )}
-                                            <InputError
-                                                message={
-                                                    errors.practicum_schedule_id
+                                            <input
+                                                type="date"
+                                                value={data.request_date}
+                                                onChange={(e) =>
+                                                    setData(
+                                                        "request_date",
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                className="form-input"
+                                                disabled={
+                                                    processing || isPakaiDiLab
                                                 }
                                             />
-                                            {selectedSchedule && (
-                                                <div
-                                                    className={cn(
-                                                        "space-y-1 rounded-lg border p-2.5 text-xs",
-                                                        selectedSchedule.priority ===
-                                                            "lomba"
-                                                            ? "border-destructive/30 bg-destructive/5"
-                                                            : selectedSchedule.priority ===
-                                                                "tinggi"
-                                                              ? "border-warning/30 bg-warning/5"
-                                                              : "border-border bg-secondary/40",
-                                                    )}
-                                                >
-                                                    <p className="font-medium">
-                                                        {
-                                                            selectedSchedule.mata_kuliah
-                                                        }{" "}
-                                                        •{" "}
-                                                        {
-                                                            selectedSchedule.kelas
-                                                        }
-                                                    </p>
-                                                    <p className="text-muted-foreground">
-                                                        {selectedSchedule.tanggal &&
-                                                            new Date(
-                                                                selectedSchedule.tanggal,
-                                                            ).toLocaleDateString(
-                                                                "id-ID",
-                                                                {
-                                                                    weekday:
-                                                                        "long",
-                                                                    day: "2-digit",
-                                                                    month: "long",
-                                                                },
-                                                            )}{" "}
-                                                        •{" "}
-                                                        {formatScheduleTime(
-                                                            selectedSchedule.jam_mulai,
-                                                        )}
-                                                        -
-                                                        {formatScheduleTime(
-                                                            selectedSchedule.jam_selesai,
-                                                        )}
-                                                    </p>
-                                                    {selectedSchedule.priority ===
-                                                        "lomba" && (
-                                                        <p className="flex items-center gap-1 font-medium text-destructive">
-                                                            <Trophy className="h-3 w-3" />{" "}
-                                                            Prioritas Tinggi —
-                                                            Lomba
-                                                        </p>
-                                                    )}
-                                                </div>
+                                            {isPakaiDiLab && (
+                                                <p className="text-xs text-muted-foreground">
+                                                    Mengikuti jadwal mata
+                                                    pelajaran hari ini.
+                                                </p>
                                             )}
-                                        </div>
-
-                                        <div className="space-y-2">
-                                            <label className="flex items-center gap-1.5 text-sm font-medium">
-                                                <MapPin className="h-3.5 w-3.5" />{" "}
-                                                Lokasi Penggunaan
-                                            </label>
-                                            <div className="space-y-2">
-                                                <label
-                                                    className={cn(
-                                                        "flex cursor-pointer items-start gap-2 rounded-lg border p-2.5",
-                                                        borrowMode ===
-                                                            "lab_reguler"
-                                                            ? "border-primary bg-primary/5"
-                                                            : "border-border",
-                                                    )}
-                                                >
-                                                    <input
-                                                        type="radio"
-                                                        name="borrow_mode"
-                                                        value="lab_reguler"
-                                                        checked={
-                                                            borrowMode ===
-                                                            "lab_reguler"
-                                                        }
-                                                        onChange={() =>
-                                                            setBorrowMode(
-                                                                "lab_reguler",
-                                                            )
-                                                        }
-                                                        className="mt-0.5"
-                                                    />
-                                                    <div className="text-sm">
-                                                        <p className="font-medium">
-                                                            Pakai di Lab —
-                                                            sesuai jadwal mapel
-                                                        </p>
-                                                        <p className="text-xs text-muted-foreground">
-                                                            Pinjam pada hari
-                                                            jadwal mapel. Tanpa
-                                                            jaminan kartu.
-                                                        </p>
-                                                    </div>
-                                                </label>
-                                                <label
-                                                    className={cn(
-                                                        "flex cursor-pointer items-start gap-2 rounded-lg border p-2.5",
-                                                        borrowMode ===
-                                                            "lab_lanjutan"
-                                                            ? "border-primary bg-primary/5"
-                                                            : "border-border",
-                                                    )}
-                                                >
-                                                    <input
-                                                        type="radio"
-                                                        name="borrow_mode"
-                                                        value="lab_lanjutan"
-                                                        checked={
-                                                            borrowMode ===
-                                                            "lab_lanjutan"
-                                                        }
-                                                        onChange={() =>
-                                                            setBorrowMode(
-                                                                "lab_lanjutan",
-                                                            )
-                                                        }
-                                                        className="mt-0.5"
-                                                    />
-                                                    <div className="text-sm">
-                                                        <p className="font-medium">
-                                                            Pakai di Lab —
-                                                            lanjutan praktikum
-                                                        </p>
-                                                        <p className="text-xs text-muted-foreground">
-                                                            Untuk melanjutkan
-                                                            tugas yang belum
-                                                            selesai di jam
-                                                            mapel. Boleh pinjam
-                                                            di hari lain. Tanpa
-                                                            jaminan kartu.
-                                                        </p>
-                                                    </div>
-                                                </label>
-                                                <label
-                                                    className={cn(
-                                                        "flex cursor-pointer items-start gap-2 rounded-lg border p-2.5",
-                                                        borrowMode ===
-                                                            "bawa_pulang"
-                                                            ? "border-warning bg-warning/5"
-                                                            : "border-border",
-                                                    )}
-                                                >
-                                                    <input
-                                                        type="radio"
-                                                        name="borrow_mode"
-                                                        value="bawa_pulang"
-                                                        checked={
-                                                            borrowMode ===
-                                                            "bawa_pulang"
-                                                        }
-                                                        onChange={() =>
-                                                            setBorrowMode(
-                                                                "bawa_pulang",
-                                                            )
-                                                        }
-                                                        className="mt-0.5"
-                                                    />
-                                                    <div className="text-sm">
-                                                        <p className="font-medium">
-                                                            Bawa Pulang
-                                                        </p>
-                                                        <p className="text-xs text-muted-foreground">
-                                                            Wajib jaminan kartu
-                                                            pelajar. Jadwal
-                                                            praktikum opsional.
-                                                        </p>
-                                                    </div>
-                                                </label>
-                                            </div>
                                             <InputError
-                                                message={errors.borrow_scope}
+                                                message={errors.request_date}
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="flex items-center gap-1.5 text-sm font-medium">
+                                                <Calendar className="h-3.5 w-3.5" />{" "}
+                                                Batas Kembali
+                                            </label>
+                                            <input
+                                                type="datetime-local"
+                                                value={data.due_at}
+                                                onChange={(e) =>
+                                                    setData(
+                                                        "due_at",
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                className="form-input"
+                                                disabled={processing}
                                             />
                                             <InputError
-                                                message={errors.borrow_reason}
+                                                message={errors.due_at}
                                             />
                                         </div>
 
@@ -897,56 +990,13 @@ export default function Create({
                                                 />
                                             </div>
                                         )}
-
-                                        <div className="space-y-1.5">
-                                            <label className="flex items-center gap-1.5 text-sm font-medium">
-                                                <Calendar className="h-3.5 w-3.5" />{" "}
-                                                Tanggal Pengajuan
-                                            </label>
-                                            <input
-                                                type="date"
-                                                value={data.request_date}
-                                                onChange={(e) =>
-                                                    setData(
-                                                        "request_date",
-                                                        e.target.value,
-                                                    )
-                                                }
-                                                className="form-input"
-                                                disabled={processing}
-                                            />
-                                            <InputError
-                                                message={errors.request_date}
-                                            />
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <label className="flex items-center gap-1.5 text-sm font-medium">
-                                                <Calendar className="h-3.5 w-3.5" />{" "}
-                                                Batas Kembali
-                                            </label>
-                                            <input
-                                                type="datetime-local"
-                                                value={data.due_at}
-                                                onChange={(e) =>
-                                                    setData(
-                                                        "due_at",
-                                                        e.target.value,
-                                                    )
-                                                }
-                                                className="form-input"
-                                                disabled={processing}
-                                            />
-                                            <InputError
-                                                message={errors.due_at}
-                                            />
-                                        </div>
                                     </>
                                 )}
 
                                 <div className="space-y-1.5">
                                     <label className="flex items-center gap-1.5 text-sm font-medium">
                                         <FileText className="h-3.5 w-3.5" />{" "}
-                                        Catatan / Keperluan
+                                        Catatan
                                     </label>
                                     <textarea
                                         value={data.notes}
@@ -955,10 +1005,8 @@ export default function Create({
                                         }
                                         placeholder={
                                             isBahan
-                                                ? "Untuk praktikum..."
-                                                : isLanjutan
-                                                  ? "Jelaskan progress yang belum selesai dan alasan lanjutan praktikum..."
-                                                  : "Untuk tugas praktik..."
+                                                ? "Keperluan pengambilan bahan..."
+                                                : "Keperluan peminjaman alat..."
                                         }
                                         className="form-input min-h-[72px] resize-none"
                                         required

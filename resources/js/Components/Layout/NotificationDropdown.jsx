@@ -1,4 +1,4 @@
-import { Bell } from "lucide-react";
+import { Bell, CheckCheck } from "lucide-react";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -9,6 +9,7 @@ import {
 } from "@/Components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { Link, router } from "@inertiajs/react";
+import { useEffect, useState } from "react";
 
 export default function NotificationDropdown({
     unreadCount = 0,
@@ -16,21 +17,67 @@ export default function NotificationDropdown({
     indexUrl = null,
     className,
 }) {
-    const unread = Math.max(0, unreadCount);
-    const items = Array.isArray(notifications) ? notifications : [];
+    const [items, setItems] = useState(
+        Array.isArray(notifications) ? notifications : [],
+    );
+    const [unread, setUnread] = useState(Math.max(0, unreadCount));
+    const [markingAll, setMarkingAll] = useState(false);
+
+    useEffect(() => {
+        setItems(Array.isArray(notifications) ? notifications : []);
+        setUnread(Math.max(0, unreadCount));
+    }, [notifications, unreadCount]);
+
+    const syncSharedProps = () => {
+        router.reload({
+            only: ["notifications", "unreadNotifications"],
+            preserveScroll: true,
+        });
+    };
 
     const openNotification = (item) => {
-        if (!item.read) {
-            router.post(
-                route("notifications.read", item.id),
-                {},
-                { preserveScroll: true, preserveState: true },
-            );
+        const navigate = () => {
+            if (item.action_url) {
+                router.visit(item.action_url);
+            }
+        };
+
+        if (item.read) {
+            navigate();
+            return;
         }
 
-        if (item.action_url) {
-            router.visit(item.action_url);
+        setItems((prev) =>
+            prev.map((n) => (n.id === item.id ? { ...n, read: true } : n)),
+        );
+        setUnread((count) => Math.max(0, count - 1));
+
+        router.post(route("notifications.read", item.id), {}, {
+            preserveScroll: true,
+            only: ["notifications", "unreadNotifications"],
+            onSuccess: navigate,
+            onError: () => syncSharedProps(),
+        });
+    };
+
+    const markAllRead = (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (unread === 0 || markingAll) {
+            return;
         }
+
+        setMarkingAll(true);
+        setItems((prev) => prev.map((n) => ({ ...n, read: true })));
+        setUnread(0);
+
+        router.post(route("notifications.read-all"), {}, {
+            preserveScroll: true,
+            only: ["notifications", "unreadNotifications"],
+            onFinish: () => setMarkingAll(false),
+            onError: () => syncSharedProps(),
+        });
     };
 
     return (
@@ -57,16 +104,29 @@ export default function NotificationDropdown({
                 align="end"
                 className="w-[calc(100vw-1.5rem)] max-w-80 sm:w-80"
             >
-                <DropdownMenuLabel className="flex items-center justify-between">
+                <DropdownMenuLabel className="flex items-center justify-between gap-2">
                     <span>Notifikasi</span>
-                    {indexUrl && (
-                        <Link
-                            href={indexUrl}
-                            className="text-xs font-normal text-primary hover:underline"
-                        >
-                            Lihat semua
-                        </Link>
-                    )}
+                    <div className="flex items-center gap-2">
+                        {unread > 0 && (
+                            <button
+                                type="button"
+                                onClick={markAllRead}
+                                disabled={markingAll}
+                                className="inline-flex items-center gap-1 text-xs font-normal text-primary hover:underline disabled:opacity-50"
+                            >
+                                <CheckCheck className="h-3.5 w-3.5" />
+                                {markingAll ? "..." : "Tandai semua"}
+                            </button>
+                        )}
+                        {indexUrl && (
+                            <Link
+                                href={indexUrl}
+                                className="text-xs font-normal text-primary hover:underline"
+                            >
+                                Lihat semua
+                            </Link>
+                        )}
+                    </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
 
@@ -82,10 +142,18 @@ export default function NotificationDropdown({
                                 "cursor-pointer flex-col items-start gap-0.5",
                                 !item.read && "bg-primary/5",
                             )}
-                            onClick={() => openNotification(item)}
+                            onSelect={(event) => {
+                                event.preventDefault();
+                                openNotification(item);
+                            }}
                         >
-                            <span className="text-sm font-medium">
+                            <span className="flex w-full items-center gap-2 text-sm font-medium">
                                 {item.title}
+                                {!item.read && (
+                                    <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-medium text-primary-foreground">
+                                        Baru
+                                    </span>
+                                )}
                             </span>
                             {item.message && (
                                 <span className="text-xs text-muted-foreground line-clamp-2">
