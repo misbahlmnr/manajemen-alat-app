@@ -243,17 +243,35 @@ export default function Show({ loan }) {
                             <Card className="rounded-2xl border-destructive/30 bg-destructive/5 shadow-card">
                                 <CardHeader>
                                     <CardTitle className="text-destructive">
-                                        Kompensasi
+                                        {loan.inspection?.result === "rusak"
+                                            ? "Alat Rusak"
+                                            : "Pengembalian Bermasalah"}
                                     </CardTitle>
                                 </CardHeader>
-                                <CardContent className="text-sm text-muted-foreground">
-                                    Status:{" "}
-                                    <strong>{loan.compensation.status}</strong>
-                                    {loan.compensation.description && (
-                                        <p className="mt-2">
-                                            {loan.compensation.description}
+                                <CardContent className="space-y-3 text-sm text-muted-foreground">
+                                    {loan.inspection?.damage_description ? (
+                                        <p>
+                                            <span className="font-medium text-foreground">
+                                                Kerusakan:
+                                            </span>{" "}
+                                            {loan.inspection.damage_description}
                                         </p>
-                                    )}
+                                    ) : null}
+                                    {loan.inspection?.missing_items ? (
+                                        <p>
+                                            <span className="font-medium text-foreground">
+                                                Item kurang:
+                                            </span>{" "}
+                                            {loan.inspection.missing_items}
+                                        </p>
+                                    ) : null}
+                                    <p>
+                                        <span className="font-medium text-foreground">
+                                            Instruksi:
+                                        </span>{" "}
+                                        {loan.compensation.description ||
+                                            "Segera datang ke kantor lab untuk penyelesaian."}
+                                    </p>
                                 </CardContent>
                             </Card>
                         )}

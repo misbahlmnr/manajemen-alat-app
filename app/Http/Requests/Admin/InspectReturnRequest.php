@@ -29,8 +29,20 @@ class InspectReturnRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator): void {
-            if ($this->input('result') === 'rusak' && blank($this->input('damage_level'))) {
-                $validator->errors()->add('damage_level', 'Tingkat kerusakan wajib dipilih jika hasil inspeksi rusak.');
+            if ($this->input('result') === 'rusak' && blank($this->input('damage_description'))) {
+                $validator->errors()->add('damage_description', 'Deskripsi kerusakan wajib diisi.');
+            }
+
+            if ($this->input('result') === 'rusak' && blank($this->input('description'))) {
+                $validator->errors()->add('description', 'Instruksi ke siswa wajib diisi.');
+            }
+
+            if ($this->input('result') === 'tidak_lengkap' && blank($this->input('missing_items'))) {
+                $validator->errors()->add('missing_items', 'Item yang kurang wajib diisi.');
+            }
+
+            if ($this->input('result') === 'tidak_lengkap' && blank($this->input('description'))) {
+                $validator->errors()->add('description', 'Instruksi ke siswa wajib diisi.');
             }
         });
     }

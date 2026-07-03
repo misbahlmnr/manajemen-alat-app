@@ -15,6 +15,7 @@ export default function SiswaDashboard({
     todaySchedules,
     hasPendingCompensation = false,
     compensationLoanId = null,
+    pendingCompensation = null,
 }) {
     const {
         notifications = [],
@@ -84,6 +85,7 @@ export default function SiswaDashboard({
                             ? route("siswa.loans.show", compensationLoanId)
                             : route("siswa.loans.index")
                     }
+                    compensation={pendingCompensation}
                 />
             )}
 

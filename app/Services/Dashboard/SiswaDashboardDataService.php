@@ -28,6 +28,7 @@ class SiswaDashboardDataService
                 'items.equipment:id,name,category,unit',
                 'collateral:id,loan_id,status',
                 'compensation',
+                'inspection',
             ])
             ->latest()
             ->limit(30)
@@ -108,6 +109,15 @@ class SiswaDashboardDataService
             'todaySchedules' => $todaySchedules,
             'hasPendingCompensation' => $compensationLoan !== null,
             'compensationLoanId' => $compensationLoan['id'] ?? null,
+            'pendingCompensation' => $compensationLoan
+                ? [
+                    'loan_id' => $compensationLoan['id'],
+                    'loan_code' => $compensationLoan['code'],
+                    'damage_description' => $compensationLoan['inspection']['damage_description'] ?? null,
+                    'student_instruction' => $compensationLoan['compensation']['description'] ?? null,
+                    'has_collateral' => isset($compensationLoan['collateral']),
+                ]
+                : null,
         ];
     }
 }

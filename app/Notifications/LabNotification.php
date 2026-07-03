@@ -2,17 +2,14 @@
 
 namespace App\Notifications;
 
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
-use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Notification;
 use NotificationChannels\WebPush\WebPushChannel;
 use NotificationChannels\WebPush\WebPushMessage;
 
-class LabNotification extends Notification implements ShouldBroadcast, ShouldQueue
+class LabNotification extends Notification implements ShouldBroadcastNow
 {
-    use Queueable;
 
     public function __construct(
         public string $eventType,

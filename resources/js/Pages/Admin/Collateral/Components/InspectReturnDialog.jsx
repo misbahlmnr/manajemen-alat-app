@@ -1,5 +1,4 @@
 import { Button } from "@/Components/ui/button";
-import { Input } from "@/Components/ui/input";
 import { Label } from "@/Components/ui/label";
 import { Select } from "@/Components/ui/select";
 import { cn } from "@/lib/utils";
@@ -13,26 +12,24 @@ export default function InspectReturnDialog({
     loading,
 }) {
     const [result, setResult] = useState("lengkap");
-    const [notes, setNotes] = useState("");
     const [missingItems, setMissingItems] = useState("");
     const [damageDescription, setDamageDescription] = useState("");
-    const [amount, setAmount] = useState("");
-    const [description, setDescription] = useState("");
-    const [damageLevel, setDamageLevel] = useState("rusak_ringan");
+    const [studentInstruction, setStudentInstruction] = useState("");
 
     if (!open) return null;
 
-    const needsDetail = result !== "lengkap";
+    const isDamaged = result === "rusak";
+    const isIncomplete = result === "tidak_lengkap";
 
     const handleConfirm = () => {
         onConfirm({
             result,
-            notes: notes || null,
-            missing_items: needsDetail ? missingItems || null : null,
-            damage_description: needsDetail ? damageDescription || null : null,
-            damage_level: result === "rusak" ? damageLevel : null,
-            amount: needsDetail && amount ? parseInt(amount, 10) : null,
-            description: needsDetail ? description || null : null,
+            notes: null,
+            missing_items: isIncomplete ? missingItems || null : null,
+            damage_description: isDamaged ? damageDescription || null : null,
+            damage_level: isDamaged ? "rusak_ringan" : null,
+            amount: null,
+            description: isDamaged || isIncomplete ? studentInstruction || null : null,
         });
     };
 
@@ -75,37 +72,41 @@ export default function InspectReturnDialog({
                         </Select>
                     </div>
 
-                    <div className="space-y-2">
-                        <Label>Catatan inspeksi</Label>
-                        <textarea
-                            rows={2}
-                            value={notes}
-                            onChange={(e) => setNotes(e.target.value)}
-                            disabled={loading}
-                            className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                        />
-                    </div>
-
-                    {result === "rusak" && (
-                        <div className="space-y-2">
-                            <Label>Tingkat kerusakan *</Label>
-                            <Select
-                                value={damageLevel}
-                                onChange={(e) =>
-                                    setDamageLevel(e.target.value)
-                                }
-                                disabled={loading}
-                            >
-                                <option value="rusak_ringan">Rusak Ringan</option>
-                                <option value="rusak_berat">Rusak Berat</option>
-                            </Select>
-                        </div>
-                    )}
-
-                    {needsDetail && (
+                    {isDamaged && (
                         <>
                             <div className="space-y-2">
-                                <Label>Item kurang / kerusakan</Label>
+                                <Label>Deskripsi kerusakan *</Label>
+                                <textarea
+                                    rows={3}
+                                    value={damageDescription}
+                                    onChange={(e) =>
+                                        setDamageDescription(e.target.value)
+                                    }
+                                    disabled={loading}
+                                    placeholder="Contoh: Layar kamera retak, tombol power tidak berfungsi."
+                                    className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Instruksi ke siswa *</Label>
+                                <textarea
+                                    rows={3}
+                                    value={studentInstruction}
+                                    onChange={(e) =>
+                                        setStudentInstruction(e.target.value)
+                                    }
+                                    disabled={loading}
+                                    placeholder="Contoh: Segera datang ke kantor lab besok pagi jam 07.00."
+                                    className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                />
+                            </div>
+                        </>
+                    )}
+
+                    {isIncomplete && (
+                        <>
+                            <div className="space-y-2">
+                                <Label>Item yang kurang *</Label>
                                 <textarea
                                     rows={2}
                                     value={missingItems}
@@ -113,47 +114,23 @@ export default function InspectReturnDialog({
                                         setMissingItems(e.target.value)
                                     }
                                     disabled={loading}
+                                    placeholder="Sebutkan item yang tidak dikembalikan."
                                     className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label>Deskripsi kerusakan</Label>
+                                <Label>Instruksi ke siswa *</Label>
                                 <textarea
                                     rows={2}
-                                    value={damageDescription}
+                                    value={studentInstruction}
                                     onChange={(e) =>
-                                        setDamageDescription(e.target.value)
+                                        setStudentInstruction(e.target.value)
                                     }
                                     disabled={loading}
+                                    placeholder="Contoh: Datang ke kantor lab untuk penyelesaian."
                                     className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                                 />
                             </div>
-                            <div className="space-y-2">
-                                <Label>Nominal ganti rugi (Rp)</Label>
-                                <Input
-                                    type="number"
-                                    min={0}
-                                    value={amount}
-                                    onChange={(e) => setAmount(e.target.value)}
-                                    disabled={loading}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Instruksi ke siswa</Label>
-                                <textarea
-                                    rows={2}
-                                    value={description}
-                                    onChange={(e) =>
-                                        setDescription(e.target.value)
-                                    }
-                                    disabled={loading}
-                                    className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                />
-                            </div>
-                            <p className="text-xs text-amber-700">
-                                Kartu pelajar tetap ditahan sampai kompensasi
-                                selesai.
-                            </p>
                         </>
                     )}
                 </div>

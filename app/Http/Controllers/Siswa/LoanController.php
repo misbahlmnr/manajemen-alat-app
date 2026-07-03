@@ -266,6 +266,7 @@ class LoanController extends Controller
             'statusLogs.user:id,name',
             'collateral',
             'compensation',
+            'inspection',
         ]);
 
         return Inertia::render('Siswa/Loan/Show', [
@@ -517,6 +518,13 @@ class LoanController extends Controller
                     'required' => $loan->compensation->required,
                     'status' => $loan->compensation->status,
                     'description' => $loan->compensation->description,
+                ]
+                : null;
+            $data['inspection'] = $loan->relationLoaded('inspection') && $loan->inspection
+                ? [
+                    'result' => $loan->inspection->result,
+                    'damage_description' => $loan->inspection->damage_description,
+                    'missing_items' => $loan->inspection->missing_items,
                 ]
                 : null;
         }

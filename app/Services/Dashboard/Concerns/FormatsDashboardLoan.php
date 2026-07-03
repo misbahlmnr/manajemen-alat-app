@@ -59,6 +59,14 @@ trait FormatsDashboardLoan
             ];
         }
 
+        if ($loan->relationLoaded('inspection') && $loan->inspection) {
+            $data['inspection'] = [
+                'result' => $loan->inspection->result,
+                'damage_description' => $loan->inspection->damage_description,
+                'missing_items' => $loan->inspection->missing_items,
+            ];
+        }
+
         return $data;
     }
 }

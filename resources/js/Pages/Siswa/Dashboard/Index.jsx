@@ -10,6 +10,7 @@ export default function Index({
     todaySchedules = [],
     hasPendingCompensation = false,
     compensationLoanId = null,
+    pendingCompensation = null,
 }) {
     const user = usePage().props.auth?.user;
     const firstName = user?.name?.split(" ")[0] ?? "Pengguna";
@@ -31,6 +32,7 @@ export default function Index({
                     todaySchedules={todaySchedules}
                     hasPendingCompensation={hasPendingCompensation}
                     compensationLoanId={compensationLoanId}
+                    pendingCompensation={pendingCompensation}
                 />
             </div>
         </AppLayout>

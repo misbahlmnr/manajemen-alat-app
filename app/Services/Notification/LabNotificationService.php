@@ -254,26 +254,59 @@ class LabNotificationService
         }
     }
 
-    public function compensationRequired(Loan $loan): void
+    public function compensationRequired(Loan $loan, ?array $inspectionData = null): void
     {
-        $loan->loadMissing(['borrower', 'supervisor']);
+        $loan->loadMissing(['borrower', 'supervisor', 'compensation', 'collateral', 'inspection']);
+
+        $result = $inspectionData['result'] ?? $loan->inspection?->result;
+        $damageDescription = $inspectionData['damage_description'] ?? $loan->inspection?->damage_description;
+        $studentInstruction = $inspectionData['description'] ?? $loan->compensation?->description;
+
+        $isDamaged = $result === 'rusak';
+
+        if ($isDamaged) {
+            $title = 'Alat Rusak';
+            $message = $damageDescription
+                ? "Alat rusak: {$damageDescription}."
+                : "Alat peminjaman {$loan->code} dinyatakan rusak.";
+            $message .= ' '.($studentInstruction ?: 'Segera datang ke kantor lab untuk penyelesaian.');
+            $eventType = 'equipment_damaged';
+        } else {
+            $missingItems = $inspectionData['missing_items'] ?? $loan->inspection?->missing_items;
+            $title = 'Pengembalian Tidak Lengkap';
+            $message = $missingItems
+                ? "Pengembalian {$loan->code} tidak lengkap: {$missingItems}."
+                : "Pengembalian {$loan->code} tidak lengkap.";
+            $message .= ' '.($studentInstruction ?: 'Segera datang ke kantor lab untuk penyelesaian.');
+            $eventType = 'compensation_required';
+        }
 
         $this->notifyUser(
             $loan->borrower,
-            'compensation_required',
-            'Kompensasi Diperlukan',
-            "Pengembalian {$loan->code} memerlukan kompensasi. Kartu pelajar ditahan.",
+            $eventType,
+            $title,
+            $message,
             'error',
             route('siswa.loans.show', $loan),
+            $loan,
+        );
+
+        $this->notifyUsers(
+            $this->admins(),
+            $eventType,
+            $isDamaged ? 'Alat Rusak' : 'Pengembalian Tidak Lengkap',
+            "{$loan->borrower?->name} — {$message}",
+            'warning',
+            route('admin.loans.show', $loan),
             $loan,
         );
 
         if ($loan->supervisor_id) {
             $this->notifyUser(
                 $loan->supervisor,
-                'compensation_required',
-                'Kompensasi Siswa Bimbingan',
-                "Peminjaman {$loan->code} memerlukan kompensasi dari {$loan->borrower?->name}.",
+                $eventType,
+                $isDamaged ? 'Alat Rusak — Siswa Bimbingan' : 'Pengembalian Tidak Lengkap',
+                "{$loan->borrower?->name} — {$message}",
                 'warning',
                 route('guru.loans.show', $loan),
                 $loan,

@@ -83,9 +83,10 @@ class CollateralWorkflowService
 
             $this->loanWorkflow->restoreStock($loan);
 
-            if ($result === 'rusak' && filled($data['damage_level'] ?? null)) {
+            if ($result === 'rusak') {
+                $damageLevel = $data['damage_level'] ?? 'rusak_ringan';
                 app(\App\Services\Equipment\EquipmentConditionService::class)
-                    ->applyReturnDamage($loan, $data['damage_level']);
+                    ->applyReturnDamage($loan, $damageLevel);
             }
 
             $loan->update([
@@ -116,18 +117,18 @@ class CollateralWorkflowService
                     [
                         'required' => true,
                         'status' => 'pending',
-                        'amount' => $data['amount'] ?? null,
-                        'description' => $data['description'] ?? $data['missing_items'] ?? null,
+                        'amount' => null,
+                        'description' => $data['description'] ?? null,
                     ]
                 );
             }
 
-            $freshLoan = $loan->fresh();
+            $freshLoan = $loan->fresh(['borrower', 'supervisor', 'compensation', 'collateral', 'inspection']);
 
             if ($result === 'lengkap') {
                 app(LabNotificationService::class)->loanReturned($freshLoan);
             } else {
-                app(LabNotificationService::class)->compensationRequired($freshLoan);
+                app(LabNotificationService::class)->compensationRequired($freshLoan, $data);
             }
         });
     }
