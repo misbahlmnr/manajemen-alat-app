@@ -16,13 +16,16 @@ class LabNotificationService
 
         $summary = $this->loanSummary($loan);
         $borrower = $loan->borrower?->name ?? 'Siswa';
+        $isQueued = $loan->status === 'antrian';
 
         $this->notifyUsers(
             $this->admins(),
-            'loan_submitted',
-            'Pengajuan Peminjaman Baru',
-            "{$borrower} mengajukan peminjaman {$loan->code} — {$summary}.",
-            'info',
+            $isQueued ? 'loan_queued' : 'loan_submitted',
+            $isQueued ? 'Pengajuan Masuk Antrian Stok' : 'Pengajuan Peminjaman Baru',
+            $isQueued
+                ? "{$borrower} masuk antrian {$loan->code} — {$summary}."
+                : "{$borrower} mengajukan peminjaman {$loan->code} — {$summary}.",
+            $isQueued ? 'warning' : 'info',
             route('admin.loans.show', $loan),
             $loan,
         );
@@ -30,14 +33,55 @@ class LabNotificationService
         if ($loan->supervisor_id) {
             $this->notifyUser(
                 $loan->supervisor,
-                'loan_submitted',
-                'Pengajuan Siswa Bimbingan',
-                "{$borrower} mengajukan peminjaman {$loan->code} — {$summary}.",
-                'info',
+                $isQueued ? 'loan_queued' : 'loan_submitted',
+                $isQueued ? 'Siswa Masuk Antrian Stok' : 'Pengajuan Siswa Bimbingan',
+                $isQueued
+                    ? "{$borrower} masuk antrian {$loan->code} — {$summary}."
+                    : "{$borrower} mengajukan peminjaman {$loan->code} — {$summary}.",
+                $isQueued ? 'warning' : 'info',
                 route('guru.loans.show', $loan),
                 $loan,
             );
         }
+
+        if ($loan->borrower) {
+            $this->notifyUser(
+                $loan->borrower,
+                $isQueued ? 'loan_queued' : 'loan_submitted',
+                $isQueued ? 'Pengajuan Masuk Antrian' : 'Pengajuan Terkirim',
+                $isQueued
+                    ? "Pengajuan {$loan->code} masuk antrian karena stok habis. Anda akan diberitahu saat stok tersedia."
+                    : "Pengajuan {$loan->code} berhasil dikirim dan menunggu persetujuan.",
+                $isQueued ? 'warning' : 'info',
+                route('siswa.loans.show', $loan),
+                $loan,
+            );
+        }
+    }
+
+    public function loanPromotedFromQueue(Loan $loan): void
+    {
+        $loan->loadMissing(['borrower', 'supervisor']);
+
+        $this->notifyUser(
+            $loan->borrower,
+            'loan_promoted',
+            'Stok Tersedia — Siap Ditinjau',
+            "Pengajuan {$loan->code} keluar dari antrian. Menunggu persetujuan admin.",
+            'success',
+            route('siswa.loans.show', $loan),
+            $loan,
+        );
+
+        $this->notifyUsers(
+            $this->admins(),
+            'loan_promoted',
+            'Antrian Stok — Siap Ditinjau',
+            "Pengajuan {$loan->code} dari {$loan->borrower?->name} siap ditinjau (stok tersedia).",
+            'info',
+            route('admin.loans.show', $loan),
+            $loan,
+        );
     }
 
     public function loanApproved(Loan $loan): void

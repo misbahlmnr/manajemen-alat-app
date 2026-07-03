@@ -22,6 +22,7 @@ import RejectLoanDialog from "./Components/RejectLoanDialog";
 import ReturnLoanDialog from "./Components/ReturnLoanDialog";
 import InspectReturnDialog from "../Collateral/Components/InspectReturnDialog";
 import CollateralStatusBadge from "@/Components/CollateralStatusBadge";
+import QueuePriorityPanel from "./Components/QueuePriorityPanel";
 
 export default function Show({ loan }) {
     const [deleteOpen, setDeleteOpen] = useState(false);
@@ -137,6 +138,10 @@ export default function Show({ loan }) {
                         Hapus
                     </Button>
                 </PageHeader>
+
+                {loan.can_set_queue_priority && (
+                    <QueuePriorityPanel loan={loan} />
+                )}
 
                 <div className="grid gap-6 lg:grid-cols-3">
                     <Card className="rounded-2xl border-border/60 shadow-card lg:col-span-1">

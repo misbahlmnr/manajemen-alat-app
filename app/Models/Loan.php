@@ -16,6 +16,11 @@ class Loan extends Model
         'practicum_schedule_id',
         'item_type',
         'status',
+        'queue_priority',
+        'queued_at',
+        'queue_priority_note',
+        'queue_priority_set_by',
+        'queue_priority_set_at',
         'request_date',
         'borrowed_at',
         'due_at',
@@ -35,6 +40,8 @@ class Loan extends Model
             'borrowed_at' => 'datetime',
             'due_at' => 'datetime',
             'returned_at' => 'datetime',
+            'queued_at' => 'datetime',
+            'queue_priority_set_at' => 'datetime',
         ];
     }
 
@@ -51,6 +58,11 @@ class Loan extends Model
     public function schedule(): BelongsTo
     {
         return $this->belongsTo(PracticumSchedule::class, 'practicum_schedule_id');
+    }
+
+    public function queuePrioritySetBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'queue_priority_set_by');
     }
 
     public function items(): HasMany
@@ -165,5 +177,10 @@ class Loan extends Model
         return $this->status === 'dipinjam'
             && $this->due_at !== null
             && $this->due_at->isPast();
+    }
+
+    public function isQueued(): bool
+    {
+        return $this->status === 'antrian';
     }
 }

@@ -107,6 +107,12 @@ export default function StudentLoanCard({
                         </div>
                         <p className="mt-0.5 text-xs text-muted-foreground">
                             Diajukan {loan.request_date_formatted}
+                            {loan.status === "antrian" && loan.queue_position && (
+                                <>
+                                    {" "}
+                                    · Antrian #{loan.queue_position}
+                                </>
+                            )}
                             {!isBahan && loan.borrow_scope_label && (
                                 <>
                                     {" "}

@@ -95,6 +95,22 @@ export default function Show({ loan }) {
                     </div>
                 )}
 
+                {loan.status === "antrian" && (
+                    <div className="mb-6 rounded-xl border border-warning/30 bg-warning/5 px-4 py-3 text-sm text-warning-foreground">
+                        <p className="font-medium text-warning">
+                            Pengajuan dalam antrian stok
+                            {loan.queue_position
+                                ? ` (posisi #${loan.queue_position})`
+                                : ""}
+                            .
+                        </p>
+                        <p className="mt-1 text-muted-foreground">
+                            Stok alat sedang habis. Anda akan diberitahu saat
+                            stok tersedia dan pengajuan siap ditinjau admin.
+                        </p>
+                    </div>
+                )}
+
                 <div className="grid gap-6 lg:grid-cols-3">
                     <Card className="rounded-2xl border-border/60 shadow-card lg:col-span-1">
                         <CardContent className="p-6">

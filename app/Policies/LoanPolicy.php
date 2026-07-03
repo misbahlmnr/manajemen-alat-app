@@ -75,4 +75,9 @@ class LoanPolicy
             && $loan->borrower_id === $user->id
             && $loan->isActivelyBorrowed();
     }
+
+    public function setQueuePriority(User $user, Loan $loan): bool
+    {
+        return $user->isAdmin() && $loan->status === 'antrian';
+    }
 }

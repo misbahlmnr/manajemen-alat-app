@@ -29,9 +29,11 @@ class LoanWorkflowService
 
     public function approve(Loan $loan, User $actor): void
     {
-        if (! in_array($loan->status, ['diminta', 'antrian'], true)) {
+        if ($loan->status !== 'diminta') {
             throw ValidationException::withMessages([
-                'status' => 'Hanya pengajuan menunggu yang dapat disetujui.',
+                'status' => $loan->status === 'antrian'
+                    ? 'Pengajuan masih dalam antrian stok. Tunggu hingga stok tersedia atau atur prioritas antrian.'
+                    : 'Hanya pengajuan menunggu yang dapat disetujui.',
             ]);
         }
 
@@ -169,11 +171,15 @@ class LoanWorkflowService
     public function restoreStock(Loan $loan): void
     {
         $loan->load('items.equipment');
+        $equipmentIds = [];
 
         foreach ($loan->items as $item) {
             $equipment = $item->equipment;
             $equipment->increment('available', min($item->quantity, $equipment->stock - $equipment->available));
+            $equipmentIds[] = $equipment->id;
         }
+
+        app(LoanQueueService::class)->processQueueForEquipments($equipmentIds);
     }
 
     public function validateStockForItems(array $items, string $itemType, ?int $borrowerId = null): void

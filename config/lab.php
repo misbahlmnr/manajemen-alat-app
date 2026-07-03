@@ -92,6 +92,16 @@ return [
         'lanjutan' => 'Pribadi',
     ],
 
+    'queue' => [
+        'schedule_priority_scores' => [
+            'normal' => 40,
+            'tinggi' => 70,
+            'lomba' => 100,
+        ],
+        'default_admin_priority' => 150,
+        'max_admin_priority' => 1000,
+    ],
+
     'schedule_types' => [
         'mingguan' => 'Jadwal Mingguan',
         'khusus' => 'Acara Khusus',

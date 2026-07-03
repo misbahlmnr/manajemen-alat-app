@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\RejectLoanRequest;
 use App\Http\Requests\Admin\ReturnLoanRequest;
+use App\Http\Requests\Admin\SetQueuePriorityRequest;
 use App\Models\Loan;
 use App\Models\User;
+use App\Services\Loan\LoanQueueService;
 use App\Services\Loan\LoanWorkflowService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,6 +19,7 @@ class LoanController extends Controller
 {
     public function __construct(
         private LoanWorkflowService $workflow,
+        private LoanQueueService $queueService,
     ) {}
 
     public function index(Request $request): Response
@@ -51,7 +54,11 @@ class LoanController extends Controller
             ->when($kelas !== 'all', fn ($q) => $q->whereHas('borrower', fn ($b) => $b->where('class', $kelas)))
             ->when($dateFrom !== '', fn ($q) => $q->whereDate('request_date', '>=', $dateFrom))
             ->when($dateTo !== '', fn ($q) => $q->whereDate('request_date', '<=', $dateTo))
-            ->latest()
+            ->when(
+                $status === 'antrian',
+                fn ($q) => $q->orderByDesc('queue_priority')->orderBy('queued_at'),
+                fn ($q) => $q->latest(),
+            )
             ->paginate(10)
             ->withQueryString()
             ->through(fn (Loan $loan) => $this->formatLoan($loan));
@@ -145,6 +152,41 @@ class LoanController extends Controller
         return back()->with('success', $message);
     }
 
+    public function setQueuePriority(SetQueuePriorityRequest $request, Loan $loan): RedirectResponse
+    {
+        $this->authorize('setQueuePriority', $loan);
+
+        $validated = $request->validated();
+
+        if ($request->boolean('use_default')) {
+            $this->queueService->applyDefaultAdminPriority(
+                $loan,
+                $validated['note'] ?? null,
+                $request->user(),
+            );
+        } else {
+            $priority = $validated['queue_priority'] ?? null;
+
+            $this->queueService->setAdminPriority(
+                $loan,
+                $priority && (int) $priority > 0 ? (int) $priority : null,
+                $validated['note'] ?? null,
+                $request->user(),
+            );
+        }
+
+        return back()->with('success', 'Prioritas antrian berhasil diperbarui.');
+    }
+
+    public function resetQueuePriority(Loan $loan): RedirectResponse
+    {
+        $this->authorize('setQueuePriority', $loan);
+
+        $this->queueService->setAdminPriority($loan, null, null, request()->user());
+
+        return back()->with('success', 'Prioritas antrian direset ke round-robin normal.');
+    }
+
     private function syncItems(Loan $loan, array $rows): void
     {
         $loan->items()->delete();
@@ -231,8 +273,9 @@ class LoanController extends Controller
             'is_catch_up' => $loan->isCatchUp(),
             'items_summary' => $itemsSummary ?: '—',
             'created_at_formatted' => $loan->created_at?->translatedFormat('d M Y'),
-            'can_approve' => in_array($loan->status, ['diminta', 'antrian'], true),
+            'can_approve' => $loan->status === 'diminta',
             'can_reject' => in_array($loan->status, ['diminta', 'antrian', 'disetujui'], true),
+            'can_set_queue_priority' => $loan->status === 'antrian',
             'can_mark_borrowed' => $loan->isAlat() && $loan->status === 'disetujui',
             'can_return' => $loan->isAlat() && in_array($loan->status, ['dipinjam', 'terlambat'], true),
             'can_inspect' => $loan->status === 'menunggu_inspeksi',
@@ -242,6 +285,7 @@ class LoanController extends Controller
             'collateral_id' => $loan->collateral?->id,
             'collateral_code' => $loan->collateral?->code,
             'collateral_status' => $loan->collateral?->status,
+            ...($loan->status === 'antrian' ? $this->queueService->queueSummary($loan) : []),
         ];
 
         if ($detailed) {

@@ -10,6 +10,7 @@ use App\Models\Loan;
 use App\Models\PracticumSchedule;
 use App\Models\User;
 use App\Services\Loan\CollateralWorkflowService;
+use App\Services\Loan\LoanQueueService;
 use App\Services\Loan\LoanWorkflowService;
 use App\Services\Notification\LabNotificationService;
 use Illuminate\Http\RedirectResponse;
@@ -22,6 +23,7 @@ class LoanController extends Controller
     public function __construct(
         private LoanWorkflowService $workflow,
         private CollateralWorkflowService $collateralWorkflow,
+        private LoanQueueService $queueService,
     ) {}
 
     public function index(Request $request): Response
@@ -137,17 +139,31 @@ class LoanController extends Controller
         $items = $validated['items'];
         unset($validated['items'], $validated['collateral_agreed']);
 
-        $this->workflow->validateStockForItems(
+        if ($validated['item_type'] === 'bahan') {
+            $this->workflow->validateStockForItems(
+                $items,
+                $validated['item_type'],
+                $request->user()->id,
+            );
+        } else {
+            $this->queueService->validateItemsForSubmit(
+                $items,
+                $validated['item_type'],
+                $request->user()->id,
+            );
+        }
+
+        $initialStatus = $this->queueService->resolveInitialStatus(
             $items,
             $validated['item_type'],
-            $request->user()->id,
         );
 
         $loan = Loan::create([
             ...$validated,
             'borrower_id' => $request->user()->id,
             'code' => Loan::generateCode(),
-            'status' => 'diminta',
+            'status' => $initialStatus,
+            'queued_at' => $initialStatus === 'antrian' ? now() : null,
             'borrow_scope' => $validated['borrow_scope'] ?? 'lab',
             'borrow_reason' => $validated['item_type'] === 'alat' && ($validated['borrow_scope'] ?? 'lab') === 'lab'
                 ? ($validated['borrow_reason'] ?? 'reguler')
@@ -157,7 +173,12 @@ class LoanController extends Controller
         ]);
 
         $this->syncItems($loan, $items);
-        $this->workflow->logStatus($loan, 'diminta', 'Pengajuan peminjaman dibuat oleh siswa.', $request->user());
+
+        if ($initialStatus === 'antrian') {
+            $this->queueService->enqueue($loan->fresh(), $request->user());
+        } else {
+            $this->workflow->logStatus($loan, 'diminta', 'Pengajuan peminjaman dibuat oleh siswa.', $request->user());
+        }
 
         if ($loan->requiresCollateral()) {
             $this->collateralWorkflow->registerPendingCollateral($loan->fresh());
@@ -167,6 +188,11 @@ class LoanController extends Controller
 
         if ($validated['item_type'] === 'bahan') {
             $message = 'Pengambilan bahan berhasil dicatat! Menunggu verifikasi admin.';
+        } elseif ($initialStatus === 'antrian') {
+            $position = $this->queueService->getQueuePosition($loan->fresh());
+            $message = $position
+                ? "Stok sedang habis. Pengajuan masuk antrian (posisi #{$position}). Anda akan diberitahu saat stok tersedia."
+                : 'Stok sedang habis. Pengajuan masuk antrian. Anda akan diberitahu saat stok tersedia.';
         } elseif (($validated['borrow_scope'] ?? 'lab') === 'bawa_pulang') {
             $message = 'Permintaan terkirim! Siapkan kartu pelajar untuk diserahkan saat pengambilan alat.';
         } elseif (($validated['borrow_reason'] ?? 'reguler') === 'lanjutan') {
@@ -237,11 +263,29 @@ class LoanController extends Controller
         $items = $validated['items'];
         unset($validated['items'], $validated['collateral_agreed'], $validated['item_type']);
 
-        $this->workflow->validateStockForItems(
-            $items,
-            $loan->item_type,
-            $request->user()->id,
-        );
+        $statusUpdate = [];
+
+        if ($loan->isAlat() && in_array($loan->status, ['diminta', 'antrian'], true)) {
+            $this->queueService->validateItemsForSubmit(
+                $items,
+                $loan->item_type,
+                $request->user()->id,
+            );
+
+            $newStatus = $this->queueService->resolveInitialStatus($items, 'alat');
+            $statusUpdate = [
+                'status' => $newStatus,
+                'queued_at' => $newStatus === 'antrian'
+                    ? ($loan->queued_at ?? now())
+                    : null,
+            ];
+        } else {
+            $this->workflow->validateStockForItems(
+                $items,
+                $loan->item_type,
+                $request->user()->id,
+            );
+        }
 
         $loan->update([
             'supervisor_id' => $validated['supervisor_id'],
@@ -255,6 +299,7 @@ class LoanController extends Controller
                 : null,
             'usage_room' => $validated['usage_room'] ?? null,
             'due_at' => $loan->isAlat() ? ($validated['due_at'] ?? null) : null,
+            ...$statusUpdate,
         ]);
 
         $this->syncItems($loan, $items);
@@ -576,6 +621,7 @@ class LoanController extends Controller
             'can_edit' => auth()->user()?->can('update', $loan) ?? false,
             'can_request_return' => auth()->user()?->can('requestReturn', $loan) ?? false,
             'is_overdue' => $loan->isOverdue(),
+            ...($loan->status === 'antrian' ? $this->queueService->queueSummary($loan) : []),
         ];
 
         if ($detailed || $loan->relationLoaded('items')) {
