@@ -79,10 +79,14 @@ class LoanWorkflowService
         }
 
         DB::transaction(function () use ($loan, $actor) {
+            $borrowedAt = $loan->borrowed_at ?? now();
+            $dueAt = app(LoanQueueService::class)->clampDueAtToTimeSlice($loan, $borrowedAt);
+
             $this->deductStock($loan);
             $loan->update([
                 'status' => 'dipinjam',
-                'borrowed_at' => $loan->borrowed_at ?? now(),
+                'borrowed_at' => $borrowedAt,
+                'due_at' => $dueAt,
             ]);
             $this->logStatus($loan, 'dipinjam', 'Alat diserahkan ke peminjam.', $actor);
 

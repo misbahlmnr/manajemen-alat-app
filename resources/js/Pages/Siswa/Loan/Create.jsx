@@ -44,6 +44,16 @@ function buildDueAt(requestDate, end) {
     return `${effective.getFullYear()}-${pad(effective.getMonth() + 1)}-${pad(effective.getDate())}T${pad(effective.getHours())}:${pad(effective.getMinutes())}`;
 }
 
+function addDaysDateTime(baseDate, days, time = "17:00") {
+    const d = new Date(`${baseDate}T${time}`);
+    if (Number.isNaN(d.getTime())) {
+        return buildDueAt(baseDate, time);
+    }
+    d.setDate(d.getDate() + days);
+    const pad = (value) => String(value).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 export default function Create({
     loan = null,
     loanType,
@@ -56,11 +66,14 @@ export default function Create({
     todaySchedules = [],
     labRoomOptions = [],
     overdueLoans = [],
+    queueConfig = {},
 }) {
     const isEdit = Boolean(loan);
     const resolvedType =
         loanType === "bahan" || loan?.item_type === "bahan" ? "bahan" : "alat";
     const [tab, setTab] = useState(resolvedType);
+    const schoolCloseTime = queueConfig.school_close_time || "17:00";
+    const bawaPulangMaxDays = Number(queueConfig.bawa_pulang_max_days || 1);
 
     useEffect(() => {
         if (isEdit) return;
@@ -69,16 +82,33 @@ export default function Create({
     const [searchQuery, setSearchQuery] = useState(
         catalogFilters?.search ?? "",
     );
-    const [cart, setCart] = useState(() => (isEdit ? initialCart : []));
+    const [carts, setCarts] = useState(() => ({
+        alat: isEdit && resolvedType === "alat" ? initialCart : [],
+        bahan: isEdit && resolvedType === "bahan" ? initialCart : [],
+    }));
+    const cart = carts[tab] || [];
+    const setCart = (updater) => {
+        setCarts((prev) => {
+            const current = prev[tab] || [];
+            const next =
+                typeof updater === "function" ? updater(current) : updater;
+            return { ...prev, [tab]: next };
+        });
+    };
     const isFirstSearch = useRef(true);
-    const { data, setData, post, put, processing, errors, transform } = useForm({
-        ...defaults,
-        item_type: resolvedType,
-    });
+    const { data, setData, post, put, processing, errors, transform } =
+        useForm({
+            ...defaults,
+            item_type: resolvedType,
+        });
 
     const catalogList = catalog?.data ?? [];
     const catalogTotal = paginatorTotal(catalog);
     const isBahan = tab === "bahan";
+    const canPackage =
+        !isEdit &&
+        (carts.alat?.length || 0) > 0 &&
+        (carts.bahan?.length || 0) > 0;
 
     useEffect(() => {
         if (isEdit || !prefillItem) return;
@@ -118,14 +148,13 @@ export default function Create({
 
     const switchTab = (t) => {
         setTab(t);
-        setCart([]);
         setSearchQuery("");
         isFirstSearch.current = true;
         setData("item_type", t);
         router.get(
             route("siswa.loans.create"),
             { type: t },
-            { preserveState: true },
+            { preserveState: true, preserveScroll: true },
         );
     };
 
@@ -187,6 +216,8 @@ export default function Create({
           : "pakai_di_lab";
 
     const setUsageLocation = (location) => {
+        const today = new Date().toISOString().slice(0, 10);
+
         if (location === "bawa_pulang") {
             setData((prev) => ({
                 ...prev,
@@ -196,6 +227,7 @@ export default function Create({
                 supervisor_id: "",
                 usage_room: "",
                 collateral_agreed: false,
+                due_at: addDaysDateTime(today, bawaPulangMaxDays, schoolCloseTime),
             }));
             return;
         }
@@ -208,6 +240,7 @@ export default function Create({
                 practicum_schedule_id: "",
                 supervisor_id: "",
                 collateral_agreed: false,
+                due_at: buildDueAt(today, schoolCloseTime),
             }));
             return;
         }
@@ -220,6 +253,7 @@ export default function Create({
             supervisor_id: "",
             usage_room: "",
             collateral_agreed: false,
+            due_at: "",
         }));
     };
 
@@ -250,7 +284,9 @@ export default function Create({
         const today = new Date().toISOString().slice(0, 10);
         const end = formatScheduleTime(s.jam_selesai);
         const requestDate = s.tanggal || today;
-        const dueAt = buildDueAt(requestDate, end);
+        const dueAt = isBawaPulang
+            ? addDaysDateTime(requestDate, bawaPulangMaxDays, schoolCloseTime)
+            : buildDueAt(requestDate, end);
 
         setData((prev) => ({
             ...prev,
@@ -270,56 +306,54 @@ export default function Create({
     const collateralRequired =
         !isBahan && data.borrow_scope === "bawa_pulang";
 
+    const buildPayload = (itemType, formData, cartItems) => {
+        const purpose =
+            formData.notes?.trim() || formData.purpose?.trim() || "Peminjaman";
+
+        const payload = {
+            supervisor_id: formData.supervisor_id,
+            item_type: itemType,
+            request_date:
+                formData.request_date || new Date().toISOString().slice(0, 10),
+            purpose,
+            notes: formData.notes ?? "",
+            items: cartItems.map((i) => ({
+                equipment_id: i.equipment.id,
+                quantity: i.quantity,
+            })),
+        };
+
+        if (itemType !== "bahan") {
+            payload.borrow_scope = formData.borrow_scope;
+            if (formData.borrow_scope === "lab") {
+                payload.borrow_reason = formData.borrow_reason || "reguler";
+            }
+            if (formData.practicum_schedule_id) {
+                payload.practicum_schedule_id = formData.practicum_schedule_id;
+            }
+            payload.due_at = formData.due_at;
+            if (formData.borrow_scope === "bawa_pulang") {
+                payload.collateral_agreed = formData.collateral_agreed ? 1 : 0;
+            }
+            if (formData.usage_room) {
+                payload.usage_room = formData.usage_room;
+            }
+        }
+
+        return payload;
+    };
+
     const submit = (e) => {
         e.preventDefault();
 
-        transform((formData) => {
-            const purpose =
-                formData.notes?.trim() ||
-                formData.purpose?.trim() ||
-                "Peminjaman";
-
-            const payload = {
-                supervisor_id: formData.supervisor_id,
-                item_type: tab,
-                request_date:
-                    formData.request_date ||
-                    new Date().toISOString().slice(0, 10),
-                purpose,
-                notes: formData.notes ?? "",
-                items: cart.map((i) => ({
-                    equipment_id: i.equipment.id,
-                    quantity: i.quantity,
-                })),
-            };
-
-            if (!isBahan) {
-                payload.borrow_scope = formData.borrow_scope;
-                if (formData.borrow_scope === "lab") {
-                    payload.borrow_reason = formData.borrow_reason || "reguler";
-                }
-                if (formData.practicum_schedule_id) {
-                    payload.practicum_schedule_id =
-                        formData.practicum_schedule_id;
-                }
-                payload.due_at = formData.due_at;
-                if (formData.borrow_scope === "bawa_pulang") {
-                    payload.collateral_agreed = formData.collateral_agreed
-                        ? 1
-                        : 0;
-                }
-                if (formData.usage_room) {
-                    payload.usage_room = formData.usage_room;
-                }
-            }
-
-            return payload;
-        });
+        transform((formData) => buildPayload(tab, formData, cart));
 
         const visitOptions = {
             preserveScroll: true,
             onSuccess: () => {
-                if (!isEdit) setCart([]);
+                if (!isEdit) {
+                    setCarts((prev) => ({ ...prev, [tab]: [] }));
+                }
             },
             onError: () => window.scrollTo({ top: 0, behavior: "smooth" }),
         };
@@ -329,6 +363,25 @@ export default function Create({
         } else {
             post(route("siswa.loans.store"), visitOptions);
         }
+    };
+
+    const submitPackage = () => {
+        if (!canPackage) return;
+
+        const alatPayload = buildPayload("alat", data, carts.alat);
+        const bahanPayload = buildPayload("bahan", data, carts.bahan);
+
+        router.post(
+            route("siswa.loans.store-package"),
+            { alat: alatPayload, bahan: bahanPayload },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setCarts({ alat: [], bahan: [] });
+                },
+                onError: () => window.scrollTo({ top: 0, behavior: "smooth" }),
+            },
+        );
     };
 
     const formErrorList = Object.entries(errors).filter(
@@ -348,6 +401,16 @@ export default function Create({
                 data.due_at &&
                 (!isPribadi || data.usage_room?.trim()) &&
                 (!collateralRequired || data.collateral_agreed))) &&
+        (data.notes?.trim() || data.purpose?.trim());
+
+    const canSubmitPackage =
+        canPackage &&
+        data.supervisor_id &&
+        data.request_date &&
+        data.due_at &&
+        (!scheduleRequired || data.practicum_schedule_id) &&
+        (!isPribadi || data.usage_room?.trim()) &&
+        (data.borrow_scope !== "bawa_pulang" || data.collateral_agreed) &&
         (data.notes?.trim() || data.purpose?.trim());
 
     return (
@@ -1075,6 +1138,31 @@ export default function Create({
                                             ? "Ambil Bahan"
                                             : "Ajukan Peminjaman"}
                                 </button>
+
+                                {!isEdit && canPackage && (
+                                    <button
+                                        type="button"
+                                        disabled={processing || !canSubmitPackage}
+                                        onClick={submitPackage}
+                                        className="mt-2 inline-flex w-full items-center justify-center rounded-md border border-indigo-500/30 bg-indigo-500/10 px-4 py-2 text-sm font-medium text-indigo-800 hover:bg-indigo-500/15 disabled:cursor-not-allowed disabled:opacity-50"
+                                    >
+                                        <Package className="mr-2 h-4 w-4" />
+                                        Ajukan Paket Alat + Bahan (
+                                        {carts.alat.length}+{carts.bahan.length}
+                                        )
+                                    </button>
+                                )}
+                                {!isEdit &&
+                                    ((carts.alat?.length || 0) > 0 ||
+                                        (carts.bahan?.length || 0) > 0) && (
+                                        <p className="text-xs text-muted-foreground">
+                                            Keranjang tersimpan per tab: alat{" "}
+                                            {carts.alat?.length || 0}, bahan{" "}
+                                            {carts.bahan?.length || 0}. Isi
+                                            keduanya lalu pakai Ajukan Paket
+                                            untuk digabung.
+                                        </p>
+                                    )}
                             </form>
                         </div>
                     </div>

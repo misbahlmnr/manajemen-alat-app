@@ -1,0 +1,73 @@
+<mxfile host="app.diagrams.net" agent="Cursor">
+  <diagram id="activity_uc09" name="09 - Verifikasi">
+    <mxGraphModel dx="1347" dy="748" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="uc09_lane0" parent="1" style="swimlane;html=1;startSize=30;fillColor=none;strokeColor=#000000;fontStyle=1;horizontal=1;whiteSpace=wrap;" value="Admin" vertex="1">
+          <mxGeometry height="790" width="320" y="44" as="geometry" />
+        </mxCell>
+        <mxCell id="uc09_start" parent="uc09_lane0" style="ellipse;html=1;fillColor=#000000;strokeColor=#000000;" value="" vertex="1">
+          <mxGeometry height="30" width="30" x="145" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="uc09_a1" parent="uc09_lane0" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" value="Membuka menu Peminjaman" vertex="1">
+          <mxGeometry height="46" width="200" x="60" y="130" as="geometry" />
+        </mxCell>
+        <mxCell id="uc09_a2" parent="uc09_lane0" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" value="Memeriksa detail pengajuan" vertex="1">
+          <mxGeometry height="46" width="200" x="60" y="250" as="geometry" />
+        </mxCell>
+        <mxCell id="uc09_a3" parent="uc09_lane0" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" value="Menyetujui pengajuan" vertex="1">
+          <mxGeometry height="46" width="200" x="60" y="490" as="geometry" />
+        </mxCell>
+        <mxCell id="uc09_lane1" parent="1" style="swimlane;html=1;startSize=30;fillColor=none;strokeColor=#000000;fontStyle=1;horizontal=1;whiteSpace=wrap;" value="Sistem" vertex="1">
+          <mxGeometry height="790" width="480" x="320" y="44" as="geometry" />
+        </mxCell>
+        <mxCell id="uc09_s1" parent="uc09_lane1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" value="Menampilkan daftar pengajuan menunggu" vertex="1">
+          <mxGeometry height="46" width="200" x="140" y="130" as="geometry" />
+        </mxCell>
+        <mxCell id="uc09_d1" parent="uc09_lane1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" value="Setujui pengajuan?" vertex="1">
+          <mxGeometry height="80" width="150" x="165" y="350" as="geometry" />
+        </mxCell>
+        <mxCell id="uc09_a4" parent="uc09_lane1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" value="Menolak &amp; mengisi alasan penolakan" vertex="1">
+          <mxGeometry height="46" width="210" x="250" y="490" as="geometry" />
+        </mxCell>
+        <mxCell id="uc09_s2" parent="uc09_lane1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" value="Memperbarui status &amp; memberi tahu siswa" vertex="1">
+          <mxGeometry height="46" width="220" x="20" y="600" as="geometry" />
+        </mxCell>
+        <mxCell id="uc09_end" parent="uc09_lane1" style="ellipse;html=1;fillColor=none;strokeColor=#000000;strokeWidth=1;" value="" vertex="1">
+          <mxGeometry height="30" width="30" x="225" y="700" as="geometry" />
+        </mxCell>
+        <mxCell id="uc09_end_i" parent="uc09_end" style="ellipse;html=1;fillColor=#000000;strokeColor=#000000;" value="" vertex="1">
+          <mxGeometry height="16" width="16" x="7" y="7" as="geometry" />
+        </mxCell>
+        <mxCell id="uc09_e0" edge="1" parent="1" source="uc09_start" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;" target="uc09_a1" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc09_e1" edge="1" parent="1" source="uc09_a1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;" target="uc09_s1" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc09_e2" edge="1" parent="1" source="uc09_s1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" target="uc09_a2" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc09_e3" edge="1" parent="1" source="uc09_a2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;" target="uc09_d1" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc09_e4" edge="1" parent="1" source="uc09_d1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;" target="uc09_a3" value="Ya">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc09_e5" edge="1" parent="1" source="uc09_d1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" target="uc09_a4" value="Tidak">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc09_e6" edge="1" parent="1" source="uc09_a3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;" target="uc09_s2" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc09_e7" edge="1" parent="1" source="uc09_a4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;" target="uc09_s2" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc09_e8" edge="1" parent="1" source="uc09_s2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;" target="uc09_end" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

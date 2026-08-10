@@ -93,11 +93,9 @@ return [
     ],
 
     'queue' => [
-        'schedule_priority_scores' => [
-            'normal' => 40,
-            'tinggi' => 70,
-            'lomba' => 100,
-        ],
+        // Round Robin: FIFO + prioritas admin saja (tanpa skor jadwal otomatis).
+        'school_close_time' => env('LAB_SCHOOL_CLOSE_TIME', '17:00'),
+        'bawa_pulang_max_days' => (int) env('LAB_BAWA_PULANG_MAX_DAYS', 1),
         'default_admin_priority' => 150,
         'max_admin_priority' => 1000,
     ],

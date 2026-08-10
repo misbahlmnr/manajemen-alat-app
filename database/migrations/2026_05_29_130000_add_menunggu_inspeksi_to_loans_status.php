@@ -60,6 +60,11 @@ return new class extends Migration
             return;
         }
 
+        if ($driver === 'sqlite') {
+            // SQLite does not enforce MySQL ENUM alterations; schema already allows string statuses.
+            return;
+        }
+
         throw new RuntimeException("Unsupported database driver [{$driver}] for loans status migration.");
     }
 };

@@ -1,0 +1,79 @@
+<mxfile host="app.diagrams.net" agent="Cursor">
+  <diagram id="activity_uc04" name="04 - Mengajukan Peminjaman">
+    <mxGraphModel dx="975" dy="541" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="uc04_lane0" parent="1" style="swimlane;html=1;startSize=30;fillColor=none;strokeColor=#000000;fontStyle=1;horizontal=1;whiteSpace=wrap;" value="Siswa" vertex="1">
+          <mxGeometry height="840" width="320" y="44" as="geometry" />
+        </mxCell>
+        <mxCell id="uc04_start" parent="uc04_lane0" style="ellipse;html=1;fillColor=#000000;strokeColor=#000000;" value="" vertex="1">
+          <mxGeometry height="30" width="30" x="145" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="uc04_a1" parent="uc04_lane0" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" value="Membuka menu Ajukan Peminjaman" vertex="1">
+          <mxGeometry height="46" width="200" x="60" y="130" as="geometry" />
+        </mxCell>
+        <mxCell id="uc04_a2" parent="uc04_lane0" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" value="Memilih jenis: alat atau bahan" vertex="1">
+          <mxGeometry height="46" width="200" x="60" y="220" as="geometry" />
+        </mxCell>
+        <mxCell id="uc04_a3" parent="uc04_lane0" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" value="Memilih barang, jumlah, pembimbing &amp; jadwal" vertex="1">
+          <mxGeometry height="46" width="200" x="60" y="310" as="geometry" />
+        </mxCell>
+        <mxCell id="uc04_a4" parent="uc04_lane0" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" value="Mengisi keperluan lalu menekan kirim" vertex="1">
+          <mxGeometry height="46" width="200" x="60" y="410" as="geometry" />
+        </mxCell>
+        <mxCell id="uc04_lane1" parent="1" style="swimlane;html=1;startSize=30;fillColor=none;strokeColor=#000000;fontStyle=1;horizontal=1;whiteSpace=wrap;" value="Sistem" vertex="1">
+          <mxGeometry height="840" width="480" x="320" y="44" as="geometry" />
+        </mxCell>
+        <mxCell id="uc04_s1" parent="uc04_lane1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" value="Memeriksa kelengkapan &amp; stok" vertex="1">
+          <mxGeometry height="46" width="200" x="140" y="410" as="geometry" />
+        </mxCell>
+        <mxCell id="uc04_d1" parent="uc04_lane1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" value="Stok alat tersedia?" vertex="1">
+          <mxGeometry height="80" width="150" x="165" y="510" as="geometry" />
+        </mxCell>
+        <mxCell id="uc04_s2" parent="uc04_lane1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" value="Menyimpan pengajuan (Menunggu Persetujuan)" vertex="1">
+          <mxGeometry height="46" width="220" x="20" y="640" as="geometry" />
+        </mxCell>
+        <mxCell id="PraltELGtOQKeRXK4iv_-1" edge="1" parent="uc04_lane1" source="uc04_s3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="uc04_end">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc04_s3" parent="uc04_lane1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" value="Memasukkan pengajuan ke antrian" vertex="1">
+          <mxGeometry height="46" width="200" x="260" y="640" as="geometry" />
+        </mxCell>
+        <mxCell id="uc04_end" parent="uc04_lane1" style="ellipse;html=1;fillColor=none;strokeColor=#000000;strokeWidth=1;" value="" vertex="1">
+          <mxGeometry height="30" width="30" x="225" y="750" as="geometry" />
+        </mxCell>
+        <mxCell id="uc04_end_i" parent="uc04_end" style="ellipse;html=1;fillColor=#000000;strokeColor=#000000;" value="" vertex="1">
+          <mxGeometry height="16" width="16" x="7" y="7" as="geometry" />
+        </mxCell>
+        <mxCell id="uc04_e0" edge="1" parent="1" source="uc04_start" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;" target="uc04_a1" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc04_e1" edge="1" parent="1" source="uc04_a1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;" target="uc04_a2" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc04_e2" edge="1" parent="1" source="uc04_a2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;" target="uc04_a3" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc04_e3" edge="1" parent="1" source="uc04_a3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;" target="uc04_a4" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc04_e4" edge="1" parent="1" source="uc04_a4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;" target="uc04_s1" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc04_e5" edge="1" parent="1" source="uc04_s1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;" target="uc04_d1" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc04_e6" edge="1" parent="1" source="uc04_d1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;" target="uc04_s2" value="Ya">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc04_e7" edge="1" parent="1" source="uc04_d1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;" target="uc04_s3" value="Tidak">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc04_e8" edge="1" parent="1" source="uc04_s2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;" target="uc04_end" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

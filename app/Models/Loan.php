@@ -11,6 +11,7 @@ class Loan extends Model
 {
     protected $fillable = [
         'code',
+        'loan_group_id',
         'borrower_id',
         'supervisor_id',
         'practicum_schedule_id',
@@ -182,5 +183,28 @@ class Loan extends Model
     public function isQueued(): bool
     {
         return $this->status === 'antrian';
+    }
+
+    public function isPackaged(): bool
+    {
+        return filled($this->loan_group_id);
+    }
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Collection<int, Loan>
+     */
+    public function packageSiblings(bool $includeSelf = false)
+    {
+        if (! $this->isPackaged()) {
+            return static::query()->whereKey([])->get();
+        }
+
+        $query = static::query()->where('loan_group_id', $this->loan_group_id);
+
+        if (! $includeSelf) {
+            $query->whereKeyNot($this->id);
+        }
+
+        return $query->orderBy('item_type')->orderBy('id')->get();
     }
 }

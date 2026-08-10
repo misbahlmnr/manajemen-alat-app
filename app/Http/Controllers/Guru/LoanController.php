@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Guru;
 
 use App\Http\Controllers\Controller;
 use App\Models\Loan;
+use App\Services\Loan\LoanListGrouper;
+use App\Services\Loan\LoanQueueService;
 use App\Services\Loan\LoanWorkflowService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -13,6 +15,8 @@ class LoanController extends Controller
 {
     public function __construct(
         private LoanWorkflowService $workflow,
+        private LoanListGrouper $listGrouper,
+        private LoanQueueService $queueService,
     ) {}
 
     public function index(Request $request): Response
@@ -34,7 +38,7 @@ class LoanController extends Controller
         $scopedCountQuery = (clone $baseQuery);
         $this->applyLoanScope($scopedCountQuery, $scope);
 
-        $loans = (clone $baseQuery)
+        $listQuery = (clone $baseQuery)
             ->with([
                 'borrower:id,name,class',
                 'schedule:id,code,title,mata_kuliah,kelas,tanggal,jam_mulai,jam_selesai,priority',
@@ -54,11 +58,13 @@ class LoanController extends Controller
             ->when($itemType !== 'all', fn ($q) => $q->where('item_type', $itemType))
             ->when($kelas !== 'all', fn ($q) => $q->whereHas('borrower', fn ($b) => $b->where('class', $kelas)))
             ->when($dateFrom !== '', fn ($q) => $q->whereDate('request_date', '>=', $dateFrom))
-            ->when($dateTo !== '', fn ($q) => $q->whereDate('request_date', '<=', $dateTo))
-            ->latest()
-            ->paginate(10)
-            ->withQueryString()
-            ->through(fn (Loan $loan) => $this->formatLoan($loan, true));
+            ->when($dateTo !== '', fn ($q) => $q->whereDate('request_date', '<=', $dateTo));
+
+        $loans = $this->listGrouper->paginate(
+            $listQuery,
+            10,
+            fn (Loan $loan) => $this->formatLoan($loan, true),
+        )->withQueryString();
 
         return Inertia::render('Guru/Loan/Index', [
             'loans' => $loans,
@@ -141,6 +147,20 @@ class LoanController extends Controller
         $data = [
             'id' => $loan->id,
             'code' => $loan->code,
+            'loan_group_id' => $loan->loan_group_id,
+            'is_package' => $loan->isPackaged(),
+            'package_mates' => $loan->isPackaged()
+                ? $loan->packageSiblings()->map(fn (Loan $mate) => [
+                    'id' => $mate->id,
+                    'code' => $mate->code,
+                    'item_type' => $mate->item_type,
+                    'item_type_label' => $mate->item_type === 'alat' ? 'Alat' : 'Bahan',
+                    'status' => $mate->status,
+                    'queue_position' => $mate->status === 'antrian'
+                        ? $this->queueService->getQueuePosition($mate)
+                        : null,
+                ])->values()->all()
+                : [],
             'borrower_id' => $loan->borrower_id,
             'borrower_name' => $loan->borrower?->name,
             'borrower_class' => $loan->borrower?->class,
@@ -178,6 +198,7 @@ class LoanController extends Controller
             'requires_return_inspection' => $loan->requiresReturnInspection(),
             'collateral_status' => $loan->collateral?->status,
             'is_overdue' => $loan->status === 'terlambat',
+            ...($loan->status === 'antrian' ? $this->queueService->queueSummary($loan) : []),
         ];
 
         if ($detailed || $loan->relationLoaded('items')) {

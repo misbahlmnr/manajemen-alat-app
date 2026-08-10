@@ -1,0 +1,73 @@
+<mxfile host="app.diagrams.net" agent="Cursor">
+  <diagram id="activity_uc11" name="11 - Antrian Round Robin">
+    <mxGraphModel dx="1088" dy="604" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="uc11_lane0" parent="1" style="swimlane;html=1;startSize=30;fillColor=none;strokeColor=#000000;fontStyle=1;horizontal=1;whiteSpace=wrap;" value="Siswa" vertex="1">
+          <mxGeometry height="820" width="320" y="44" as="geometry" />
+        </mxCell>
+        <mxCell id="uc11_start" parent="uc11_lane0" style="ellipse;html=1;fillColor=#000000;strokeColor=#000000;" value="" vertex="1">
+          <mxGeometry height="30" width="30" x="145" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="uc11_a1" parent="uc11_lane0" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" value="Mengajukan peminjaman alat" vertex="1">
+          <mxGeometry height="46" width="200" x="60" y="147" as="geometry" />
+        </mxCell>
+        <mxCell id="uc11_lane1" parent="1" style="swimlane;html=1;startSize=30;fillColor=none;strokeColor=#000000;fontStyle=1;horizontal=1;whiteSpace=wrap;" value="Sistem" vertex="1">
+          <mxGeometry height="820" width="480" x="320" y="44" as="geometry" />
+        </mxCell>
+        <mxCell id="uc11_d1" parent="uc11_lane1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" value="Stok tersedia?" vertex="1">
+          <mxGeometry height="80" width="150" x="165" y="130" as="geometry" />
+        </mxCell>
+        <mxCell id="uc11_s2" parent="uc11_lane1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" value="Memproses langsung (siap ditinjau)" vertex="1">
+          <mxGeometry height="46" width="220" x="20" y="280" as="geometry" />
+        </mxCell>
+        <mxCell id="uc11_s1" parent="uc11_lane1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" value="Menempatkan pengajuan ke antrian" vertex="1">
+          <mxGeometry height="46" width="200" x="260" y="280" as="geometry" />
+        </mxCell>
+        <mxCell id="uc11_s3" parent="uc11_lane1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" value="Menunggu stok bertambah" vertex="1">
+          <mxGeometry height="46" width="200" x="260" y="390" as="geometry" />
+        </mxCell>
+        <mxCell id="uc11_s4" parent="uc11_lane1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" value="Memilih pengajuan berikutnya secara bergiliran" vertex="1">
+          <mxGeometry height="46" width="200" x="260" y="500" as="geometry" />
+        </mxCell>
+        <mxCell id="uc11_s5" parent="uc11_lane1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" value="Ubah status siap ditinjau &amp; beri tahu siswa" vertex="1">
+          <mxGeometry height="46" width="220" x="20" y="630" as="geometry" />
+        </mxCell>
+        <mxCell id="uc11_end" parent="uc11_lane1" style="ellipse;html=1;fillColor=none;strokeColor=#000000;strokeWidth=1;" value="" vertex="1">
+          <mxGeometry height="30" width="30" x="225" y="730" as="geometry" />
+        </mxCell>
+        <mxCell id="uc11_end_i" parent="uc11_end" style="ellipse;html=1;fillColor=#000000;strokeColor=#000000;" value="" vertex="1">
+          <mxGeometry height="16" width="16" x="7" y="7" as="geometry" />
+        </mxCell>
+        <mxCell id="uc11_e0" edge="1" parent="1" source="uc11_start" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;" target="uc11_a1" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc11_e1" edge="1" parent="1" source="uc11_a1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;" target="uc11_d1" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc11_e2" edge="1" parent="1" source="uc11_d1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;" target="uc11_s2" value="Ya">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc11_e3" edge="1" parent="1" source="uc11_d1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;" target="uc11_s1" value="Tidak">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc11_e4" edge="1" parent="1" source="uc11_s1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;" target="uc11_s3" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc11_e5" edge="1" parent="1" source="uc11_s3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;" target="uc11_s4" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc11_e6" edge="1" parent="1" source="uc11_s4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;" target="uc11_s5" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc11_e7" edge="1" parent="1" source="uc11_s2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;" target="uc11_s5" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc11_e8" edge="1" parent="1" source="uc11_s5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;" target="uc11_end" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

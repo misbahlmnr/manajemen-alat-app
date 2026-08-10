@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Siswa;
 
 use App\Models\Equipment;
+use App\Models\Loan;
 use App\Models\PracticumSchedule;
 use App\Models\User;
 use Carbon\Carbon;
@@ -225,6 +226,34 @@ class StoreStudentLoanRequest extends FormRequest
                     'due_at',
                     'Batas pengembalian harus setelah waktu sekarang.',
                 );
+            }
+
+            if ($itemType === 'alat' && $this->filled('due_at')) {
+                $loan = new Loan([
+                    'borrow_scope' => $this->input('borrow_scope', 'lab'),
+                    'borrow_reason' => $this->input('borrow_reason'),
+                    'request_date' => $this->input('request_date'),
+                    'due_at' => $this->input('due_at'),
+                    'practicum_schedule_id' => $this->input('practicum_schedule_id'),
+                    'item_type' => 'alat',
+                ]);
+
+                if ($loan->practicum_schedule_id) {
+                    $loan->setRelation(
+                        'schedule',
+                        PracticumSchedule::query()->find($loan->practicum_schedule_id),
+                    );
+                }
+
+                $sliceEnd = app(\App\Services\Loan\LoanQueueService::class)
+                    ->resolveTimeSliceDueAt($loan, now());
+
+                if (Carbon::parse($this->input('due_at'))->gt($sliceEnd)) {
+                    $validator->errors()->add(
+                        'due_at',
+                        'Batas pengembalian melebihi time slice (maksimal '.$sliceEnd->translatedFormat('d M Y H:i').').',
+                    );
+                }
             }
         });
     }

@@ -1,0 +1,73 @@
+<mxfile host="app.diagrams.net" agent="Cursor">
+  <diagram id="activity_uc03" name="03 - Lihat Inventaris">
+    <mxGraphModel dx="1414" dy="785" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="uc03_lane0" parent="1" style="swimlane;html=1;startSize=30;fillColor=none;strokeColor=#000000;fontStyle=1;horizontal=1;whiteSpace=wrap;" value="Siswa / Guru" vertex="1">
+          <mxGeometry height="700" width="320" y="44" as="geometry" />
+        </mxCell>
+        <mxCell id="uc03_start" parent="uc03_lane0" style="ellipse;html=1;fillColor=#000000;strokeColor=#000000;" value="" vertex="1">
+          <mxGeometry height="30" width="30" x="145" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="uc03_a1" parent="uc03_lane0" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" value="Membuka menu Alat / Bahan Lab" vertex="1">
+          <mxGeometry height="46" width="200" x="60" y="130" as="geometry" />
+        </mxCell>
+        <mxCell id="uc03_a2" parent="uc03_lane0" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" value="Memilih salah satu barang" vertex="1">
+          <mxGeometry height="46" width="200" x="60" y="250" as="geometry" />
+        </mxCell>
+        <mxCell id="uc03_lane1" parent="1" style="swimlane;html=1;startSize=30;fillColor=none;strokeColor=#000000;fontStyle=1;horizontal=1;whiteSpace=wrap;" value="Sistem" vertex="1">
+          <mxGeometry height="700" width="480" x="320" y="44" as="geometry" />
+        </mxCell>
+        <mxCell id="uc03_s1" parent="uc03_lane1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" value="Menampilkan daftar alat &amp; bahan beserta stok" vertex="1">
+          <mxGeometry height="46" width="200" x="140" y="130" as="geometry" />
+        </mxCell>
+        <mxCell id="uc03_s2" parent="uc03_lane1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" value="Menampilkan detail barang" vertex="1">
+          <mxGeometry height="46" width="200" x="140" y="250" as="geometry" />
+        </mxCell>
+        <mxCell id="uc03_d1" parent="uc03_lane1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" value="Stok tersedia?" vertex="1">
+          <mxGeometry height="80" width="150" x="165" y="350" as="geometry" />
+        </mxCell>
+        <mxCell id="uc03_s3" parent="uc03_lane1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" value="Menampilkan status tersedia" vertex="1">
+          <mxGeometry height="46" width="200" x="30" y="480" as="geometry" />
+        </mxCell>
+        <mxCell id="uc03_s4" parent="uc03_lane1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" value="Menampilkan status &amp; posisi antrian" vertex="1">
+          <mxGeometry height="46" width="210" x="250" y="480" as="geometry" />
+        </mxCell>
+        <mxCell id="uc03_end" parent="uc03_lane1" style="ellipse;html=1;fillColor=none;strokeColor=#000000;strokeWidth=1;" value="" vertex="1">
+          <mxGeometry height="30" width="30" x="225" y="590" as="geometry" />
+        </mxCell>
+        <mxCell id="uc03_end_i" parent="uc03_end" style="ellipse;html=1;fillColor=#000000;strokeColor=#000000;" value="" vertex="1">
+          <mxGeometry height="16" width="16" x="7" y="7" as="geometry" />
+        </mxCell>
+        <mxCell id="uc03_e0" edge="1" parent="1" source="uc03_start" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;" target="uc03_a1" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc03_e1" edge="1" parent="1" source="uc03_a1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;" target="uc03_s1" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc03_e3" edge="1" parent="1" source="uc03_a2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;" target="uc03_s2" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc03_e4" edge="1" parent="1" source="uc03_s2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;" target="uc03_d1" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc03_e5" edge="1" parent="1" source="uc03_d1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;" target="uc03_s3" value="Ya">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc03_e6" edge="1" parent="1" source="uc03_d1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;" target="uc03_s4" value="Tidak">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc03_e7" edge="1" parent="1" source="uc03_s3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;" target="uc03_end" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc03_e8" edge="1" parent="1" source="uc03_s4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;" target="uc03_end" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="DKNuXE6T3KcePwoRoP6z-1" edge="1" parent="1" source="uc03_s1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="uc03_a2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

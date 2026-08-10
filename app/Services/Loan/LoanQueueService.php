@@ -5,14 +5,14 @@ namespace App\Services\Loan;
 use App\Models\Equipment;
 use App\Models\Loan;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 
 class LoanQueueService
 {
-
     /**
-     * Validasi item pengajuan tanpa menolak stok habis (alat masuk antrian).
+     * Validasi item pengajuan tanpa menolak stok habis (masuk antrian).
      */
     public function validateItemsForSubmit(array $items, string $itemType, ?int $borrowerId = null): void
     {
@@ -48,14 +48,10 @@ class LoanQueueService
     }
 
     /**
-     * Tentukan status awal pengajuan: diminta (stok cukup) atau antrian (stok kurang).
+     * Status awal: diminta (stok cukup) atau antrian (stok kurang) — alat & bahan.
      */
     public function resolveInitialStatus(array $items, string $itemType): string
     {
-        if ($itemType !== 'alat') {
-            return 'diminta';
-        }
-
         return $this->hasStockShortage($items) ? 'antrian' : 'diminta';
     }
 
@@ -83,51 +79,36 @@ class LoanQueueService
         ]);
 
         $position = $this->getQueuePosition($loan);
+        $label = $loan->isAlat() ? 'alat' : 'bahan';
 
         $this->workflow()->logStatus(
             $loan,
             'antrian',
             $position
-                ? "Masuk antrian stok (posisi #{$position}). Menunggu alat tersedia."
-                : 'Masuk antrian stok. Menunggu alat tersedia.',
+                ? "Masuk antrian stok {$label} (posisi #{$position}). Menunggu tersedia."
+                : "Masuk antrian stok {$label}. Menunggu tersedia.",
             $actor,
             notify: false,
         );
     }
 
     /**
-     * Skor efektif antrian: prioritas admin (jika diset) atau prioritas jadwal.
+     * Skor antrian: hanya prioritas admin (0 = setara / FIFO murni).
      */
     public function effectiveSortScore(Loan $loan): int
     {
-        $adminPriority = (int) ($loan->queue_priority ?? 0);
-        $scheduleScore = $this->schedulePriorityScore($loan);
-
-        if ($adminPriority > 0) {
-            return max($adminPriority, $scheduleScore);
-        }
-
-        return $scheduleScore;
-    }
-
-    public function schedulePriorityScore(Loan $loan): int
-    {
-        $loan->loadMissing('schedule:id,priority');
-        $priority = $loan->schedule?->priority ?? 'normal';
-
-        return (int) config("lab.queue.schedule_priority_scores.{$priority}", 40);
+        return (int) ($loan->queue_priority ?? 0);
     }
 
     /**
-     * Antrian round-robin per alat: skor prioritas DESC, lalu FIFO (queued_at ASC).
+     * Antrian Round Robin per barang: prioritas admin DESC, lalu FIFO (queued_at ASC).
      */
     public function queuedLoansForEquipment(int $equipmentId): Collection
     {
         return Loan::query()
             ->where('status', 'antrian')
-            ->where('item_type', 'alat')
             ->whereHas('items', fn ($q) => $q->where('equipment_id', $equipmentId))
-            ->with(['items', 'schedule:id,priority', 'borrower:id,name'])
+            ->with(['items', 'borrower:id,name'])
             ->get()
             ->sort(function (Loan $a, Loan $b) {
                 $scoreDiff = $this->effectiveSortScore($b) <=> $this->effectiveSortScore($a);
@@ -202,9 +183,7 @@ class LoanQueueService
     }
 
     /**
-     * Proses antrian untuk satu alat setelah stok bertambah.
-     *
-     * @return array<int, Loan> Daftar loan yang dipromosikan
+     * @return array<int, Loan>
      */
     public function processQueueForEquipment(int $equipmentId, ?User $actor = null): array
     {
@@ -266,43 +245,53 @@ class LoanQueueService
             ]);
         }
 
+        $targets = collect([$loan]);
+
+        if ($loan->isPackaged()) {
+            $targets = $loan->packageSiblings(includeSelf: true)
+                ->filter(fn (Loan $sibling) => $sibling->status === 'antrian')
+                ->values();
+        }
+
         $max = (int) config('lab.queue.max_admin_priority', 1000);
 
-        if ($priority === null || $priority <= 0) {
-            $loan->update([
-                'queue_priority' => 0,
-                'queue_priority_note' => null,
-                'queue_priority_set_by' => null,
-                'queue_priority_set_at' => null,
+        foreach ($targets as $target) {
+            if ($priority === null || $priority <= 0) {
+                $target->update([
+                    'queue_priority' => 0,
+                    'queue_priority_note' => null,
+                    'queue_priority_set_by' => null,
+                    'queue_priority_set_at' => null,
+                ]);
+
+                $this->workflow()->logStatus(
+                    $target,
+                    'antrian',
+                    'Prioritas antrian direset ke Round Robin (FIFO).',
+                    $admin,
+                    notify: false,
+                );
+
+                continue;
+            }
+
+            $normalized = max(1, min($priority, $max));
+
+            $target->update([
+                'queue_priority' => $normalized,
+                'queue_priority_note' => $note,
+                'queue_priority_set_by' => $admin->id,
+                'queue_priority_set_at' => now(),
             ]);
 
             $this->workflow()->logStatus(
-                $loan,
+                $target,
                 'antrian',
-                'Prioritas antrian direset ke round-robin normal.',
+                "Prioritas antrian dinaikkan admin (#{$normalized}).".($note ? " {$note}" : ''),
                 $admin,
                 notify: false,
             );
-
-            return;
         }
-
-        $priority = max(1, min($priority, $max));
-
-        $loan->update([
-            'queue_priority' => $priority,
-            'queue_priority_note' => $note,
-            'queue_priority_set_by' => $admin->id,
-            'queue_priority_set_at' => now(),
-        ]);
-
-        $this->workflow()->logStatus(
-            $loan,
-            'antrian',
-            "Prioritas antrian dinaikkan admin (#{$priority}).".($note ? " {$note}" : ''),
-            $admin,
-            notify: false,
-        );
     }
 
     public function applyDefaultAdminPriority(Loan $loan, ?string $note, User $admin): void
@@ -316,13 +305,61 @@ class LoanQueueService
     }
 
     /**
+     * Batas due_at menurut time slice Round Robin.
+     */
+    public function resolveTimeSliceDueAt(Loan $loan, ?Carbon $from = null): Carbon
+    {
+        $from = ($from ?? now())->copy();
+        $loan->loadMissing('schedule');
+
+        if ($loan->borrow_scope === 'bawa_pulang') {
+            $days = max(1, (int) config('lab.queue.bawa_pulang_max_days', 1));
+
+            return $from->copy()->addDays($days);
+        }
+
+        if ($loan->isCatchUp() || ($loan->borrow_scope === 'lab' && $loan->borrow_reason === 'lanjutan')) {
+            $close = (string) config('lab.queue.school_close_time', '17:00');
+
+            return Carbon::parse($from->toDateString().' '.$close);
+        }
+
+        // Lab reguler: ikuti jam_selesai jadwal
+        if ($loan->schedule?->jam_selesai) {
+            $date = $loan->request_date?->toDateString()
+                ?? $loan->schedule->tanggal?->toDateString()
+                ?? $from->toDateString();
+
+            return Carbon::parse($date.' '.$loan->schedule->jam_selesai);
+        }
+
+        $close = (string) config('lab.queue.school_close_time', '17:00');
+
+        return Carbon::parse($from->toDateString().' '.$close);
+    }
+
+    /**
+     * Clamp due_at agar tidak melebihi time slice (alat saja).
+     */
+    public function clampDueAtToTimeSlice(Loan $loan, ?Carbon $from = null): Carbon
+    {
+        $sliceEnd = $this->resolveTimeSliceDueAt($loan, $from);
+        $requested = $loan->due_at;
+
+        if ($requested === null) {
+            return $sliceEnd;
+        }
+
+        return $requested->lessThanOrEqualTo($sliceEnd) ? $requested->copy() : $sliceEnd;
+    }
+
+    /**
      * @return Collection<int, Loan>
      */
     public function globalQueue(?int $equipmentId = null): Collection
     {
         $query = Loan::query()
             ->where('status', 'antrian')
-            ->where('item_type', 'alat')
             ->with(['borrower:id,name,class', 'items.equipment:id,name', 'schedule:id,priority,title']);
 
         if ($equipmentId) {
@@ -351,7 +388,6 @@ class LoanQueueService
             'queue_position' => $position,
             'queue_priority' => (int) ($loan->queue_priority ?? 0),
             'effective_sort_score' => $this->effectiveSortScore($loan),
-            'schedule_priority_score' => $this->schedulePriorityScore($loan),
             'queued_at' => $loan->queued_at?->toIso8601String(),
             'queued_at_formatted' => $loan->queued_at?->translatedFormat('d M Y H:i'),
             'queue_priority_note' => $loan->queue_priority_note,

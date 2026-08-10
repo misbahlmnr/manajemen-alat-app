@@ -123,6 +123,7 @@ class SupplyController extends Controller
 
     public function update(UpdateSupplyRequest $request, Supply $supply, EquipmentImageService $images): RedirectResponse
     {
+        $previousAvailable = (int) $supply->available;
         $data = collect($request->validated())->except(['image'])->all();
         $supply->update($data);
 
@@ -130,6 +131,12 @@ class SupplyController extends Controller
             $supply->update([
                 'image_path' => $images->store($supply, $request->file('image')),
             ]);
+        }
+
+        $supply->refresh();
+        if ((int) $supply->available > $previousAvailable) {
+            app(\App\Services\Loan\LoanQueueService::class)
+                ->processQueueForEquipment($supply->id);
         }
 
         return redirect()

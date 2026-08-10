@@ -87,6 +87,7 @@ Route::middleware(['auth', 'verified', 'role:siswa'])->prefix('siswa')->name('si
     Route::get('loans', [SiswaLoanController::class, 'index'])->name('loans.index');
     Route::get('loans/create', [SiswaLoanController::class, 'create'])->name('loans.create');
     Route::post('loans', [SiswaLoanController::class, 'store'])->name('loans.store');
+    Route::post('loans/package', [SiswaLoanController::class, 'storePackage'])->name('loans.store-package');
     Route::get('loans/{loan}/edit', [SiswaLoanController::class, 'edit'])->name('loans.edit');
     Route::put('loans/{loan}', [SiswaLoanController::class, 'update'])->name('loans.update');
     Route::get('loans/{loan}', [SiswaLoanController::class, 'show'])->name('loans.show');

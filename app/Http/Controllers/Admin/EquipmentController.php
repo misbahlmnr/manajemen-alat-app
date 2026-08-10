@@ -129,6 +129,7 @@ class EquipmentController extends Controller
     {
         $this->ensureAlat($equipment);
 
+        $previousAvailable = (int) $equipment->available;
         $data = collect($request->validated())->except(['image'])->all();
         $equipment->update($data);
 
@@ -136,6 +137,12 @@ class EquipmentController extends Controller
             $equipment->update([
                 'image_path' => $images->store($equipment, $request->file('image')),
             ]);
+        }
+
+        $equipment->refresh();
+        if ((int) $equipment->available > $previousAvailable) {
+            app(\App\Services\Loan\LoanQueueService::class)
+                ->processQueueForEquipment($equipment->id);
         }
 
         return redirect()

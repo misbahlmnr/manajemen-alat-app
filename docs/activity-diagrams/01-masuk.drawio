@@ -1,0 +1,73 @@
+<mxfile host="app.diagrams.net" agent="Cursor">
+  <diagram id="activity_uc01" name="01 - Masuk">
+    <mxGraphModel dx="1414" dy="785" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="uc01_lane0" parent="1" style="swimlane;html=1;startSize=30;fillColor=none;strokeColor=#000000;fontStyle=1;horizontal=1;whiteSpace=wrap;" value="User (Siswa, Guru, Admin)" vertex="1">
+          <mxGeometry height="740" width="320" y="44" as="geometry" />
+        </mxCell>
+        <mxCell id="uc01_start" parent="uc01_lane0" style="ellipse;html=1;fillColor=#000000;strokeColor=#000000;" value="" vertex="1">
+          <mxGeometry height="30" width="30" x="145" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="uc01_a1" parent="uc01_lane0" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" value="Membuka halaman masuk" vertex="1">
+          <mxGeometry height="46" width="200" x="60" y="130" as="geometry" />
+        </mxCell>
+        <mxCell id="uc01_a2" parent="uc01_lane0" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" value="Memasukkan email &amp; kata sandi" vertex="1">
+          <mxGeometry height="46" width="200" x="60" y="220" as="geometry" />
+        </mxCell>
+        <mxCell id="uc01_lane1" parent="1" style="swimlane;html=1;startSize=30;fillColor=none;strokeColor=#000000;fontStyle=1;horizontal=1;whiteSpace=wrap;" value="Sistem" vertex="1">
+          <mxGeometry height="740" width="480" x="320" y="44" as="geometry" />
+        </mxCell>
+        <mxCell id="uc01_s1" parent="uc01_lane1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" value="Memverifikasi data pengguna" vertex="1">
+          <mxGeometry height="46" width="200" x="140" y="220" as="geometry" />
+        </mxCell>
+        <mxCell id="uc01_d1" parent="uc01_lane1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" value="Data valid?" vertex="1">
+          <mxGeometry height="80" width="150" x="165" y="320" as="geometry" />
+        </mxCell>
+        <mxCell id="uc01_s2" parent="uc01_lane1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" value="Membuat sesi pengguna" vertex="1">
+          <mxGeometry height="46" width="200" x="30" y="450" as="geometry" />
+        </mxCell>
+        <mxCell id="uc01_s3" parent="uc01_lane1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" value="Menampilkan pesan gagal masuk" vertex="1">
+          <mxGeometry height="46" width="210" x="250" y="450" as="geometry" />
+        </mxCell>
+        <mxCell id="uc01_s4" parent="uc01_lane1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" value="Menampilkan beranda sesuai peran" vertex="1">
+          <mxGeometry height="46" width="200" x="30" y="550" as="geometry" />
+        </mxCell>
+        <mxCell id="uc01_end" parent="uc01_lane1" style="ellipse;html=1;fillColor=none;strokeColor=#000000;strokeWidth=1;" value="" vertex="1">
+          <mxGeometry height="30" width="30" x="245" y="650" as="geometry" />
+        </mxCell>
+        <mxCell id="uc01_end_i" parent="uc01_end" style="ellipse;html=1;fillColor=#000000;strokeColor=#000000;" value="" vertex="1">
+          <mxGeometry height="16" width="16" x="7" y="7" as="geometry" />
+        </mxCell>
+        <mxCell id="uc01_e0" edge="1" parent="1" source="uc01_start" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;" target="uc01_a1" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc01_e1" edge="1" parent="1" source="uc01_a1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;" target="uc01_a2" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc01_e2" edge="1" parent="1" source="uc01_a2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;" target="uc01_s1" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc01_e3" edge="1" parent="1" source="uc01_s1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;" target="uc01_d1" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc01_e4" edge="1" parent="1" source="uc01_d1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;" target="uc01_s2" value="Ya">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc01_e5" edge="1" parent="1" source="uc01_d1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;" target="uc01_s3" value="Tidak">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc01_e6" edge="1" parent="1" source="uc01_s2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;" target="uc01_s4" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc01_e7" edge="1" parent="1" source="uc01_s4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;" target="uc01_end" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc01_e8" edge="1" parent="1" source="uc01_s3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;" target="uc01_end" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

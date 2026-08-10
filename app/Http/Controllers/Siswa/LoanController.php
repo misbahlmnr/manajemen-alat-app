@@ -4,17 +4,21 @@ namespace App\Http\Controllers\Siswa;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Siswa\StoreStudentLoanRequest;
+use App\Http\Requests\Siswa\StoreStudentPackageLoanRequest;
 use App\Http\Requests\Siswa\UpdateStudentLoanRequest;
 use App\Models\Equipment;
 use App\Models\Loan;
 use App\Models\PracticumSchedule;
 use App\Models\User;
 use App\Services\Loan\CollateralWorkflowService;
+use App\Services\Loan\LoanListGrouper;
 use App\Services\Loan\LoanQueueService;
 use App\Services\Loan\LoanWorkflowService;
 use App\Services\Notification\LabNotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -24,6 +28,7 @@ class LoanController extends Controller
         private LoanWorkflowService $workflow,
         private CollateralWorkflowService $collateralWorkflow,
         private LoanQueueService $queueService,
+        private LoanListGrouper $listGrouper,
     ) {}
 
     public function index(Request $request): Response
@@ -44,7 +49,7 @@ class LoanController extends Controller
         $scopedCountQuery = (clone $baseQuery);
         $this->applyStudentLoanScope($scopedCountQuery, $scope);
 
-        $loans = (clone $baseQuery)
+        $listQuery = (clone $baseQuery)
             ->with([
                 'supervisor:id,name',
                 'schedule:id,code,title,mata_kuliah,kelas,tanggal,jam_mulai,jam_selesai,priority',
@@ -60,13 +65,34 @@ class LoanController extends Controller
                 });
             })
             ->when($status !== 'all', fn ($q) => $q->where('status', $status))
-            ->when($itemType !== 'all', fn ($q) => $q->where('item_type', $itemType))
+            ->when($itemType !== 'all', function ($q) use ($itemType) {
+                if ($itemType === 'paket') {
+                    $q->whereNotNull('loan_group_id');
+
+                    return;
+                }
+
+                $q->where(function ($inner) use ($itemType) {
+                    $inner->where('item_type', $itemType)
+                        ->orWhere(function ($pkg) use ($itemType) {
+                            $pkg->whereNotNull('loan_group_id')
+                                ->whereExists(function ($exists) use ($itemType) {
+                                    $exists->selectRaw('1')
+                                        ->from('loans as mates')
+                                        ->whereColumn('mates.loan_group_id', 'loans.loan_group_id')
+                                        ->where('mates.item_type', $itemType);
+                                });
+                        });
+                });
+            })
             ->when($dateFrom !== '', fn ($q) => $q->whereDate('request_date', '>=', $dateFrom))
-            ->when($dateTo !== '', fn ($q) => $q->whereDate('request_date', '<=', $dateTo))
-            ->latest()
-            ->paginate(10)
-            ->withQueryString()
-            ->through(fn (Loan $loan) => $this->formatLoan($loan, true));
+            ->when($dateTo !== '', fn ($q) => $q->whereDate('request_date', '<=', $dateTo));
+
+        $loans = $this->listGrouper->paginate(
+            $listQuery,
+            10,
+            fn (Loan $loan) => $this->formatLoan($loan, true),
+        )->withQueryString();
 
         return Inertia::render('Siswa/Loan/Index', [
             'loans' => $loans,
@@ -84,6 +110,10 @@ class LoanController extends Controller
                 'date_to' => $dateTo,
             ],
             'statusOptions' => config('lab.loan_statuses'),
+            'queueConfig' => [
+                'school_close_time' => config('lab.queue.school_close_time'),
+                'bawa_pulang_max_days' => config('lab.queue.bawa_pulang_max_days'),
+            ],
         ]);
     }
 
@@ -127,6 +157,10 @@ class LoanController extends Controller
                     ? [['equipment_id' => (string) $prefillId, 'quantity' => 1]]
                     : [['equipment_id' => '', 'quantity' => 1]],
             ],
+            'queueConfig' => [
+                'school_close_time' => config('lab.queue.school_close_time'),
+                'bawa_pulang_max_days' => config('lab.queue.bawa_pulang_max_days'),
+            ],
         ]);
     }
 
@@ -135,75 +169,37 @@ class LoanController extends Controller
         $this->authorize('create', Loan::class);
         $this->workflow->syncOverdue();
 
-        $validated = $request->validated();
-        $items = $validated['items'];
-        unset($validated['items'], $validated['collateral_agreed']);
-
-        if ($validated['item_type'] === 'bahan') {
-            $this->workflow->validateStockForItems(
-                $items,
-                $validated['item_type'],
-                $request->user()->id,
-            );
-        } else {
-            $this->queueService->validateItemsForSubmit(
-                $items,
-                $validated['item_type'],
-                $request->user()->id,
-            );
-        }
-
-        $initialStatus = $this->queueService->resolveInitialStatus(
-            $items,
-            $validated['item_type'],
-        );
-
-        $loan = Loan::create([
-            ...$validated,
-            'borrower_id' => $request->user()->id,
-            'code' => Loan::generateCode(),
-            'status' => $initialStatus,
-            'queued_at' => $initialStatus === 'antrian' ? now() : null,
-            'borrow_scope' => $validated['borrow_scope'] ?? 'lab',
-            'borrow_reason' => $validated['item_type'] === 'alat' && ($validated['borrow_scope'] ?? 'lab') === 'lab'
-                ? ($validated['borrow_reason'] ?? 'reguler')
-                : null,
-            'usage_room' => $validated['usage_room'] ?? null,
-            'due_at' => $validated['item_type'] === 'alat' ? ($validated['due_at'] ?? null) : null,
-        ]);
-
-        $this->syncItems($loan, $items);
-
-        if ($initialStatus === 'antrian') {
-            $this->queueService->enqueue($loan->fresh(), $request->user());
-        } else {
-            $this->workflow->logStatus($loan, 'diminta', 'Pengajuan peminjaman dibuat oleh siswa.', $request->user());
-        }
-
-        if ($loan->requiresCollateral()) {
-            $this->collateralWorkflow->registerPendingCollateral($loan->fresh());
-        }
-
-        app(LabNotificationService::class)->loanSubmitted($loan->fresh(['borrower', 'supervisor', 'items.equipment']));
-
-        if ($validated['item_type'] === 'bahan') {
-            $message = 'Pengambilan bahan berhasil dicatat! Menunggu verifikasi admin.';
-        } elseif ($initialStatus === 'antrian') {
-            $position = $this->queueService->getQueuePosition($loan->fresh());
-            $message = $position
-                ? "Stok sedang habis. Pengajuan masuk antrian (posisi #{$position}). Anda akan diberitahu saat stok tersedia."
-                : 'Stok sedang habis. Pengajuan masuk antrian. Anda akan diberitahu saat stok tersedia.';
-        } elseif (($validated['borrow_scope'] ?? 'lab') === 'bawa_pulang') {
-            $message = 'Permintaan terkirim! Siapkan kartu pelajar untuk diserahkan saat pengambilan alat.';
-        } elseif (($validated['borrow_reason'] ?? 'reguler') === 'lanjutan') {
-            $message = 'Permintaan peminjaman pribadi terkirim! Menunggu persetujuan guru pembimbing.';
-        } else {
-            $message = 'Permintaan peminjaman terkirim! Menunggu verifikasi admin.';
-        }
+        $loan = $this->createStudentLoan($request->validated(), $request->user());
 
         return redirect()
             ->route('siswa.loans.index', ['scope' => 'active'])
-            ->with('success', $message);
+            ->with('success', $this->successMessageFor($loan));
+    }
+
+    public function storePackage(StoreStudentPackageLoanRequest $request): RedirectResponse
+    {
+        $this->authorize('create', Loan::class);
+        $this->workflow->syncOverdue();
+
+        $alatPayload = $this->validateNestedStudentLoan(
+            array_merge($request->input('alat', []), ['item_type' => 'alat']),
+        );
+        $bahanPayload = $this->validateNestedStudentLoan(
+            array_merge($request->input('bahan', []), ['item_type' => 'bahan']),
+        );
+
+        $groupId = (string) Str::uuid();
+
+        [$alatLoan] = DB::transaction(function () use ($alatPayload, $bahanPayload, $request, $groupId) {
+            $alatLoan = $this->createStudentLoan($alatPayload, $request->user(), $groupId);
+            $bahanLoan = $this->createStudentLoan($bahanPayload, $request->user(), $groupId);
+
+            return [$alatLoan, $bahanLoan];
+        });
+
+        return redirect()
+            ->route('siswa.loans.index', ['scope' => 'active'])
+            ->with('success', 'Paket alat & bahan terkirim ('.$alatLoan->code.'). Status mengikuti ketersediaan stok masing-masing.');
     }
 
     public function edit(Request $request, Loan $loan): Response
@@ -263,29 +259,28 @@ class LoanController extends Controller
         $items = $validated['items'];
         unset($validated['items'], $validated['collateral_agreed'], $validated['item_type']);
 
+        $this->queueService->validateItemsForSubmit(
+            $items,
+            $loan->item_type,
+            $request->user()->id,
+        );
+
+        $newStatus = in_array($loan->status, ['diminta', 'antrian'], true)
+            ? $this->queueService->resolveInitialStatus($items, $loan->item_type)
+            : $loan->status;
+
         $statusUpdate = [];
 
-        if ($loan->isAlat() && in_array($loan->status, ['diminta', 'antrian'], true)) {
-            $this->queueService->validateItemsForSubmit(
-                $items,
-                $loan->item_type,
-                $request->user()->id,
-            );
-
-            $newStatus = $this->queueService->resolveInitialStatus($items, 'alat');
+        if (in_array($loan->status, ['diminta', 'antrian'], true)) {
             $statusUpdate = [
                 'status' => $newStatus,
                 'queued_at' => $newStatus === 'antrian'
                     ? ($loan->queued_at ?? now())
                     : null,
             ];
-        } else {
-            $this->workflow->validateStockForItems(
-                $items,
-                $loan->item_type,
-                $request->user()->id,
-            );
         }
+
+        $dueAt = $loan->isAlat() ? ($validated['due_at'] ?? null) : null;
 
         $loan->update([
             'supervisor_id' => $validated['supervisor_id'],
@@ -298,17 +293,28 @@ class LoanController extends Controller
                 ? ($validated['borrow_reason'] ?? 'reguler')
                 : null,
             'usage_room' => $validated['usage_room'] ?? null,
-            'due_at' => $loan->isAlat() ? ($validated['due_at'] ?? null) : null,
+            'due_at' => $dueAt,
             ...$statusUpdate,
         ]);
 
+        if ($loan->isAlat() && $loan->due_at) {
+            $loan->update([
+                'due_at' => $this->queueService->clampDueAtToTimeSlice($loan->fresh()),
+            ]);
+        }
+
         $this->syncItems($loan, $items);
-        $this->workflow->logStatus(
-            $loan,
-            $loan->status,
-            'Pengajuan diperbarui oleh siswa.',
-            $request->user(),
-        );
+
+        if (($statusUpdate['status'] ?? null) === 'antrian') {
+            $this->queueService->enqueue($loan->fresh(), $request->user());
+        } else {
+            $this->workflow->logStatus(
+                $loan,
+                $loan->fresh()->status,
+                'Pengajuan diperbarui oleh siswa.',
+                $request->user(),
+            );
+        }
 
         $this->collateralWorkflow->syncCollateralForLoan($loan->fresh());
 
@@ -578,6 +584,9 @@ class LoanController extends Controller
         $data = [
             'id' => $loan->id,
             'code' => $loan->code,
+            'loan_group_id' => $loan->loan_group_id,
+            'is_package' => $loan->isPackaged(),
+            'package_mates' => $this->formatPackageMates($loan),
             'supervisor_id' => $loan->supervisor_id,
             'supervisor_name' => $loan->supervisor?->name,
             'practicum_schedule_id' => $loan->practicum_schedule_id,
@@ -703,5 +712,144 @@ class LoanController extends Controller
                         ->orWhere('status', '!=', 'dipinjam');
                 });
         });
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     */
+    private function createStudentLoan(array $validated, User $user, ?string $loanGroupId = null): Loan
+    {
+        $items = $validated['items'];
+        unset($validated['items'], $validated['collateral_agreed']);
+
+        $this->queueService->validateItemsForSubmit(
+            $items,
+            $validated['item_type'],
+            $user->id,
+        );
+
+        $initialStatus = $this->queueService->resolveInitialStatus(
+            $items,
+            $validated['item_type'],
+        );
+
+        $loan = Loan::create([
+            ...$validated,
+            'loan_group_id' => $loanGroupId,
+            'borrower_id' => $user->id,
+            'code' => Loan::generateCode(),
+            'status' => $initialStatus,
+            'queued_at' => $initialStatus === 'antrian' ? now() : null,
+            'borrow_scope' => $validated['item_type'] === 'alat'
+                ? ($validated['borrow_scope'] ?? 'lab')
+                : 'lab',
+            'borrow_reason' => $validated['item_type'] === 'alat' && ($validated['borrow_scope'] ?? 'lab') === 'lab'
+                ? ($validated['borrow_reason'] ?? 'reguler')
+                : null,
+            'usage_room' => $validated['usage_room'] ?? null,
+            'due_at' => $validated['item_type'] === 'alat' ? ($validated['due_at'] ?? null) : null,
+        ]);
+
+        $this->syncItems($loan, $items);
+
+        if ($loan->isAlat() && $loan->due_at) {
+            $loan->load('schedule');
+            $loan->update([
+                'due_at' => $this->queueService->clampDueAtToTimeSlice($loan),
+            ]);
+        }
+
+        if ($initialStatus === 'antrian') {
+            $this->queueService->enqueue($loan->fresh(), $user);
+        } else {
+            $this->workflow->logStatus($loan, 'diminta', 'Pengajuan peminjaman dibuat oleh siswa.', $user);
+        }
+
+        if ($loan->requiresCollateral()) {
+            $this->collateralWorkflow->registerPendingCollateral($loan->fresh());
+        }
+
+        app(LabNotificationService::class)->loanSubmitted($loan->fresh(['borrower', 'supervisor', 'items.equipment']));
+
+        return $loan->fresh();
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function validateNestedStudentLoan(array $payload): array
+    {
+        $request = StoreStudentLoanRequest::create(
+            request()->url(),
+            'POST',
+            $payload,
+            request()->cookies->all(),
+            request()->allFiles(),
+            request()->server->all(),
+        );
+        $request->setUserResolver(fn () => request()->user());
+        $request->setContainer(app());
+        $request->setRedirector(app('redirect'));
+        $request->validateResolved();
+
+        return $request->validated();
+    }
+
+    private function successMessageFor(Loan $loan): string
+    {
+        if ($loan->item_type === 'bahan') {
+            if ($loan->status === 'antrian') {
+                $position = $this->queueService->getQueuePosition($loan);
+
+                return $position
+                    ? "Stok bahan sedang habis. Pengajuan masuk antrian (posisi #{$position})."
+                    : 'Stok bahan sedang habis. Pengajuan masuk antrian.';
+            }
+
+            return 'Pengambilan bahan berhasil dicatat! Menunggu verifikasi admin.';
+        }
+
+        if ($loan->status === 'antrian') {
+            $position = $this->queueService->getQueuePosition($loan);
+
+            return $position
+                ? "Stok sedang habis. Pengajuan masuk antrian (posisi #{$position}). Anda akan diberitahu saat stok tersedia."
+                : 'Stok sedang habis. Pengajuan masuk antrian. Anda akan diberitahu saat stok tersedia.';
+        }
+
+        if ($loan->borrow_scope === 'bawa_pulang') {
+            return 'Permintaan terkirim! Siapkan kartu pelajar untuk diserahkan saat pengambilan alat.';
+        }
+
+        if ($loan->borrow_reason === 'lanjutan') {
+            return 'Permintaan peminjaman pribadi terkirim! Menunggu persetujuan guru pembimbing.';
+        }
+
+        return 'Permintaan peminjaman terkirim! Menunggu verifikasi admin.';
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function formatPackageMates(Loan $loan): array
+    {
+        if (! $loan->isPackaged()) {
+            return [];
+        }
+
+        return $loan->packageSiblings()
+            ->map(fn (Loan $mate) => [
+                'id' => $mate->id,
+                'code' => $mate->code,
+                'item_type' => $mate->item_type,
+                'item_type_label' => $mate->item_type === 'alat' ? 'Alat' : 'Bahan',
+                'status' => $mate->status,
+                'queue_position' => $mate->status === 'antrian'
+                    ? $this->queueService->getQueuePosition($mate)
+                    : null,
+            ])
+            ->values()
+            ->all();
     }
 }

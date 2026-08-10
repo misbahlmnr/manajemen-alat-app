@@ -1,0 +1,82 @@
+<mxfile host="app.diagrams.net" agent="Cursor">
+  <diagram id="activity_uc05" name="05 - Kelola Peminjaman">
+    <mxGraphModel dx="1347" dy="748" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="uc05_lane0" parent="1" style="swimlane;html=1;startSize=30;fillColor=none;strokeColor=#000000;fontStyle=1;horizontal=1;whiteSpace=wrap;" value="Siswa" vertex="1">
+          <mxGeometry height="790" width="320" y="44" as="geometry" />
+        </mxCell>
+        <mxCell id="uc05_start" parent="uc05_lane0" style="ellipse;html=1;fillColor=#000000;strokeColor=#000000;" value="" vertex="1">
+          <mxGeometry height="30" width="30" x="145" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="uc05_a1" parent="uc05_lane0" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" value="Membuka menu Peminjaman Saya" vertex="1">
+          <mxGeometry height="46" width="200" x="60" y="130" as="geometry" />
+        </mxCell>
+        <mxCell id="uc05_a2" parent="uc05_lane0" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" value="Memilih salah satu peminjaman" vertex="1">
+          <mxGeometry height="46" width="200" x="60" y="250" as="geometry" />
+        </mxCell>
+        <mxCell id="uc05_a3" parent="uc05_lane0" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" value="Mengubah / membatalkan pengajuan" vertex="1">
+          <mxGeometry height="46" width="200" x="60" y="490" as="geometry" />
+        </mxCell>
+        <mxCell id="uc05_lane1" parent="1" style="swimlane;html=1;startSize=30;fillColor=none;strokeColor=#000000;fontStyle=1;horizontal=1;whiteSpace=wrap;" value="Sistem" vertex="1">
+          <mxGeometry height="790" width="480" x="320" y="44" as="geometry" />
+        </mxCell>
+        <mxCell id="uc05_s1" parent="uc05_lane1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" value="Menampilkan daftar peminjaman &amp; riwayat" vertex="1">
+          <mxGeometry height="46" width="200" x="140" y="130" as="geometry" />
+        </mxCell>
+        <mxCell id="uc05_s2" parent="uc05_lane1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" value="Menampilkan detail peminjaman" vertex="1">
+          <mxGeometry height="46" width="200" x="140" y="250" as="geometry" />
+        </mxCell>
+        <mxCell id="uc05_d1" parent="uc05_lane1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" value="Masih menunggu persetujuan?" vertex="1">
+          <mxGeometry height="80" width="150" x="165" y="350" as="geometry" />
+        </mxCell>
+        <mxCell id="uc05_a4" parent="uc05_lane1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" value="Mengajukan pengembalian alat" vertex="1">
+          <mxGeometry height="46" width="210" x="250" y="490" as="geometry" />
+        </mxCell>
+        <mxCell id="uc05_s3" parent="uc05_lane1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" value="Memperbarui status peminjaman" vertex="1">
+          <mxGeometry height="46" width="220" x="20" y="600" as="geometry" />
+        </mxCell>
+        <mxCell id="uc05_end" parent="uc05_lane1" style="ellipse;html=1;fillColor=none;strokeColor=#000000;strokeWidth=1;" value="" vertex="1">
+          <mxGeometry height="30" width="30" x="225" y="700" as="geometry" />
+        </mxCell>
+        <mxCell id="uc05_end_i" parent="uc05_end" style="ellipse;html=1;fillColor=#000000;strokeColor=#000000;" value="" vertex="1">
+          <mxGeometry height="16" width="16" x="7" y="7" as="geometry" />
+        </mxCell>
+        <mxCell id="uc05_e0" edge="1" parent="1" source="uc05_start" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;" target="uc05_a1" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc05_e1" edge="1" parent="1" source="uc05_a1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;" target="uc05_s1" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc05_e3" edge="1" parent="1" source="uc05_a2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;" target="uc05_s2" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc05_e4" edge="1" parent="1" source="uc05_s2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;" target="uc05_d1" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc05_e5" edge="1" parent="1" source="uc05_d1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;" target="uc05_a3" value="Ya">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc05_e6" edge="1" parent="1" source="uc05_d1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" target="uc05_a4" value="Tidak">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc05_e7" edge="1" parent="1" source="uc05_a3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;" target="uc05_s3" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc05_e8" edge="1" parent="1" source="uc05_a4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;" target="uc05_s3" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc05_e9" edge="1" parent="1" source="uc05_s3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;strokeColor=#000000;" target="uc05_end" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="UUac2qO4EVMY2jIYWeU9-1" edge="1" parent="1" source="uc05_s1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="uc05_a2">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="475" y="229.9970270270271" as="sourcePoint" />
+            <mxPoint x="175" y="326.9699999999999" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

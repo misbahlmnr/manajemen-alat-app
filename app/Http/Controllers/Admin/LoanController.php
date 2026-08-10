@@ -8,6 +8,7 @@ use App\Http\Requests\Admin\ReturnLoanRequest;
 use App\Http\Requests\Admin\SetQueuePriorityRequest;
 use App\Models\Loan;
 use App\Models\User;
+use App\Services\Loan\LoanListGrouper;
 use App\Services\Loan\LoanQueueService;
 use App\Services\Loan\LoanWorkflowService;
 use Illuminate\Http\RedirectResponse;
@@ -20,6 +21,7 @@ class LoanController extends Controller
     public function __construct(
         private LoanWorkflowService $workflow,
         private LoanQueueService $queueService,
+        private LoanListGrouper $listGrouper,
     ) {}
 
     public function index(Request $request): Response
@@ -36,7 +38,7 @@ class LoanController extends Controller
         $dateFrom = $request->string('date_from')->toString();
         $dateTo = $request->string('date_to')->toString();
 
-        $loans = Loan::query()
+        $listQuery = Loan::query()
             ->with(['borrower:id,name,role,class', 'supervisor:id,name', 'items.equipment:id,code,name,item_type'])
             ->when($search->isNotEmpty(), function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
@@ -58,10 +60,13 @@ class LoanController extends Controller
                 $status === 'antrian',
                 fn ($q) => $q->orderByDesc('queue_priority')->orderBy('queued_at'),
                 fn ($q) => $q->latest(),
-            )
-            ->paginate(10)
-            ->withQueryString()
-            ->through(fn (Loan $loan) => $this->formatLoan($loan));
+            );
+
+        $loans = $this->listGrouper->paginate(
+            $listQuery,
+            10,
+            fn (Loan $loan) => $this->formatLoan($loan),
+        )->withQueryString();
 
         return Inertia::render('Admin/Loan/Index', [
             'loans' => $loans,
@@ -184,7 +189,7 @@ class LoanController extends Controller
 
         $this->queueService->setAdminPriority($loan, null, null, request()->user());
 
-        return back()->with('success', 'Prioritas antrian direset ke round-robin normal.');
+        return back()->with('success', 'Prioritas antrian direset ke Round Robin (FIFO).');
     }
 
     private function syncItems(Loan $loan, array $rows): void
@@ -246,6 +251,20 @@ class LoanController extends Controller
         $data = [
             'id' => $loan->id,
             'code' => $loan->code,
+            'loan_group_id' => $loan->loan_group_id,
+            'is_package' => $loan->isPackaged(),
+            'package_mates' => $loan->isPackaged()
+                ? $loan->packageSiblings()->map(fn (Loan $mate) => [
+                    'id' => $mate->id,
+                    'code' => $mate->code,
+                    'item_type' => $mate->item_type,
+                    'item_type_label' => $mate->item_type === 'alat' ? 'Alat' : 'Bahan',
+                    'status' => $mate->status,
+                    'queue_position' => $mate->status === 'antrian'
+                        ? $this->queueService->getQueuePosition($mate)
+                        : null,
+                ])->values()->all()
+                : [],
             'borrower_id' => $loan->borrower_id,
             'borrower_name' => $loan->borrower?->name,
             'borrower_role' => $loan->borrower?->role,

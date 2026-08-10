@@ -54,8 +54,12 @@ export default function QueuePriorityPanel({ loan }) {
                     Antrian Stok — Round Robin
                 </CardTitle>
                 <CardDescription>
-                    Urutan default mengikuti round-robin (FIFO). Admin dapat
-                    menaikkan prioritas jika siswa lebih membutuhkan.
+                    Urutan default Round Robin: FIFO (siapa lebih dulu masuk
+                    antrian). Prioritas hanya bisa dinaikkan admin untuk kasus
+                    urgent.
+                    {loan.is_package || loan.loan_group_id
+                        ? " Prioritas pada paket berlaku ke semua anggota paket yang masih antrian."
+                        : ""}
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
