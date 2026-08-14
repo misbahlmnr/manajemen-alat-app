@@ -83,7 +83,7 @@ export default function Index({ supplies, filters, categories }) {
                         <option value="tersedia">Tersedia</option>
                         <option value="diambil">Sebagian Diambil</option>
                         <option value="menipis">Stok Menipis</option>
-                        <option value="habis">Habis</option>
+                        <option value="habis">Stok kosong · antrean dibuka</option>
                         <option value="tidak_tersedia">Tidak Tersedia</option>
                     </Select>
                     <Select

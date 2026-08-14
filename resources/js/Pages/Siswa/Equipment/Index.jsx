@@ -89,7 +89,7 @@ export default function Index({ equipment, filters, categories }) {
                         <option value="all">Semua ketersediaan</option>
                         <option value="tersedia">Tersedia</option>
                         <option value="dipinjam">Sebagian Dipinjam</option>
-                        <option value="habis">Tidak Tersedia</option>
+                        <option value="habis">Stok kosong · antrean dibuka</option>
                         <option value="rusak">Dalam Perbaikan</option>
                         <option value="tidak_tersedia">Tidak Tersedia</option>
                     </Select>

@@ -56,7 +56,14 @@ export default function Show({ loan }) {
             <Head title={loan.code} />
 
             <div className="animate-fade-in mx-auto w-full min-w-0 max-w-5xl">
-                <PageHeader title="Detail Peminjaman" subtitle={loan.code}>
+                <PageHeader
+                    title={
+                        isBahan
+                            ? "Detail Pengambilan Bahan"
+                            : "Detail Peminjaman Alat"
+                    }
+                    subtitle={loan.code}
+                >
                     <Button variant="outline" asChild>
                         <Link href={route("siswa.loans.index")}>
                             <ArrowLeft className="mr-2 h-4 w-4" />

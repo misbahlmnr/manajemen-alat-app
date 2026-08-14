@@ -18,10 +18,10 @@ export function AvailableEquipmentTable({ equipment = [], pageSize = 5 }) {
     const from = total ? (safePage - 1) * pageSize + 1 : 0;
     const to = total ? Math.min(safePage * pageSize, total) : 0;
 
-    if (!equipment.length) {
+                if (!equipment.length) {
         return (
             <p className="py-8 text-center text-sm text-muted-foreground">
-                Tidak ada alat tersedia saat ini
+                Tidak ada inventaris aktif saat ini
             </p>
         );
     }
@@ -123,7 +123,10 @@ export function AvailableEquipmentTable({ equipment = [], pageSize = 5 }) {
                                             <Button size="sm" asChild>
                                                 <Link href={item.borrow_url}>
                                                     <FileText className="mr-1.5 h-3.5 w-3.5" />
-                                                    Pinjam
+                                                    {item.cta_label ??
+                                                        (item.queue_open
+                                                            ? "Ajukan"
+                                                            : "Pinjam")}
                                                 </Link>
                                             </Button>
                                         )}

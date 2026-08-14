@@ -32,11 +32,28 @@ export default function Show({ equipment }) {
                         <Button asChild>
                             <Link href={equipment.borrow_url}>
                                 <FileText className="mr-2 h-4 w-4" />
-                                Ajukan Peminjaman
+                                {equipment.cta_label === "Ajukan" ||
+                                equipment.queue_open
+                                    ? "Ajukan Pinjam Alat"
+                                    : "Pinjam Alat"}
                             </Link>
                         </Button>
                     )}
                 </PageHeader>
+
+                {equipment.status === "tersedia" &&
+                    Number(equipment.available) <= 0 && (
+                        <div className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm text-amber-900">
+                            <p className="font-medium">
+                                Semua unit sedang dipinjam.
+                            </p>
+                            <p className="mt-1 text-amber-900/80">
+                                Pengajuan baru tetap dapat dilakukan dan akan
+                                masuk antrean Round Robin berdasarkan waktu
+                                pengajuan.
+                            </p>
+                        </div>
+                    )}
 
                 <div className="grid gap-6 lg:grid-cols-3">
                     <Card className="rounded-2xl border-border/60 shadow-card lg:col-span-1">

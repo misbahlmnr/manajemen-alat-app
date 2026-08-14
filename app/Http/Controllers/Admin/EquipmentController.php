@@ -66,14 +66,8 @@ class EquipmentController extends Controller
     {
         $this->authorize('create', Equipment::class);
 
-        $categories = Equipment::alat()
-            ->select('category')
-            ->distinct()
-            ->orderBy('category')
-            ->pluck('category');
-
         return Inertia::render('Admin/Equipment/Create', [
-            'categoryOptions' => $categories,
+            'categoryOptions' => $this->equipmentCategoryOptions(),
         ]);
     }
 
@@ -113,15 +107,9 @@ class EquipmentController extends Controller
         $this->authorize('update', $equipment);
         $this->ensureAlat($equipment);
 
-        $categories = Equipment::alat()
-            ->select('category')
-            ->distinct()
-            ->orderBy('category')
-            ->pluck('category');
-
         return Inertia::render('Admin/Equipment/Edit', [
             'equipment' => EquipmentFormatter::format($equipment),
-            'categoryOptions' => $categories,
+            'categoryOptions' => $this->equipmentCategoryOptions(),
         ]);
     }
 
@@ -168,5 +156,20 @@ class EquipmentController extends Controller
         if ($equipment->item_type !== 'alat') {
             abort(404);
         }
+    }
+
+    private function equipmentCategoryOptions()
+    {
+        return collect(config('lab.equipment_categories', []))
+            ->merge(
+                Equipment::alat()
+                    ->select('category')
+                    ->distinct()
+                    ->pluck('category')
+            )
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values();
     }
 }

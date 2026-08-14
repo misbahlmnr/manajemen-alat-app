@@ -6,6 +6,7 @@ import SiswaDashboard from "./Components/SiswaDashboard";
 export default function Index({
     loans = [],
     equipment = [],
+    inventorySummary = null,
     notifications = [],
     todaySchedules = [],
     hasPendingCompensation = false,
@@ -28,6 +29,7 @@ export default function Index({
                 <SiswaDashboard
                     loans={loans}
                     equipment={equipment}
+                    inventorySummary={inventorySummary}
                     notifications={notifications}
                     todaySchedules={todaySchedules}
                     hasPendingCompensation={hasPendingCompensation}

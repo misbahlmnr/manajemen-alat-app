@@ -181,12 +181,29 @@ class LoanController extends Controller
         $this->authorize('create', Loan::class);
         $this->workflow->syncOverdue();
 
-        $alatPayload = $this->validateNestedStudentLoan(
-            array_merge($request->input('alat', []), ['item_type' => 'alat']),
-        );
-        $bahanPayload = $this->validateNestedStudentLoan(
-            array_merge($request->input('bahan', []), ['item_type' => 'bahan']),
-        );
+        try {
+            $alatPayload = $this->validateNestedStudentLoan(
+                array_merge($request->input('alat', []), ['item_type' => 'alat']),
+            );
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw \Illuminate\Validation\ValidationException::withMessages(
+                collect($e->errors())
+                    ->mapWithKeys(fn ($messages, $key) => ["alat.{$key}" => $messages])
+                    ->all(),
+            );
+        }
+
+        try {
+            $bahanPayload = $this->validateNestedStudentLoan(
+                array_merge($request->input('bahan', []), ['item_type' => 'bahan']),
+            );
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw \Illuminate\Validation\ValidationException::withMessages(
+                collect($e->errors())
+                    ->mapWithKeys(fn ($messages, $key) => ["bahan.{$key}" => $messages])
+                    ->all(),
+            );
+        }
 
         $groupId = (string) Str::uuid();
 
@@ -486,18 +503,9 @@ class LoanController extends Controller
     private function paginatedCatalog(Request $request, string $itemType, ?Loan $loan = null)
     {
         $search = $request->string('catalog_search')->trim();
-        $currentEquipmentIds = $loan
-            ? $loan->items()->pluck('equipment_id')
-            : collect();
 
         $query = Equipment::query()
             ->where('status', 'tersedia')
-            ->where(function ($q) use ($currentEquipmentIds) {
-                $q->where('available', '>', 0);
-                if ($currentEquipmentIds->isNotEmpty()) {
-                    $q->orWhereIn('id', $currentEquipmentIds);
-                }
-            })
             ->when($search->isNotEmpty(), function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
@@ -527,8 +535,7 @@ class LoanController extends Controller
 
         $query = Equipment::query()
             ->where('id', $id)
-            ->where('status', 'tersedia')
-            ->where('available', '>', 0);
+            ->where('status', 'tersedia');
 
         if ($itemType === 'alat') {
             $query->alat();
@@ -780,53 +787,44 @@ class LoanController extends Controller
      */
     private function validateNestedStudentLoan(array $payload): array
     {
-        $request = StoreStudentLoanRequest::create(
-            request()->url(),
+        // Jangan salin server/body request induk — body JSON-nya berisi {alat, bahan},
+        // sehingga FormRequest nested tidak menemukan supervisor_id/items di root.
+        $subRequest = \Illuminate\Http\Request::create(
+            '/siswa/loans/__nested_validation__',
             'POST',
             $payload,
-            request()->cookies->all(),
-            request()->allFiles(),
-            request()->server->all(),
         );
-        $request->setUserResolver(fn () => request()->user());
-        $request->setContainer(app());
-        $request->setRedirector(app('redirect'));
-        $request->validateResolved();
+        $subRequest->headers->set('Accept', 'application/json');
 
-        return $request->validated();
+        $form = StoreStudentLoanRequest::createFromBase($subRequest);
+        $form->setContainer(app());
+        $form->setRedirector(app('redirect'));
+        $form->setUserResolver(fn () => request()->user());
+        $form->validateResolved();
+
+        return $form->validated();
     }
 
     private function successMessageFor(Loan $loan): string
     {
-        if ($loan->item_type === 'bahan') {
-            if ($loan->status === 'antrian') {
-                $position = $this->queueService->getQueuePosition($loan);
-
-                return $position
-                    ? "Stok bahan sedang habis. Pengajuan masuk antrian (posisi #{$position})."
-                    : 'Stok bahan sedang habis. Pengajuan masuk antrian.';
-            }
-
-            return 'Pengambilan bahan berhasil dicatat! Menunggu verifikasi admin.';
-        }
-
         if ($loan->status === 'antrian') {
             $position = $this->queueService->getQueuePosition($loan);
+            $base = 'Pengajuan berhasil dikirim. Stok saat ini belum mencukupi sehingga pengajuan Anda masuk antrean Round Robin.';
 
             return $position
-                ? "Stok sedang habis. Pengajuan masuk antrian (posisi #{$position}). Anda akan diberitahu saat stok tersedia."
-                : 'Stok sedang habis. Pengajuan masuk antrian. Anda akan diberitahu saat stok tersedia.';
+                ? "{$base} Posisi antrean: #{$position} (berdasarkan waktu pengajuan)."
+                : $base;
+        }
+
+        if ($loan->item_type === 'bahan') {
+            return 'Pengajuan berhasil dikirim dan menunggu persetujuan admin.';
         }
 
         if ($loan->borrow_scope === 'bawa_pulang') {
-            return 'Permintaan terkirim! Siapkan kartu pelajar untuk diserahkan saat pengambilan alat.';
+            return 'Pengajuan berhasil dikirim dan menunggu persetujuan admin. Siapkan kartu pelajar saat pengambilan alat.';
         }
 
-        if ($loan->borrow_reason === 'lanjutan') {
-            return 'Permintaan peminjaman pribadi terkirim! Menunggu persetujuan guru pembimbing.';
-        }
-
-        return 'Permintaan peminjaman terkirim! Menunggu verifikasi admin.';
+        return 'Pengajuan berhasil dikirim dan menunggu persetujuan admin.';
     }
 
     /**

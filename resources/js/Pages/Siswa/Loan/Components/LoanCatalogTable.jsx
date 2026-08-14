@@ -9,13 +9,13 @@ import { useMemo } from "react";
 function StockIndicator({ item, isBahan }) {
     const remain = item.available;
     const low = isBahan && item.is_low_stock;
+    const queueOpen = remain <= 0;
 
-    const className =
-        remain <= 0
-            ? "bg-destructive/10 text-destructive"
-            : low
-              ? "bg-warning/10 text-warning"
-              : "bg-success/10 text-success";
+    const className = queueOpen
+        ? "bg-amber-500/10 text-amber-800"
+        : low
+          ? "bg-warning/10 text-warning"
+          : "bg-success/10 text-success";
 
     return (
         <div className="space-y-1">
@@ -29,7 +29,10 @@ function StockIndicator({ item, isBahan }) {
                     ? `Stok: ${remain} ${item.unit ?? ""}`
                     : `Tersedia: ${remain} / ${item.stock}`}
             </span>
-            {low && (
+            {queueOpen && (
+                <p className="text-xs text-amber-800">Antrean dibuka</p>
+            )}
+            {low && !queueOpen && (
                 <p className="text-xs text-warning">Stok menipis</p>
             )}
         </div>
@@ -41,6 +44,14 @@ function CatalogMobileCard({ item, isBahan, cart, onAdd, maxQty }) {
     const remain = maxQty(item);
     const disabled =
         remain <= 0 || (inCart && inCart.quantity >= remain);
+    const ctaLabel =
+        item.available <= 0
+            ? isBahan
+                ? "Ajukan"
+                : "Ajukan"
+            : isBahan
+              ? "Ambil"
+              : "Tambah";
 
     return (
         <div className="rounded-xl border border-border/60 bg-card p-4 shadow-sm">
@@ -78,7 +89,7 @@ function CatalogMobileCard({ item, isBahan, cart, onAdd, maxQty }) {
                     className="w-full sm:w-auto"
                     onClick={() => onAdd(item)}
                 >
-                    {isBahan ? "Ambil" : "Tambah"}
+                    {ctaLabel}
                 </Button>
             </div>
         </div>
@@ -174,6 +185,12 @@ export default function LoanCatalogTable({
                     const disabled =
                         remain <= 0 ||
                         (inCart && inCart.quantity >= remain);
+                    const ctaLabel =
+                        item.available <= 0
+                            ? "Ajukan"
+                            : isBahan
+                              ? "Ambil"
+                              : "Tambah";
 
                     return (
                         <Button
@@ -182,7 +199,7 @@ export default function LoanCatalogTable({
                             disabled={disabled}
                             onClick={() => onAdd(item)}
                         >
-                            {isBahan ? "Ambil" : "Tambah"}
+                            {ctaLabel}
                         </Button>
                     );
                 },

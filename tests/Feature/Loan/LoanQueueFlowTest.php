@@ -83,6 +83,98 @@ class LoanQueueFlowTest extends TestCase
         $this->assertEqualsCanonicalizing(['alat', 'bahan'], $loans->pluck('item_type')->all());
     }
 
+    public function test_admin_approve_deducts_stock_for_alat_and_bahan(): void
+    {
+        $siswa = $this->makeUser('siswa', 'siswa-approve');
+        $guru = $this->makeUser('guru', 'guru-approve');
+        $admin = $this->makeUser('admin', 'admin-approve');
+        $alat = $this->makeEquipment('alat', available: 10);
+        $bahan = $this->makeEquipment('bahan', available: 10);
+        $workflow = app(\App\Services\Loan\LoanWorkflowService::class);
+
+        $this->actingAs($siswa)->post(route('siswa.loans.store'), [
+            'supervisor_id' => $guru->id,
+            'item_type' => 'alat',
+            'request_date' => now()->toDateString(),
+            'purpose' => 'Pinjam alat',
+            'notes' => 'Pinjam alat',
+            'borrow_scope' => 'lab',
+            'borrow_reason' => 'lanjutan',
+            'usage_room' => 'Lab AV 1',
+            'due_at' => now()->setTime(17, 0)->format('Y-m-d\TH:i'),
+            'items' => [
+                ['equipment_id' => $alat->id, 'quantity' => 3],
+            ],
+        ])->assertRedirect();
+
+        $this->actingAs($siswa)->post(route('siswa.loans.store'), [
+            'supervisor_id' => $guru->id,
+            'item_type' => 'bahan',
+            'request_date' => now()->toDateString(),
+            'purpose' => 'Ambil bahan',
+            'notes' => 'Ambil bahan',
+            'items' => [
+                ['equipment_id' => $bahan->id, 'quantity' => 4],
+            ],
+        ])->assertRedirect();
+
+        $this->assertSame(10, (int) $alat->fresh()->available);
+        $this->assertSame(10, (int) $bahan->fresh()->available);
+
+        $alatLoan = Loan::query()->where('borrower_id', $siswa->id)->where('item_type', 'alat')->latest('id')->first();
+        $bahanLoan = Loan::query()->where('borrower_id', $siswa->id)->where('item_type', 'bahan')->latest('id')->first();
+
+        $workflow->approve($alatLoan->fresh(), $admin);
+        $this->assertSame('disetujui', $alatLoan->fresh()->status);
+        $this->assertSame(7, (int) $alat->fresh()->available);
+
+        $workflow->approve($bahanLoan->fresh(), $admin);
+        $this->assertSame('dipinjam', $bahanLoan->fresh()->status);
+        $this->assertSame(6, (int) $bahan->fresh()->available);
+
+        $workflow->markBorrowed($alatLoan->fresh(), $admin);
+        $this->assertSame('dipinjam', $alatLoan->fresh()->status);
+        $this->assertSame(7, (int) $alat->fresh()->available);
+    }
+
+    public function test_two_siswa_queue_positions_follow_queued_at_fifo(): void
+    {
+        $siswaA = $this->makeUser('siswa', 'siswa-fifo-a');
+        $siswaB = $this->makeUser('siswa', 'siswa-fifo-b');
+        $guru = $this->makeUser('guru', 'guru-fifo');
+        $alat = $this->makeEquipment('alat', available: 0);
+        $queue = app(\App\Services\Loan\LoanQueueService::class);
+
+        $payload = fn () => [
+            'supervisor_id' => $guru->id,
+            'item_type' => 'alat',
+            'request_date' => now()->toDateString(),
+            'purpose' => 'Antre toolset',
+            'notes' => 'Antre toolset',
+            'borrow_scope' => 'lab',
+            'borrow_reason' => 'lanjutan',
+            'usage_room' => 'Lab AV 1',
+            'due_at' => now()->setTime(17, 0)->format('Y-m-d\TH:i'),
+            'items' => [
+                ['equipment_id' => $alat->id, 'quantity' => 2],
+            ],
+        ];
+
+        $this->actingAs($siswaA)->post(route('siswa.loans.store'), $payload())->assertRedirect();
+        $this->actingAs($siswaB)->post(route('siswa.loans.store'), $payload())->assertRedirect();
+
+        $loanA = Loan::query()->where('borrower_id', $siswaA->id)->latest('id')->first();
+        $loanB = Loan::query()->where('borrower_id', $siswaB->id)->latest('id')->first();
+
+        $this->assertSame('antrian', $loanA->status);
+        $this->assertSame('antrian', $loanB->status);
+        $this->assertNotNull($loanA->queued_at);
+        $this->assertNotNull($loanB->queued_at);
+        $this->assertTrue($loanA->queued_at->lte($loanB->queued_at));
+        $this->assertSame(1, $queue->getQueuePosition($loanA));
+        $this->assertSame(2, $queue->getQueuePosition($loanB));
+    }
+
     private function makeUser(string $role, string $username): User
     {
         return User::query()->create([

@@ -5,25 +5,20 @@ return [
     'lab_name' => env('LAB_NAME', 'Laboratorium Audio Video'),
 
     'equipment_categories' => [
-        'Kamera',
-        'Mikrofon',
-        'Tripod',
-        'Mixer',
-        'Lighting',
-        'Headphone',
-        'Stabilizer',
-        'Alat Elektro',
-        'Tools',
-        'Kabel',
+        'Alat Ukur & Pengujian',
+        'Mesin & Perkakas',
+        'Solder & Perakitan',
+        'Trainer Pembelajaran',
+        'Sistem Keamanan',
+        'Multimedia',
     ],
 
     'supply_categories' => [
-        'Komponen Elektro',
-        'Konsumabel',
-        'Kabel & Konektor',
-        'Solder & Flux',
-        'PCB & Prototyping',
-        'Bahan AV',
+        'Komponen Aktif',
+        'Komponen Pasif',
+        'PCB & Konektor',
+        'Kabel & Solder',
+        'Alat Bantu Habis Pakai',
     ],
 
     'supply_units' => [

@@ -31,11 +31,23 @@ export default function Show({ supply }) {
                         <Button asChild>
                             <Link href={supply.request_url}>
                                 <PackagePlus className="mr-2 h-4 w-4" />
-                                Ajukan Penggunaan
+                                {supply.cta_label === "Ajukan" || supply.queue_open
+                                    ? "Ajukan Ambil Bahan"
+                                    : "Ambil Bahan"}
                             </Link>
                         </Button>
                     )}
                 </PageHeader>
+
+                {supply.status === "tersedia" && Number(supply.available) <= 0 && (
+                    <div className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm text-amber-900">
+                        <p className="font-medium">Stok bahan sedang kosong.</p>
+                        <p className="mt-1 text-amber-900/80">
+                            Pengajuan baru tetap dapat dilakukan dan akan masuk
+                            antrean Round Robin berdasarkan waktu pengajuan.
+                        </p>
+                    </div>
+                )}
 
                 <div className="grid gap-6 lg:grid-cols-3">
                     <Card className="rounded-2xl border-border/60 shadow-card lg:col-span-1">

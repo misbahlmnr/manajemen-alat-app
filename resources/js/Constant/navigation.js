@@ -122,18 +122,18 @@ const siswaMenuItems = [
     },
     {
         icon: FileText,
-        label: "Ajukan Peminjaman",
+        label: "Ajukan Alat / Bahan",
         routeName: "siswa.loans.create",
         query: { type: "alat" },
     },
     {
         icon: ClipboardList,
-        label: "Peminjaman Saya",
+        label: "Alat & Bahan Saya",
         routeName: "siswa.loans.index",
     },
     {
         icon: History,
-        label: "Riwayat Peminjaman",
+        label: "Riwayat Alat & Bahan",
         routeName: "siswa.loans.index",
         query: { scope: "history" },
     },

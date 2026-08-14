@@ -86,6 +86,7 @@ export default function Create({
         alat: isEdit && resolvedType === "alat" ? initialCart : [],
         bahan: isEdit && resolvedType === "bahan" ? initialCart : [],
     }));
+    const [packageErrors, setPackageErrors] = useState({});
     const cart = carts[tab] || [];
     const setCart = (updater) => {
         setCarts((prev) => {
@@ -96,11 +97,12 @@ export default function Create({
         });
     };
     const isFirstSearch = useRef(true);
-    const { data, setData, post, put, processing, errors, transform } =
-        useForm({
+    const { data, setData, post, put, processing, errors, transform } = useForm(
+        {
             ...defaults,
             item_type: resolvedType,
-        });
+        },
+    );
 
     const catalogList = catalog?.data ?? [];
     const catalogTotal = paginatorTotal(catalog);
@@ -147,23 +149,38 @@ export default function Create({
     }, [searchQuery, tab, isEdit, loan?.id]);
 
     const switchTab = (t) => {
+        if (t === tab) return;
+
         setTab(t);
         setSearchQuery("");
         isFirstSearch.current = true;
         setData("item_type", t);
+        setPackageErrors({});
         router.get(
             route("siswa.loans.create"),
             { type: t },
-            { preserveState: true, preserveScroll: true },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                only: ["catalog", "catalogFilters", "loanType", "queueConfig"],
+            },
         );
     };
 
     const maxQty = (eq) => {
         const cartItem = cart.find((i) => i.equipment.id === eq.id);
-        const base = eq.available ?? 0;
+        // Boleh antre meski available 0: batas = stok total (min 1 jika status tersedia).
+        const stockLimit = Number(eq.stock ?? 0);
+        const availableLimit = Number(eq.available ?? 0);
+        const base =
+            eq.status === "tidak_tersedia"
+                ? 0
+                : Math.max(stockLimit, availableLimit, 1);
+
         if (cartItem) {
             return Math.max(base, cartItem.quantity);
         }
+
         return base;
     };
 
@@ -205,9 +222,15 @@ export default function Create({
     const isPribadi = !isBahan && data.borrow_reason === "lanjutan";
     const isPakaiDiLab = !isBahan && !isBawaPulang && !isPribadi;
     const scheduleRequired = isPakaiDiLab;
+    // Syarat paket dihitung dari data alat (bukan tab aktif), supaya tetap valid di tab bahan.
+    const packageNeedsSchedule =
+        data.borrow_scope === "lab" &&
+        (data.borrow_reason || "reguler") === "reguler";
+    const packageIsPribadi =
+        data.borrow_scope === "lab" && data.borrow_reason === "lanjutan";
+    const packageIsBawaPulang = data.borrow_scope === "bawa_pulang";
     const matpelDisabled = isPribadi;
-    const scheduleList =
-        isPakaiDiLab || isBawaPulang ? todaySchedules : [];
+    const scheduleList = isPakaiDiLab || isBawaPulang ? todaySchedules : [];
 
     const usageLocation = isBawaPulang
         ? "bawa_pulang"
@@ -227,7 +250,11 @@ export default function Create({
                 supervisor_id: "",
                 usage_room: "",
                 collateral_agreed: false,
-                due_at: addDaysDateTime(today, bawaPulangMaxDays, schoolCloseTime),
+                due_at: addDaysDateTime(
+                    today,
+                    bawaPulangMaxDays,
+                    schoolCloseTime,
+                ),
             }));
             return;
         }
@@ -299,12 +326,10 @@ export default function Create({
     };
 
     const supervisorLocked =
-        (isPakaiDiLab || isBawaPulang) &&
-        Boolean(selectedSchedule?.guru_id);
+        (isPakaiDiLab || isBawaPulang) && Boolean(selectedSchedule?.guru_id);
 
     const totalItems = cart.reduce((s, i) => s + i.quantity, 0);
-    const collateralRequired =
-        !isBahan && data.borrow_scope === "bawa_pulang";
+    const collateralRequired = !isBahan && data.borrow_scope === "bawa_pulang";
 
     const buildPayload = (itemType, formData, cartItems) => {
         const purpose =
@@ -368,6 +393,7 @@ export default function Create({
     const submitPackage = () => {
         if (!canPackage) return;
 
+        setPackageErrors({});
         const alatPayload = buildPayload("alat", data, carts.alat);
         const bahanPayload = buildPayload("bahan", data, carts.bahan);
 
@@ -378,15 +404,20 @@ export default function Create({
                 preserveScroll: true,
                 onSuccess: () => {
                     setCarts({ alat: [], bahan: [] });
+                    setPackageErrors({});
                 },
-                onError: () => window.scrollTo({ top: 0, behavior: "smooth" }),
+                onError: (errs) => {
+                    setPackageErrors(errs || {});
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                },
             },
         );
     };
 
-    const formErrorList = Object.entries(errors).filter(
-        ([, message]) => Boolean(message),
-    );
+    const formErrorList = Object.entries({
+        ...errors,
+        ...packageErrors,
+    }).filter(([, message]) => Boolean(message));
 
     useEffect(() => {
         setData("item_type", tab);
@@ -408,25 +439,25 @@ export default function Create({
         data.supervisor_id &&
         data.request_date &&
         data.due_at &&
-        (!scheduleRequired || data.practicum_schedule_id) &&
-        (!isPribadi || data.usage_room?.trim()) &&
-        (data.borrow_scope !== "bawa_pulang" || data.collateral_agreed) &&
+        (!packageNeedsSchedule || data.practicum_schedule_id) &&
+        (!packageIsPribadi || data.usage_room?.trim()) &&
+        (!packageIsBawaPulang || data.collateral_agreed) &&
         (data.notes?.trim() || data.purpose?.trim());
 
     return (
         <AppLayout>
-            <Head title={isEdit ? "Ubah Pengajuan" : "Ajukan Peminjaman"} />
+            <Head title={isEdit ? "Ubah Pengajuan" : "Ajukan Alat / Bahan"} />
 
             <div className="animate-fade-in w-full min-w-0">
                 <div className="page-header">
                     <div>
                         <h1 className="section-title">
-                            {isEdit ? "Ubah Pengajuan" : "Ajukan Peminjaman"}
+                            {isEdit ? "Ubah Pengajuan" : "Ajukan Alat / Bahan"}
                         </h1>
                         <p className="mt-1 text-muted-foreground">
                             {isEdit
                                 ? `Perbarui barang atau detail pengajuan • ${loan.code}`
-                                : "Pilih jenis: pinjam alat atau ambil bahan"}
+                                : "Pilih jenis: pinjam alat (dikembalikan) atau ambil bahan (habis pakai)"}
                         </p>
                     </div>
                     {isEdit && (
@@ -470,32 +501,42 @@ export default function Create({
                 )}
 
                 {!isEdit && (
-                <div className="mb-6 flex w-full flex-wrap items-center gap-2 rounded-lg bg-secondary p-1 sm:w-fit">
-                    <button
-                        type="button"
-                        onClick={() => switchTab("alat")}
-                        className={cn(
-                            "flex flex-1 items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium sm:flex-none",
-                            tab === "alat"
-                                ? "bg-card text-foreground shadow-sm"
-                                : "text-muted-foreground",
-                        )}
-                    >
-                        <Wrench className="h-4 w-4" /> Pinjam Alat
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => switchTab("bahan")}
-                        className={cn(
-                            "flex flex-1 items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium sm:flex-none",
-                            tab === "bahan"
-                                ? "bg-card text-foreground shadow-sm"
-                                : "text-muted-foreground",
-                        )}
-                    >
-                        <Package className="h-4 w-4" /> Ambil Bahan
-                    </button>
-                </div>
+                    <div className="mb-6 flex w-full flex-wrap items-center gap-2 rounded-lg bg-secondary p-1 sm:w-fit">
+                        <button
+                            type="button"
+                            onClick={() => switchTab("alat")}
+                            className={cn(
+                                "flex flex-1 items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium sm:flex-none",
+                                tab === "alat"
+                                    ? "bg-card text-foreground shadow-sm"
+                                    : "text-muted-foreground",
+                            )}
+                        >
+                            <Wrench className="h-4 w-4" /> Pinjam Alat
+                            {(carts.alat?.length || 0) > 0 && (
+                                <span className="rounded-full bg-primary/15 px-1.5 text-xs text-primary">
+                                    {carts.alat.length}
+                                </span>
+                            )}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => switchTab("bahan")}
+                            className={cn(
+                                "flex flex-1 items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium sm:flex-none",
+                                tab === "bahan"
+                                    ? "bg-card text-foreground shadow-sm"
+                                    : "text-muted-foreground",
+                            )}
+                        >
+                            <Package className="h-4 w-4" /> Ambil Bahan
+                            {(carts.bahan?.length || 0) > 0 && (
+                                <span className="rounded-full bg-primary/15 px-1.5 text-xs text-primary">
+                                    {carts.bahan.length}
+                                </span>
+                            )}
+                        </button>
+                    </div>
                 )}
 
                 <div
@@ -517,12 +558,21 @@ export default function Create({
                 {formErrorList.length > 0 && (
                     <div className="mb-6 rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
                         <p className="mb-2 font-medium">
-                            {isEdit ? "Perubahan gagal disimpan." : "Pengajuan gagal."}{" "}
+                            {isEdit
+                                ? "Perubahan gagal disimpan."
+                                : "Pengajuan gagal."}{" "}
                             Periksa data berikut:
                         </p>
                         <ul className="list-inside list-disc space-y-1">
                             {formErrorList.map(([key, message]) => (
-                                <li key={key}>{message}</li>
+                                <li key={key}>
+                                    <span className="font-mono text-xs opacity-70">
+                                        {key}:{" "}
+                                    </span>
+                                    {Array.isArray(message)
+                                        ? message.join(" ")
+                                        : message}
+                                </li>
                             ))}
                         </ul>
                     </div>
@@ -534,16 +584,13 @@ export default function Create({
                             <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                             <input
                                 value={searchQuery}
-                                onChange={(e) =>
-                                    setSearchQuery(e.target.value)
-                                }
+                                onChange={(e) => setSearchQuery(e.target.value)}
                                 placeholder={`Cari ${isBahan ? "bahan" : "alat"} (nama, kode, kategori)...`}
                                 className="form-input min-w-0 pl-10"
                             />
                         </div>
                         <p className="mb-3 text-sm text-muted-foreground">
-                            {catalogTotal}{" "}
-                            {isBahan ? "bahan" : "alat"} tersedia
+                            {catalogTotal} {isBahan ? "bahan" : "alat"} tersedia
                             {searchQuery ? " untuk pencarian ini" : ""}
                         </p>
                         {catalogTotal > 0 ? (
@@ -579,7 +626,14 @@ export default function Create({
 
                             {cart.length > 0 ? (
                                 <div className="mb-5 space-y-2">
-                                    {cart.map((item) => (
+                                    {cart.map((item) => {
+                                        const availableNow = Number(
+                                            item.equipment.available ?? 0,
+                                        );
+                                        const willQueue =
+                                            item.quantity > availableNow;
+
+                                        return (
                                         <div
                                             key={item.equipment.id}
                                             className="flex flex-col gap-2 rounded-lg bg-secondary/50 p-3 sm:flex-row sm:items-center"
@@ -589,10 +643,20 @@ export default function Create({
                                                     {item.equipment.name}
                                                 </p>
                                                 <p className="text-xs text-muted-foreground">
-                                                    Max: {maxQty(item.equipment)}{" "}
+                                                    Tersedia saat ini:{" "}
+                                                    {availableNow}{" "}
                                                     {item.equipment.unit ??
-                                                        "unit"}
+                                                        "unit"}{" "}
+                                                    · Max:{" "}
+                                                    {maxQty(item.equipment)}
                                                 </p>
+                                                {willQueue && (
+                                                    <p className="mt-1 text-xs text-amber-800">
+                                                        Pengajuan akan masuk
+                                                        antrean apabila stok
+                                                        belum mencukupi.
+                                                    </p>
+                                                )}
                                             </div>
                                             <div className="flex shrink-0 items-center justify-between gap-1 sm:justify-end">
                                                 <button
@@ -640,7 +704,8 @@ export default function Create({
                                                 </button>
                                             </div>
                                         </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             ) : (
                                 <p className="py-6 text-center text-sm text-muted-foreground">
@@ -762,8 +827,12 @@ export default function Create({
                                                 </div>
                                             </label>
                                         </div>
-                                        <InputError message={errors.borrow_scope} />
-                                        <InputError message={errors.borrow_reason} />
+                                        <InputError
+                                            message={errors.borrow_scope}
+                                        />
+                                        <InputError
+                                            message={errors.borrow_reason}
+                                        />
                                     </div>
                                 )}
 
@@ -885,9 +954,13 @@ export default function Create({
                                             </div>
                                         ) : (
                                             <select
-                                                value={data.practicum_schedule_id}
+                                                value={
+                                                    data.practicum_schedule_id
+                                                }
                                                 onChange={(e) =>
-                                                    applySchedule(e.target.value)
+                                                    applySchedule(
+                                                        e.target.value,
+                                                    )
                                                 }
                                                 className="form-input"
                                                 disabled={processing}
@@ -933,7 +1006,9 @@ export default function Create({
                                                 )}
                                             >
                                                 <p className="font-medium">
-                                                    {selectedSchedule.mata_kuliah}{" "}
+                                                    {
+                                                        selectedSchedule.mata_kuliah
+                                                    }{" "}
                                                     • {selectedSchedule.kelas}
                                                 </p>
                                                 <p className="text-muted-foreground">
@@ -951,7 +1026,9 @@ export default function Create({
                                                 {selectedSchedule.guru_name && (
                                                     <p className="text-muted-foreground">
                                                         Guru:{" "}
-                                                        {selectedSchedule.guru_name}
+                                                        {
+                                                            selectedSchedule.guru_name
+                                                        }
                                                     </p>
                                                 )}
                                                 {selectedSchedule.priority ===
@@ -1084,9 +1161,9 @@ export default function Create({
                                                         className="mt-0.5"
                                                     />
                                                     <span className="text-xs font-medium">
-                                                        Saya setuju
-                                                        menyerahkan kartu
-                                                        pelajar sebagai jaminan
+                                                        Saya setuju menyerahkan
+                                                        kartu pelajar sebagai
+                                                        jaminan
                                                     </span>
                                                 </label>
                                                 <InputError
@@ -1135,14 +1212,16 @@ export default function Create({
                                         : isEdit
                                           ? "Simpan Perubahan"
                                           : isBahan
-                                            ? "Ambil Bahan"
-                                            : "Ajukan Peminjaman"}
+                                            ? "Ajukan Ambil Bahan"
+                                            : "Ajukan Pinjam Alat"}
                                 </button>
 
                                 {!isEdit && canPackage && (
                                     <button
                                         type="button"
-                                        disabled={processing || !canSubmitPackage}
+                                        disabled={
+                                            processing || !canSubmitPackage
+                                        }
                                         onClick={submitPackage}
                                         className="mt-2 inline-flex w-full items-center justify-center rounded-md border border-indigo-500/30 bg-indigo-500/10 px-4 py-2 text-sm font-medium text-indigo-800 hover:bg-indigo-500/15 disabled:cursor-not-allowed disabled:opacity-50"
                                     >
@@ -1152,15 +1231,28 @@ export default function Create({
                                         )
                                     </button>
                                 )}
+                                {!isEdit && canPackage && !canSubmitPackage && (
+                                    <p className="mt-2 text-xs text-amber-700">
+                                        Lengkapi dulu detail alat (guru,
+                                        jadwal/batas kembali, catatan
+                                        {packageIsPribadi
+                                            ? ", lokasi ruang"
+                                            : ""}
+                                        {packageIsBawaPulang
+                                            ? ", persetujuan jaminan"
+                                            : ""}
+                                        ) lalu tekan Ajukan Paket.
+                                    </p>
+                                )}
                                 {!isEdit &&
                                     ((carts.alat?.length || 0) > 0 ||
                                         (carts.bahan?.length || 0) > 0) && (
-                                        <p className="text-xs text-muted-foreground">
+                                        <p className="mt-2 text-xs text-muted-foreground">
                                             Keranjang tersimpan per tab: alat{" "}
                                             {carts.alat?.length || 0}, bahan{" "}
-                                            {carts.bahan?.length || 0}. Isi
-                                            keduanya lalu pakai Ajukan Paket
-                                            untuk digabung.
+                                            {carts.bahan?.length || 0}. Tambah
+                                            item di kedua tab, lengkapi form
+                                            alat, lalu Ajukan Paket.
                                         </p>
                                     )}
                             </form>

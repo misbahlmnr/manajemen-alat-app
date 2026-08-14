@@ -12,6 +12,7 @@ import { Bell, ClipboardCheck, FileText, Package, Wrench } from "lucide-react";
 export default function SiswaDashboard({
     loans,
     equipment,
+    inventorySummary = null,
     todaySchedules,
     hasPendingCompensation = false,
     compensationLoanId = null,
@@ -94,7 +95,7 @@ export default function SiswaDashboard({
             {myActive.length > 0 && (
                 <div className="mt-8">
                     <h2 className="mb-4 text-lg font-semibold">
-                        Peminjaman Aktif Saya
+                        Alat & Bahan Aktif
                     </h2>
                     <RecentLoansTable loans={myActive} />
                 </div>
@@ -110,8 +111,12 @@ export default function SiswaDashboard({
             )}
 
             <DashboardSection
-                title="Peralatan Tersedia"
-                description={`${availableEquipment.length} alat siap dipinjam`}
+                title="Inventaris Aktif"
+                description={
+                    inventorySummary
+                        ? `${inventorySummary.tersedia ?? 0} tersedia · ${inventorySummary.sedang_dipinjam ?? 0} stok kosong · ${inventorySummary.antrean_aktif ?? 0} antrean aktif Anda`
+                        : `${availableEquipment.length} alat lab`
+                }
                 actionLabel="Lihat Semua"
                 actionHref={route("siswa.equipment.index")}
                 actionVariant="outline"

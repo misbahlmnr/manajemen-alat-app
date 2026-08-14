@@ -111,6 +111,10 @@ export default function StudentLoanCard({
                                 <>
                                     {" "}
                                     · Antrian #{loan.queue_position}
+                                    <span className="text-muted-foreground/80">
+                                        {" "}
+                                        (waktu pengajuan)
+                                    </span>
                                 </>
                             )}
                             {!isBahan && loan.borrow_scope_label && (
@@ -136,7 +140,7 @@ export default function StudentLoanCard({
             <div className="space-y-4 px-4 py-4 sm:px-5">
                 <div>
                     <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        {isBahan ? "Bahan diambil" : "Barang dipinjam"}
+                        {isBahan ? "Daftar bahan" : "Daftar alat"}
                         <span className="ml-1 font-normal normal-case text-muted-foreground/80">
                             ({loan.items_count} jenis · {loan.total_quantity}{" "}
                             unit)

@@ -94,6 +94,8 @@ export default function EquipmentCatalogTable({ items, pagination }) {
             meta: { align: "right", cellClassName: "text-right" },
             cell: ({ row }) => {
                 const item = row.original;
+                const canPinjam = Boolean(item.can_borrow && item.borrow_url);
+                const ctaLabel = item.cta_label ?? (item.queue_open ? "Ajukan" : "Pinjam");
 
                 return (
                     <div className="flex flex-wrap justify-end gap-2">
@@ -103,16 +105,19 @@ export default function EquipmentCatalogTable({ items, pagination }) {
                                 Detail
                             </Link>
                         </Button>
-                        <Button
-                            size="sm"
-                            disabled={!item.can_borrow || !item.borrow_url}
-                            asChild
-                        >
-                            <Link href={item.borrow_url} preserveScroll>
+                        {canPinjam ? (
+                            <Button size="sm" asChild>
+                                <Link href={item.borrow_url} preserveScroll>
+                                    <FileText className="mr-1.5 h-3.5 w-3.5" />
+                                    {ctaLabel}
+                                </Link>
+                            </Button>
+                        ) : (
+                            <Button size="sm" disabled>
                                 <FileText className="mr-1.5 h-3.5 w-3.5" />
                                 Pinjam
-                            </Link>
-                        </Button>
+                            </Button>
+                        )}
                     </div>
                 );
             },

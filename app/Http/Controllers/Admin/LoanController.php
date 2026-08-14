@@ -110,7 +110,7 @@ class LoanController extends Controller
     {
         $this->authorize('delete', $loan);
 
-        if (in_array($loan->status, ['dipinjam', 'terlambat'], true)) {
+        if (in_array($loan->status, ['disetujui', 'dipinjam', 'terlambat', 'menunggu_inspeksi'], true)) {
             $this->workflow->restoreStock($loan);
         }
 

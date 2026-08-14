@@ -67,9 +67,13 @@ class SupplyController extends Controller
 
     private function formatSupply(Supply $supply, bool $detailed = false): array
     {
+        $queueOpen = $supply->status === 'tersedia' && $supply->available <= 0;
+
         return [
             ...EquipmentFormatter::format($supply, $detailed),
-            'can_request' => $supply->status === 'tersedia' && $supply->available > 0,
+            'can_request' => $supply->status === 'tersedia',
+            'queue_open' => $queueOpen,
+            'cta_label' => $queueOpen ? 'Ajukan' : 'Ambil',
             'show_url' => route('siswa.supplies.show', $supply),
             'request_url' => $this->requestUrl($supply),
             'location' => $supply->location ?? '—',
@@ -78,7 +82,7 @@ class SupplyController extends Controller
 
     private function requestUrl(Supply $supply): ?string
     {
-        if ($supply->status !== 'tersedia' || $supply->available <= 0) {
+        if ($supply->status !== 'tersedia') {
             return null;
         }
 

@@ -3,8 +3,8 @@ import { Package, Wrench } from "lucide-react";
 
 const tabMeta = {
     all: { label: "Semua", icon: null },
-    alat: { label: "Alat", icon: Wrench },
-    bahan: { label: "Bahan", icon: Package },
+    alat: { label: "Pinjam Alat", icon: Wrench },
+    bahan: { label: "Ambil Bahan", icon: Package },
 };
 
 export default function LoanTypeTabPills({ value, onChange, counts = {} }) {

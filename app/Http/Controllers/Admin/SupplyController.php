@@ -63,14 +63,8 @@ class SupplyController extends Controller
     {
         $this->authorize('create', Supply::class);
 
-        $categories = Supply::query()
-            ->select('category')
-            ->distinct()
-            ->orderBy('category')
-            ->pluck('category');
-
         return Inertia::render('Admin/Supply/Create', [
-            'categoryOptions' => $categories,
+            'categoryOptions' => $this->supplyCategoryOptions(),
             'unitOptions' => config('lab.supply_units'),
         ]);
     }
@@ -108,15 +102,9 @@ class SupplyController extends Controller
     {
         $this->authorize('update', $supply);
 
-        $categories = Supply::query()
-            ->select('category')
-            ->distinct()
-            ->orderBy('category')
-            ->pluck('category');
-
         return Inertia::render('Admin/Supply/Edit', [
             'supply' => EquipmentFormatter::format($supply),
-            'categoryOptions' => $categories,
+            'categoryOptions' => $this->supplyCategoryOptions(),
             'unitOptions' => config('lab.supply_units'),
         ]);
     }
@@ -154,5 +142,20 @@ class SupplyController extends Controller
         return redirect()
             ->route('admin.supplies.index')
             ->with('success', 'Bahan berhasil dihapus.');
+    }
+
+    private function supplyCategoryOptions()
+    {
+        return collect(config('lab.supply_categories', []))
+            ->merge(
+                Supply::query()
+                    ->select('category')
+                    ->distinct()
+                    ->pluck('category')
+            )
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values();
     }
 }

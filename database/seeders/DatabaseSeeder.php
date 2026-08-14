@@ -40,16 +40,11 @@ class DatabaseSeeder extends Seeder
         }
 
         $siswa = [
-            ['name' => 'Patmawati', 'username' => 'patmawati', 'class' => 'X TE 1'],
-            ['name' => 'Santi', 'username' => 'santi', 'class' => 'X TE 2'],
-            ['name' => 'Misbah', 'username' => 'misbah', 'class' => 'X TE 3'],
-            ['name' => 'Azka', 'username' => 'azka', 'class' => 'X TE 4'],
-            ['name' => 'Azki', 'username' => 'azki', 'class' => 'XI TAV 1'],
-            ['name' => 'Dika', 'username' => 'dika', 'class' => 'XI TAV 2'],
-            ['name' => 'Dennal', 'username' => 'dennal', 'class' => 'XI TAV 3'],
-            ['name' => 'Della', 'username' => 'della', 'class' => 'XII TAV 1'],
-            ['name' => 'Udin', 'username' => 'udin', 'class' => 'XII TAV 2'],
-            ['name' => 'Farhan', 'username' => 'farhan', 'class' => 'XII TAV 3'],
+            ['name' => 'Patmawati', 'username' => 'patmawati'],
+            ['name' => 'Santi', 'username' => 'santi'],
+            ['name' => 'Misbah', 'username' => 'misbah'],
+            ['name' => 'Azka', 'username' => 'azka'],
+            ['name' => 'Azki', 'username' => 'azki'],
         ];
 
         foreach ($siswa as $index => $murid) {
@@ -61,16 +56,13 @@ class DatabaseSeeder extends Seeder
                 'role' => 'siswa',
                 'status' => 'active',
                 'nisn' => sprintf('00100000%02d', $index + 1),
-                'class' => $murid['class'],
+                'class' => 'XI TAV 1',
             ]);
         }
 
         $this->call([
             EquipmentSeeder::class,
             SupplySeeder::class,
-            PracticumScheduleSeeder::class,
-            LoanSeeder::class,
-            CollateralSeeder::class,
         ]);
     }
 }

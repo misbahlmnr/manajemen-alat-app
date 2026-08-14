@@ -42,7 +42,10 @@ export default function LoanDetailModal({ loan, borrower, onClose, footer }) {
             <div className="my-8 w-full max-w-lg animate-scale-in rounded-2xl bg-card p-6">
                 <div className="mb-5 flex items-center justify-between">
                     <h3 className="text-lg font-bold text-foreground">
-                        Detail {isBahan ? "Pengambilan Bahan" : "Peminjaman"}
+                        Detail{" "}
+                        {isBahan
+                            ? "Pengambilan Bahan"
+                            : "Peminjaman Alat"}
                     </h3>
                     <button
                         type="button"

@@ -37,34 +37,48 @@ class SiswaDashboardDataService
             ->values()
             ->all();
 
-        $availableEquipment = Equipment::query()
+        $inventoryQuery = Equipment::query()
             ->alat()
-            ->where('status', 'tersedia')
-            ->where('available', '>', 0)
-            ->where('qty_baik', '>', 0)
+            ->where('status', 'tersedia');
+
+        $tersediaCount = (clone $inventoryQuery)->where('available', '>', 0)->count();
+        $sedangDipinjamCount = (clone $inventoryQuery)->where('available', '<=', 0)->count();
+        $antreanAktifCount = Loan::query()
+            ->where('borrower_id', $user->id)
+            ->where('status', 'antrian')
+            ->count();
+
+        $availableEquipment = $inventoryQuery
             ->orderByDesc('available')
+            ->orderBy('name')
             ->limit(8)
             ->get()
-            ->map(fn (Equipment $item) => [
-                'id' => $item->id,
-                'code' => $item->code,
-                'name' => $item->name,
-                'category' => $item->category,
-                'itemType' => 'alat',
-                'stock' => $item->stock,
-                'available' => $item->available,
-                'condition_breakdown' => $item->condition_breakdown,
-                'image_url' => $item->image_url,
-                'location' => $item->location ?? '—',
-                'description' => $item->description,
-                'availability_label' => $item->availability_label,
-                'show_url' => route('siswa.equipment.show', $item),
-                'borrow_url' => route('siswa.loans.create', [
-                    'type' => 'alat',
-                    'equipment_id' => $item->id,
-                ]),
-                'can_borrow' => true,
-            ])
+            ->map(function (Equipment $item) {
+                $queueOpen = $item->available <= 0;
+
+                return [
+                    'id' => $item->id,
+                    'code' => $item->code,
+                    'name' => $item->name,
+                    'category' => $item->category,
+                    'itemType' => 'alat',
+                    'stock' => $item->stock,
+                    'available' => $item->available,
+                    'condition_breakdown' => $item->condition_breakdown,
+                    'image_url' => $item->image_url,
+                    'location' => $item->location ?? '—',
+                    'description' => $item->description,
+                    'availability_label' => $item->availability_label,
+                    'show_url' => route('siswa.equipment.show', $item),
+                    'borrow_url' => route('siswa.loans.create', [
+                        'type' => 'alat',
+                        'equipment_id' => $item->id,
+                    ]),
+                    'can_borrow' => true,
+                    'queue_open' => $queueOpen,
+                    'cta_label' => $queueOpen ? 'Ajukan' : 'Pinjam',
+                ];
+            })
             ->values()
             ->all();
 
@@ -106,6 +120,11 @@ class SiswaDashboardDataService
         return [
             'loans' => $loans,
             'equipment' => $availableEquipment,
+            'inventorySummary' => [
+                'tersedia' => $tersediaCount,
+                'sedang_dipinjam' => $sedangDipinjamCount,
+                'antrean_aktif' => $antreanAktifCount,
+            ],
             'todaySchedules' => $todaySchedules,
             'hasPendingCompensation' => $compensationLoan !== null,
             'compensationLoanId' => $compensationLoan['id'] ?? null,

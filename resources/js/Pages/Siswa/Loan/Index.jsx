@@ -45,14 +45,28 @@ export default function Index({ loans, filters, tabCounts, statusOptions }) {
 
     const filteredStatusOptions = useMemo(() => {
         const entries = Object.entries(statusOptions ?? {});
+        const bahanLabels = {
+            dipinjam: "Diambil",
+            dikembalikan: "Selesai",
+            terlambat: "Terlambat",
+            menunggu_inspeksi: "Menunggu Inspeksi",
+        };
+
         return Object.fromEntries(
-            entries.filter(([key]) =>
-                isHistory
-                    ? HISTORY_STATUSES.includes(key)
-                    : !ACTIVE_STATUSES_EXCLUDE.includes(key),
-            ),
+            entries
+                .filter(([key]) =>
+                    isHistory
+                        ? HISTORY_STATUSES.includes(key)
+                        : !ACTIVE_STATUSES_EXCLUDE.includes(key),
+                )
+                .map(([key, label]) => [
+                    key,
+                    tabValue === "bahan" && bahanLabels[key]
+                        ? bahanLabels[key]
+                        : label,
+                ]),
         );
-    }, [statusOptions, isHistory]);
+    }, [statusOptions, isHistory, tabValue]);
 
     useEffect(() => {
         if (isFirstRender.current) {
@@ -131,8 +145,8 @@ export default function Index({ loans, filters, tabCounts, statusOptions }) {
             <Head
                 title={
                     isHistory
-                        ? "Riwayat Peminjaman & Bahan"
-                        : "Peminjaman Saya"
+                        ? "Riwayat Alat & Bahan"
+                        : "Alat & Bahan Saya"
                 }
             />
 
@@ -140,20 +154,20 @@ export default function Index({ loans, filters, tabCounts, statusOptions }) {
                 <PageHeader
                     title={
                         isHistory
-                            ? "Riwayat Peminjaman & Bahan"
-                            : "Peminjaman Saya"
+                            ? "Riwayat Alat & Bahan"
+                            : "Alat & Bahan Saya"
                     }
                     subtitle={
                         isHistory
-                            ? `${total} arsip peminjaman alat & pengambilan bahan`
-                            : `${total} pengajuan aktif (menunggu / sedang dipinjam)`
+                            ? `${total} arsip: peminjaman alat & pengambilan bahan`
+                            : `${total} pengajuan aktif (pinjam alat / ambil bahan)`
                     }
                 >
                     {!isHistory && (
                         <Button asChild>
                             <Link href={route("siswa.loans.create")}>
                                 <Plus className="mr-2 h-4 w-4" />
-                                Ajukan Peminjaman
+                                Ajukan Alat / Bahan
                             </Link>
                         </Button>
                     )}
@@ -225,12 +239,12 @@ export default function Index({ loans, filters, tabCounts, statusOptions }) {
                         title={
                             isHistory
                                 ? "Belum ada riwayat"
-                                : "Belum ada peminjaman"
+                                : "Belum ada pengajuan"
                         }
                         description={
                             isHistory
                                 ? "Peminjaman alat yang selesai dan bahan yang sudah diambil akan tampil di sini."
-                                : "Ajukan peminjaman alat atau pengambilan bahan untuk melacak statusnya di halaman ini."
+                                : "Ajukan pinjam alat atau ambil bahan untuk melacak statusnya di halaman ini."
                         }
                         action={
                             !isHistory ? (
@@ -240,7 +254,7 @@ export default function Index({ loans, filters, tabCounts, statusOptions }) {
                                             href={route("siswa.loans.create")}
                                         >
                                             <Plus className="mr-2 h-4 w-4" />
-                                            Ajukan Peminjaman
+                                            Ajukan Alat / Bahan
                                         </Link>
                                     </Button>
                                     {(data.search !== "" ||

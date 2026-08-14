@@ -38,11 +38,13 @@ class LoanWorkflowService
         }
 
         DB::transaction(function () use ($loan, $actor) {
+            // Stok di-reserve saat admin menyetujui (alat & bahan).
+            $this->deductStock($loan);
+
             if ($loan->isAlat()) {
                 $loan->update(['status' => 'disetujui']);
                 $this->logStatus($loan, 'disetujui', 'Pengajuan disetujui admin.', $actor);
             } else {
-                $this->deductStock($loan);
                 $loan->update([
                     'status' => 'dipinjam',
                     'borrowed_at' => now(),
@@ -60,14 +62,21 @@ class LoanWorkflowService
             ]);
         }
 
-        $loan->update([
-            'status' => 'ditolak',
-            'rejection_reason' => $reason,
-        ]);
+        DB::transaction(function () use ($loan, $reason, $actor) {
+            // Alat yang sudah disetujui sudah mengurangi stok — kembalikan.
+            if ($loan->status === 'disetujui') {
+                $this->restoreStock($loan);
+            }
 
-        app(CollateralWorkflowService::class)->removePendingCollateralIfExists($loan->fresh());
+            $loan->update([
+                'status' => 'ditolak',
+                'rejection_reason' => $reason,
+            ]);
 
-        $this->logStatus($loan, 'ditolak', $reason, $actor);
+            app(CollateralWorkflowService::class)->removePendingCollateralIfExists($loan->fresh());
+
+            $this->logStatus($loan, 'ditolak', $reason, $actor);
+        });
     }
 
     public function markBorrowed(Loan $loan, User $actor): void
@@ -82,7 +91,7 @@ class LoanWorkflowService
             $borrowedAt = $loan->borrowed_at ?? now();
             $dueAt = app(LoanQueueService::class)->clampDueAtToTimeSlice($loan, $borrowedAt);
 
-            $this->deductStock($loan);
+            // Stok sudah dikurangi saat approve — tidak deduct lagi.
             $loan->update([
                 'status' => 'dipinjam',
                 'borrowed_at' => $borrowedAt,
@@ -129,7 +138,7 @@ class LoanWorkflowService
         }
 
         DB::transaction(function () use ($loan, $actor) {
-            if (in_array($loan->status, ['dipinjam', 'terlambat'], true)) {
+            if (in_array($loan->status, ['disetujui', 'dipinjam', 'terlambat', 'menunggu_inspeksi'], true)) {
                 $this->restoreStock($loan);
             }
 
