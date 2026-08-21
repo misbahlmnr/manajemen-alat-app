@@ -76,7 +76,7 @@ class SiswaDashboardDataService
                     ]),
                     'can_borrow' => true,
                     'queue_open' => $queueOpen,
-                    'cta_label' => $queueOpen ? 'Ajukan' : 'Pinjam',
+                    'cta_label' => $queueOpen ? 'Ajukan' : 'Tambah',
                 ];
             })
             ->values()

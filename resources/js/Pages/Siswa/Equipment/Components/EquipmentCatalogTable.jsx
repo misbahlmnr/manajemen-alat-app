@@ -95,7 +95,7 @@ export default function EquipmentCatalogTable({ items, pagination }) {
             cell: ({ row }) => {
                 const item = row.original;
                 const canPinjam = Boolean(item.can_borrow && item.borrow_url);
-                const ctaLabel = item.cta_label ?? (item.queue_open ? "Ajukan" : "Pinjam");
+                const ctaLabel = item.cta_label ?? (item.queue_open ? "Ajukan" : "Tambah");
 
                 return (
                     <div className="flex flex-wrap justify-end gap-2">
@@ -115,7 +115,7 @@ export default function EquipmentCatalogTable({ items, pagination }) {
                         ) : (
                             <Button size="sm" disabled>
                                 <FileText className="mr-1.5 h-3.5 w-3.5" />
-                                Pinjam
+                                Tambah
                             </Button>
                         )}
                     </div>

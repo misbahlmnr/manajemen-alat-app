@@ -34,8 +34,8 @@ export default function Show({ equipment }) {
                                 <FileText className="mr-2 h-4 w-4" />
                                 {equipment.cta_label === "Ajukan" ||
                                 equipment.queue_open
-                                    ? "Ajukan Pinjam Alat"
-                                    : "Pinjam Alat"}
+                                    ? "Ajukan ke Pengajuan"
+                                    : "Tambahkan ke Pengajuan"}
                             </Link>
                         </Button>
                     )}

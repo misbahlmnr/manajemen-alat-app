@@ -51,6 +51,7 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
     Route::resource('equipment', EquipmentController::class);
     Route::resource('supplies', SupplyController::class);
     Route::resource('schedules', PracticumScheduleController::class);
+    Route::get('loans/pengajuan/{submission}', [LoanController::class, 'showSubmission'])->name('loans.submission');
     Route::resource('loans', LoanController::class)->except(['create', 'store', 'edit', 'update']);
     Route::post('loans/{loan}/approve', [LoanController::class, 'approve'])->name('loans.approve');
     Route::post('loans/{loan}/reject', [LoanController::class, 'reject'])->name('loans.reject');
@@ -74,6 +75,7 @@ Route::middleware(['auth', 'verified', 'role:guru'])->prefix('guru')->name('guru
     Route::get('schedules', [GuruScheduleController::class, 'index'])->name('schedules.index');
     Route::get('schedules/{schedule}', [GuruScheduleController::class, 'show'])->name('schedules.show');
     Route::get('loans', [GuruLoanController::class, 'index'])->name('loans.index');
+    Route::get('loans/pengajuan/{submission}', [GuruLoanController::class, 'showSubmission'])->name('loans.submission');
     Route::get('loans/{loan}', [GuruLoanController::class, 'show'])->name('loans.show');
     Route::get('reports', [GuruReportController::class, 'index'])->name('reports.index');
     Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
@@ -88,6 +90,7 @@ Route::middleware(['auth', 'verified', 'role:siswa'])->prefix('siswa')->name('si
     Route::get('loans/create', [SiswaLoanController::class, 'create'])->name('loans.create');
     Route::post('loans', [SiswaLoanController::class, 'store'])->name('loans.store');
     Route::post('loans/package', [SiswaLoanController::class, 'storePackage'])->name('loans.store-package');
+    Route::get('loans/pengajuan/{submission}', [SiswaLoanController::class, 'showSubmission'])->name('loans.submission');
     Route::get('loans/{loan}/edit', [SiswaLoanController::class, 'edit'])->name('loans.edit');
     Route::put('loans/{loan}', [SiswaLoanController::class, 'update'])->name('loans.update');
     Route::get('loans/{loan}', [SiswaLoanController::class, 'show'])->name('loans.show');

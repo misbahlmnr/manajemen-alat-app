@@ -30,9 +30,21 @@ export default function Show({ loan }) {
             <Head title={loan.code} />
 
             <div className="animate-fade-in mx-auto w-full min-w-0 max-w-5xl">
-                <PageHeader title="Detail Peminjaman Siswa" subtitle={loan.code}>
+                <PageHeader
+                    title={isBahan ? "Detail Bahan" : "Detail Alat"}
+                    subtitle={`${loan.submission_code || loan.code} · ${loan.item_type_label}`}
+                >
                     <Button variant="outline" asChild>
-                        <Link href={backRoute}>
+                        <Link
+                            href={
+                                loan.submission_code
+                                    ? route(
+                                          "guru.loans.submission",
+                                          loan.submission_code,
+                                      )
+                                    : backRoute
+                            }
+                        >
                             <ArrowLeft className="mr-2 h-4 w-4" />
                             Kembali
                         </Link>

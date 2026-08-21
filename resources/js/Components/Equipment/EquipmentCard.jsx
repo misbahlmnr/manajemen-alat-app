@@ -77,7 +77,7 @@ export function EquipmentCard({ equipment, onBorrow, showBorrowButton = true }) 
             onClick={onBorrow}
             className="px-4 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
           >
-            Pinjam
+            Tambah
           </button>
         )}
       </div>

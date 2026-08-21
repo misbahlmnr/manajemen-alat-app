@@ -54,6 +54,87 @@ function addDaysDateTime(baseDate, days, time = "17:00") {
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+function itemTypeOf(eq, fallback = "alat") {
+    return eq?.item_type === "bahan" || eq?.item_type === "alat"
+        ? eq.item_type
+        : fallback;
+}
+
+function CartLine({ item, maxQty, onUpdateQty, processing }) {
+    const availableNow = Number(item.equipment.available ?? 0);
+    const willQueue = item.quantity > availableNow;
+    const isBahan = item.item_type === "bahan";
+
+    return (
+        <div className="flex flex-col gap-2 rounded-lg bg-secondary/50 p-3 sm:flex-row sm:items-center">
+            <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-1.5">
+                    <p className="text-sm font-medium leading-snug">
+                        {item.equipment.name}
+                    </p>
+                    <span
+                        className={cn(
+                            "rounded-full px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide",
+                            isBahan
+                                ? "bg-warning/15 text-warning"
+                                : "bg-primary/15 text-primary",
+                        )}
+                    >
+                        {isBahan ? "Bahan" : "Alat"}
+                    </span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                    Tersedia saat ini: {availableNow}{" "}
+                    {item.equipment.unit ?? "unit"} · Max:{" "}
+                    {maxQty(item.equipment)}
+                </p>
+                {willQueue && (
+                    <p className="mt-1 text-xs text-amber-800">
+                        Pengajuan akan masuk antrean apabila stok belum
+                        mencukupi.
+                    </p>
+                )}
+            </div>
+            <div className="flex shrink-0 items-center justify-between gap-1 sm:justify-end">
+                <button
+                    type="button"
+                    onClick={() =>
+                        onUpdateQty(item.equipment.id, item.quantity - 1)
+                    }
+                    className="h-6 w-6 rounded border text-sm"
+                    disabled={processing}
+                >
+                    -
+                </button>
+                <span className="w-8 text-center text-sm font-medium">
+                    {item.quantity}
+                </span>
+                <button
+                    type="button"
+                    onClick={() =>
+                        onUpdateQty(item.equipment.id, item.quantity + 1)
+                    }
+                    disabled={
+                        processing ||
+                        item.quantity >= maxQty(item.equipment)
+                    }
+                    className="h-6 w-6 rounded border text-sm disabled:opacity-50"
+                >
+                    +
+                </button>
+                <button
+                    type="button"
+                    onClick={() => onUpdateQty(item.equipment.id, 0)}
+                    className="ml-1 text-muted-foreground hover:text-destructive"
+                    disabled={processing}
+                >
+                    <X className="h-4 w-4" />
+                </button>
+            </div>
+        </div>
+    );
+}
+
 export default function Create({
     loan = null,
     loanType,
@@ -71,31 +152,27 @@ export default function Create({
     const isEdit = Boolean(loan);
     const resolvedType =
         loanType === "bahan" || loan?.item_type === "bahan" ? "bahan" : "alat";
-    const [tab, setTab] = useState(resolvedType);
+    const [catalogTab, setCatalogTab] = useState(resolvedType);
     const schoolCloseTime = queueConfig.school_close_time || "17:00";
     const bawaPulangMaxDays = Number(queueConfig.bawa_pulang_max_days || 1);
 
     useEffect(() => {
         if (isEdit) return;
-        setTab(loanType === "bahan" ? "bahan" : "alat");
+        setCatalogTab(loanType === "bahan" ? "bahan" : "alat");
     }, [loanType, isEdit]);
+
     const [searchQuery, setSearchQuery] = useState(
         catalogFilters?.search ?? "",
     );
-    const [carts, setCarts] = useState(() => ({
-        alat: isEdit && resolvedType === "alat" ? initialCart : [],
-        bahan: isEdit && resolvedType === "bahan" ? initialCart : [],
-    }));
+    const [cart, setCart] = useState(() => {
+        if (!isEdit) return [];
+        return (initialCart ?? []).map((item) => ({
+            ...item,
+            item_type: itemTypeOf(item.equipment, resolvedType),
+        }));
+    });
     const [packageErrors, setPackageErrors] = useState({});
-    const cart = carts[tab] || [];
-    const setCart = (updater) => {
-        setCarts((prev) => {
-            const current = prev[tab] || [];
-            const next =
-                typeof updater === "function" ? updater(current) : updater;
-            return { ...prev, [tab]: next };
-        });
-    };
+    const [submittingPackage, setSubmittingPackage] = useState(false);
     const isFirstSearch = useRef(true);
     const { data, setData, post, put, processing, errors, transform } = useForm(
         {
@@ -106,20 +183,31 @@ export default function Create({
 
     const catalogList = catalog?.data ?? [];
     const catalogTotal = paginatorTotal(catalog);
-    const isBahan = tab === "bahan";
-    const canPackage =
-        !isEdit &&
-        (carts.alat?.length || 0) > 0 &&
-        (carts.bahan?.length || 0) > 0;
+    const catalogIsBahan = catalogTab === "bahan";
+    const alatCart = cart.filter((i) => i.item_type === "alat");
+    const bahanCart = cart.filter((i) => i.item_type === "bahan");
+    const hasAlat = alatCart.length > 0;
+    const hasBahan = bahanCart.length > 0;
+    const needsAlatFields = hasAlat;
+    const isMixed = !isEdit && hasAlat && hasBahan;
+    const busy = processing || submittingPackage;
 
     useEffect(() => {
         if (isEdit || !prefillItem) return;
+        const itemType = itemTypeOf(prefillItem, resolvedType);
         setCart((c) =>
             c.find((i) => i.equipment.id === prefillItem.id)
                 ? c
-                : [...c, { equipment: prefillItem, quantity: 1 }],
+                : [
+                      ...c,
+                      {
+                          equipment: prefillItem,
+                          quantity: 1,
+                          item_type: itemType,
+                      },
+                  ],
         );
-    }, [prefillItem, isEdit]);
+    }, [prefillItem, isEdit, resolvedType]);
 
     useEffect(() => {
         if (isFirstSearch.current) {
@@ -133,7 +221,7 @@ export default function Create({
                 : route("siswa.loans.create");
             const params = isEdit
                 ? { catalog_search: searchQuery }
-                : { type: tab, catalog_search: searchQuery };
+                : { type: catalogTab, catalog_search: searchQuery };
 
             router.get(catalogRoute, params, {
                 preserveState: true,
@@ -146,15 +234,14 @@ export default function Create({
         }, 400);
 
         return () => clearTimeout(timeout);
-    }, [searchQuery, tab, isEdit, loan?.id]);
+    }, [searchQuery, catalogTab, isEdit, loan?.id]);
 
-    const switchTab = (t) => {
-        if (t === tab) return;
+    const switchCatalogTab = (t) => {
+        if (t === catalogTab) return;
 
-        setTab(t);
+        setCatalogTab(t);
         setSearchQuery("");
         isFirstSearch.current = true;
-        setData("item_type", t);
         setPackageErrors({});
         router.get(
             route("siswa.loans.create"),
@@ -169,7 +256,6 @@ export default function Create({
 
     const maxQty = (eq) => {
         const cartItem = cart.find((i) => i.equipment.id === eq.id);
-        // Boleh antre meski available 0: batas = stok total (min 1 jika status tersedia).
         const stockLimit = Number(eq.stock ?? 0);
         const availableLimit = Number(eq.available ?? 0);
         const base =
@@ -185,6 +271,7 @@ export default function Create({
     };
 
     const addToCart = (eq) => {
+        const itemType = itemTypeOf(eq, catalogTab);
         const existing = cart.find((i) => i.equipment.id === eq.id);
         if (existing) {
             if (existing.quantity < maxQty(eq)) {
@@ -197,7 +284,10 @@ export default function Create({
                 );
             }
         } else {
-            setCart([...cart, { equipment: eq, quantity: 1 }]);
+            setCart([
+                ...cart,
+                { equipment: eq, quantity: 1, item_type: itemType },
+            ]);
         }
     };
 
@@ -218,17 +308,10 @@ export default function Create({
         );
     };
 
-    const isBawaPulang = !isBahan && data.borrow_scope === "bawa_pulang";
-    const isPribadi = !isBahan && data.borrow_reason === "lanjutan";
-    const isPakaiDiLab = !isBahan && !isBawaPulang && !isPribadi;
+    const isBawaPulang = needsAlatFields && data.borrow_scope === "bawa_pulang";
+    const isPribadi = needsAlatFields && data.borrow_reason === "lanjutan";
+    const isPakaiDiLab = needsAlatFields && !isBawaPulang && !isPribadi;
     const scheduleRequired = isPakaiDiLab;
-    // Syarat paket dihitung dari data alat (bukan tab aktif), supaya tetap valid di tab bahan.
-    const packageNeedsSchedule =
-        data.borrow_scope === "lab" &&
-        (data.borrow_reason || "reguler") === "reguler";
-    const packageIsPribadi =
-        data.borrow_scope === "lab" && data.borrow_reason === "lanjutan";
-    const packageIsBawaPulang = data.borrow_scope === "bawa_pulang";
     const matpelDisabled = isPribadi;
     const scheduleList = isPakaiDiLab || isBawaPulang ? todaySchedules : [];
 
@@ -329,7 +412,8 @@ export default function Create({
         (isPakaiDiLab || isBawaPulang) && Boolean(selectedSchedule?.guru_id);
 
     const totalItems = cart.reduce((s, i) => s + i.quantity, 0);
-    const collateralRequired = !isBahan && data.borrow_scope === "bawa_pulang";
+    const collateralRequired =
+        needsAlatFields && data.borrow_scope === "bawa_pulang";
 
     const buildPayload = (itemType, formData, cartItems) => {
         const purpose =
@@ -368,16 +452,52 @@ export default function Create({
         return payload;
     };
 
+    const submitPackage = () => {
+        setPackageErrors({});
+        setSubmittingPackage(true);
+        const alatPayload = buildPayload("alat", data, alatCart);
+        const bahanPayload = buildPayload("bahan", data, bahanCart);
+
+        router.post(
+            route("siswa.loans.store-package"),
+            { alat: alatPayload, bahan: bahanPayload },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setCart([]);
+                    setPackageErrors({});
+                },
+                onError: (errs) => {
+                    setPackageErrors(errs || {});
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                },
+                onFinish: () => setSubmittingPackage(false),
+            },
+        );
+    };
+
     const submit = (e) => {
         e.preventDefault();
 
-        transform((formData) => buildPayload(tab, formData, cart));
+        if (isMixed) {
+            submitPackage();
+            return;
+        }
+
+        const itemType = isEdit ? resolvedType : hasAlat ? "alat" : "bahan";
+        const cartItems = isEdit
+            ? cart
+            : itemType === "alat"
+              ? alatCart
+              : bahanCart;
+
+        transform((formData) => buildPayload(itemType, formData, cartItems));
 
         const visitOptions = {
             preserveScroll: true,
             onSuccess: () => {
                 if (!isEdit) {
-                    setCarts((prev) => ({ ...prev, [tab]: [] }));
+                    setCart([]);
                 }
             },
             onError: () => window.scrollTo({ top: 0, behavior: "smooth" }),
@@ -390,58 +510,20 @@ export default function Create({
         }
     };
 
-    const submitPackage = () => {
-        if (!canPackage) return;
-
-        setPackageErrors({});
-        const alatPayload = buildPayload("alat", data, carts.alat);
-        const bahanPayload = buildPayload("bahan", data, carts.bahan);
-
-        router.post(
-            route("siswa.loans.store-package"),
-            { alat: alatPayload, bahan: bahanPayload },
-            {
-                preserveScroll: true,
-                onSuccess: () => {
-                    setCarts({ alat: [], bahan: [] });
-                    setPackageErrors({});
-                },
-                onError: (errs) => {
-                    setPackageErrors(errs || {});
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                },
-            },
-        );
-    };
-
     const formErrorList = Object.entries({
         ...errors,
         ...packageErrors,
     }).filter(([, message]) => Boolean(message));
 
-    useEffect(() => {
-        setData("item_type", tab);
-    }, [tab]);
-
     const canSubmit =
         cart.length > 0 &&
         data.supervisor_id &&
-        (isBahan ||
+        (!needsAlatFields ||
             ((!scheduleRequired || data.practicum_schedule_id) &&
                 data.request_date &&
                 data.due_at &&
                 (!isPribadi || data.usage_room?.trim()) &&
                 (!collateralRequired || data.collateral_agreed))) &&
-        (data.notes?.trim() || data.purpose?.trim());
-
-    const canSubmitPackage =
-        canPackage &&
-        data.supervisor_id &&
-        data.request_date &&
-        data.due_at &&
-        (!packageNeedsSchedule || data.practicum_schedule_id) &&
-        (!packageIsPribadi || data.usage_room?.trim()) &&
-        (!packageIsBawaPulang || data.collateral_agreed) &&
         (data.notes?.trim() || data.purpose?.trim());
 
     return (
@@ -457,7 +539,7 @@ export default function Create({
                         <p className="mt-1 text-muted-foreground">
                             {isEdit
                                 ? `Perbarui barang atau detail pengajuan • ${loan.code}`
-                                : "Pilih jenis: pinjam alat (dikembalikan) atau ambil bahan (habis pakai)"}
+                                : "Satu pengajuan untuk kebutuhan praktikum. Pilih alat dan bahan ke keranjang yang sama, lalu ajukan sekali."}
                         </p>
                     </div>
                     {isEdit && (
@@ -471,7 +553,7 @@ export default function Create({
                     )}
                 </div>
 
-                {overdueLoans.length > 0 && tab === "alat" && (
+                {overdueLoans.length > 0 && (hasAlat || catalogTab === "alat") && (
                     <div className="mb-6 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
                         <p className="font-medium">
                             Anda memiliki {overdueLoans.length} peminjaman
@@ -501,57 +583,67 @@ export default function Create({
                 )}
 
                 {!isEdit && (
-                    <div className="mb-6 flex w-full flex-wrap items-center gap-2 rounded-lg bg-secondary p-1 sm:w-fit">
-                        <button
-                            type="button"
-                            onClick={() => switchTab("alat")}
-                            className={cn(
-                                "flex flex-1 items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium sm:flex-none",
-                                tab === "alat"
-                                    ? "bg-card text-foreground shadow-sm"
-                                    : "text-muted-foreground",
-                            )}
-                        >
-                            <Wrench className="h-4 w-4" /> Pinjam Alat
-                            {(carts.alat?.length || 0) > 0 && (
-                                <span className="rounded-full bg-primary/15 px-1.5 text-xs text-primary">
-                                    {carts.alat.length}
-                                </span>
-                            )}
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => switchTab("bahan")}
-                            className={cn(
-                                "flex flex-1 items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium sm:flex-none",
-                                tab === "bahan"
-                                    ? "bg-card text-foreground shadow-sm"
-                                    : "text-muted-foreground",
-                            )}
-                        >
-                            <Package className="h-4 w-4" /> Ambil Bahan
-                            {(carts.bahan?.length || 0) > 0 && (
-                                <span className="rounded-full bg-primary/15 px-1.5 text-xs text-primary">
-                                    {carts.bahan.length}
-                                </span>
-                            )}
-                        </button>
+                    <div className="mb-6">
+                        <p className="mb-2 text-sm font-medium">Pilih item</p>
+                        <div className="flex w-full flex-wrap items-center gap-2 rounded-lg bg-secondary p-1 sm:w-fit">
+                            <button
+                                type="button"
+                                onClick={() => switchCatalogTab("alat")}
+                                className={cn(
+                                    "flex flex-1 items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium sm:flex-none",
+                                    catalogTab === "alat"
+                                        ? "bg-card text-foreground shadow-sm"
+                                        : "text-muted-foreground",
+                                )}
+                            >
+                                <Wrench className="h-4 w-4" /> Alat
+                                {alatCart.length > 0 && (
+                                    <span className="rounded-full bg-primary/15 px-1.5 text-xs text-primary">
+                                        {alatCart.length}
+                                    </span>
+                                )}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => switchCatalogTab("bahan")}
+                                className={cn(
+                                    "flex flex-1 items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium sm:flex-none",
+                                    catalogTab === "bahan"
+                                        ? "bg-card text-foreground shadow-sm"
+                                        : "text-muted-foreground",
+                                )}
+                            >
+                                <Package className="h-4 w-4" /> Bahan
+                                {bahanCart.length > 0 && (
+                                    <span className="rounded-full bg-warning/15 px-1.5 text-xs text-warning">
+                                        {bahanCart.length}
+                                    </span>
+                                )}
+                            </button>
+                        </div>
+                        <p className="mt-2 text-xs text-muted-foreground">
+                            Tab ini hanya filter katalog, bukan jenis
+                            pengajuan. Item dari kedua kategori masuk keranjang
+                            yang sama.
+                        </p>
                     </div>
                 )}
 
                 <div
                     className={cn(
                         "mb-6 flex items-start gap-3 rounded-lg p-3 text-sm",
-                        isBahan
+                        catalogIsBahan
                             ? "bg-warning/10 text-warning"
                             : "bg-primary/10 text-primary",
                     )}
                 >
                     <Info className="mt-0.5 h-4 w-4 flex-shrink-0" />
                     <p>
-                        {isBahan
-                            ? "Bahan sekali pakai, tidak perlu dikembalikan. Stok akan otomatis berkurang setelah disetujui."
-                            : "Alat harus dikembalikan sebelum batas waktu. Permintaan akan diverifikasi admin."}
+                        {catalogIsBahan
+                            ? "Katalog bahan habis pakai. Tidak perlu dikembalikan. Stok berkurang setelah disetujui."
+                            : "Katalog alat. Harus dikembalikan sebelum batas waktu."}{" "}
+                        {!isEdit &&
+                            "Tambah ke keranjang, pindah kategori jika perlu, lalu ajukan sekali."}
                     </p>
                 </div>
 
@@ -585,27 +677,28 @@ export default function Create({
                             <input
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder={`Cari ${isBahan ? "bahan" : "alat"} (nama, kode, kategori)...`}
+                                placeholder={`Cari ${catalogIsBahan ? "bahan" : "alat"} (nama, kode, kategori)...`}
                                 className="form-input min-w-0 pl-10"
                             />
                         </div>
                         <p className="mb-3 text-sm text-muted-foreground">
-                            {catalogTotal} {isBahan ? "bahan" : "alat"} tersedia
+                            {catalogTotal}{" "}
+                            {catalogIsBahan ? "bahan" : "alat"} tersedia
                             {searchQuery ? " untuk pencarian ini" : ""}
                         </p>
                         {catalogTotal > 0 ? (
                             <LoanCatalogTable
                                 items={catalogList}
                                 pagination={catalog}
-                                isBahan={isBahan}
+                                isBahan={catalogIsBahan}
                                 cart={cart}
                                 onAdd={addToCart}
                                 maxQty={maxQty}
                             />
                         ) : (
                             <p className="rounded-xl border border-dashed border-border py-10 text-center text-sm text-muted-foreground">
-                                Tidak ada {isBahan ? "bahan" : "alat"} yang
-                                cocok dengan pencarian.
+                                Tidak ada {catalogIsBahan ? "bahan" : "alat"}{" "}
+                                yang cocok dengan pencarian.
                             </p>
                         )}
                     </div>
@@ -620,101 +713,61 @@ export default function Create({
                                     <h2 className="font-semibold">Keranjang</h2>
                                     <p className="text-sm text-muted-foreground">
                                         {totalItems} item
+                                        {hasAlat && hasBahan
+                                            ? ` · ${alatCart.length} alat, ${bahanCart.length} bahan`
+                                            : ""}
                                     </p>
                                 </div>
                             </div>
 
                             {cart.length > 0 ? (
-                                <div className="mb-5 space-y-2">
-                                    {cart.map((item) => {
-                                        const availableNow = Number(
-                                            item.equipment.available ?? 0,
-                                        );
-                                        const willQueue =
-                                            item.quantity > availableNow;
-
-                                        return (
-                                        <div
-                                            key={item.equipment.id}
-                                            className="flex flex-col gap-2 rounded-lg bg-secondary/50 p-3 sm:flex-row sm:items-center"
-                                        >
-                                            <div className="min-w-0 flex-1">
-                                                <p className="text-sm font-medium leading-snug">
-                                                    {item.equipment.name}
+                                <div className="mb-5 space-y-3">
+                                    {alatCart.length > 0 && (
+                                        <div className="space-y-2">
+                                            {hasBahan && (
+                                                <p className="text-[11px] font-semibold uppercase tracking-wide text-primary">
+                                                    Alat
                                                 </p>
-                                                <p className="text-xs text-muted-foreground">
-                                                    Tersedia saat ini:{" "}
-                                                    {availableNow}{" "}
-                                                    {item.equipment.unit ??
-                                                        "unit"}{" "}
-                                                    · Max:{" "}
-                                                    {maxQty(item.equipment)}
-                                                </p>
-                                                {willQueue && (
-                                                    <p className="mt-1 text-xs text-amber-800">
-                                                        Pengajuan akan masuk
-                                                        antrean apabila stok
-                                                        belum mencukupi.
-                                                    </p>
-                                                )}
-                                            </div>
-                                            <div className="flex shrink-0 items-center justify-between gap-1 sm:justify-end">
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        updateQty(
-                                                            item.equipment.id,
-                                                            item.quantity - 1,
-                                                        )
-                                                    }
-                                                    className="h-6 w-6 rounded border text-sm"
-                                                >
-                                                    -
-                                                </button>
-                                                <span className="w-8 text-center text-sm font-medium">
-                                                    {item.quantity}
-                                                </span>
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        updateQty(
-                                                            item.equipment.id,
-                                                            item.quantity + 1,
-                                                        )
-                                                    }
-                                                    disabled={
-                                                        item.quantity >=
-                                                        maxQty(item.equipment)
-                                                    }
-                                                    className="h-6 w-6 rounded border text-sm disabled:opacity-50"
-                                                >
-                                                    +
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        updateQty(
-                                                            item.equipment.id,
-                                                            0,
-                                                        )
-                                                    }
-                                                    className="ml-1 text-muted-foreground hover:text-destructive"
-                                                >
-                                                    <X className="h-4 w-4" />
-                                                </button>
-                                            </div>
+                                            )}
+                                            {alatCart.map((item) => (
+                                                <CartLine
+                                                    key={item.equipment.id}
+                                                    item={item}
+                                                    maxQty={maxQty}
+                                                    onUpdateQty={updateQty}
+                                                    processing={busy}
+                                                />
+                                            ))}
                                         </div>
-                                        );
-                                    })}
+                                    )}
+                                    {bahanCart.length > 0 && (
+                                        <div className="space-y-2">
+                                            {hasAlat && (
+                                                <p className="text-[11px] font-semibold uppercase tracking-wide text-warning">
+                                                    Bahan
+                                                </p>
+                                            )}
+                                            {bahanCart.map((item) => (
+                                                <CartLine
+                                                    key={item.equipment.id}
+                                                    item={item}
+                                                    maxQty={maxQty}
+                                                    onUpdateQty={updateQty}
+                                                    processing={busy}
+                                                />
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             ) : (
                                 <p className="py-6 text-center text-sm text-muted-foreground">
-                                    Belum ada item
+                                    Belum ada item. Tambah dari katalog alat
+                                    atau bahan.
                                 </p>
                             )}
 
                             <form onSubmit={submit} className="space-y-4">
-                                {!isBahan && (
+                                {needsAlatFields && (
                                     <div className="space-y-2">
                                         <label className="flex items-center gap-1.5 text-sm font-medium">
                                             <MapPin className="h-3.5 w-3.5" />{" "}
@@ -744,7 +797,7 @@ export default function Create({
                                                         )
                                                     }
                                                     className="mt-0.5"
-                                                    disabled={processing}
+                                                    disabled={busy}
                                                 />
                                                 <div className="text-sm">
                                                     <p className="font-medium">
@@ -778,7 +831,7 @@ export default function Create({
                                                         )
                                                     }
                                                     className="mt-0.5"
-                                                    disabled={processing}
+                                                    disabled={busy}
                                                 />
                                                 <div className="text-sm">
                                                     <p className="font-medium">
@@ -814,7 +867,7 @@ export default function Create({
                                                         )
                                                     }
                                                     className="mt-0.5"
-                                                    disabled={processing}
+                                                    disabled={busy}
                                                 />
                                                 <div className="text-sm">
                                                     <p className="font-medium">
@@ -836,7 +889,7 @@ export default function Create({
                                     </div>
                                 )}
 
-                                {!isBahan && matpelDisabled && (
+                                {needsAlatFields && matpelDisabled && (
                                     <div className="space-y-1.5">
                                         <label className="flex items-center gap-1.5 text-sm font-medium">
                                             <CalendarDays className="h-3.5 w-3.5" />{" "}
@@ -854,7 +907,7 @@ export default function Create({
                                     </div>
                                 )}
 
-                                {!isBahan && isPribadi && (
+                                {needsAlatFields && isPribadi && (
                                     <div className="space-y-1.5">
                                         <label className="flex items-center gap-1.5 text-sm font-medium">
                                             <MapPin className="h-3.5 w-3.5" />{" "}
@@ -877,7 +930,7 @@ export default function Create({
                                                     )
                                                 }
                                                 className="form-input"
-                                                disabled={processing}
+                                                disabled={busy}
                                             >
                                                 <option value="">
                                                     Pilih ruang/lab...
@@ -903,7 +956,7 @@ export default function Create({
                                                 }
                                                 placeholder="Contoh: Lab AV-1"
                                                 className="form-input"
-                                                disabled={processing}
+                                                disabled={busy}
                                             />
                                         )}
                                         <InputError
@@ -912,7 +965,7 @@ export default function Create({
                                     </div>
                                 )}
 
-                                {!isBahan && !matpelDisabled && (
+                                {needsAlatFields && !matpelDisabled && (
                                     <div className="space-y-1.5">
                                         <label className="flex items-center gap-1.5 text-sm font-medium">
                                             <CalendarDays className="h-3.5 w-3.5" />{" "}
@@ -963,7 +1016,7 @@ export default function Create({
                                                     )
                                                 }
                                                 className="form-input"
-                                                disabled={processing}
+                                                disabled={busy}
                                             >
                                                 <option value="">
                                                     {isBawaPulang
@@ -1063,9 +1116,7 @@ export default function Create({
                                             )
                                         }
                                         className="form-input"
-                                        disabled={
-                                            processing || supervisorLocked
-                                        }
+                                        disabled={busy || supervisorLocked}
                                     >
                                         <option value="">Pilih guru...</option>
                                         {supervisorOptions.map((t) => (
@@ -1079,7 +1130,7 @@ export default function Create({
                                     />
                                 </div>
 
-                                {!isBahan && (
+                                {needsAlatFields && (
                                     <>
                                         <div className="space-y-1.5">
                                             <label className="flex items-center gap-1.5 text-sm font-medium">
@@ -1097,7 +1148,7 @@ export default function Create({
                                                 }
                                                 className="form-input"
                                                 disabled={
-                                                    processing || isPakaiDiLab
+                                                    busy || isPakaiDiLab
                                                 }
                                             />
                                             {isPakaiDiLab && (
@@ -1125,7 +1176,7 @@ export default function Create({
                                                     )
                                                 }
                                                 className="form-input"
-                                                disabled={processing}
+                                                disabled={busy}
                                             />
                                             <InputError
                                                 message={errors.due_at}
@@ -1179,21 +1230,17 @@ export default function Create({
                                 <div className="space-y-1.5">
                                     <label className="flex items-center gap-1.5 text-sm font-medium">
                                         <FileText className="h-3.5 w-3.5" />{" "}
-                                        Catatan
+                                        Keperluan / Catatan
                                     </label>
                                     <textarea
                                         value={data.notes}
                                         onChange={(e) =>
                                             setData("notes", e.target.value)
                                         }
-                                        placeholder={
-                                            isBahan
-                                                ? "Keperluan pengambilan bahan..."
-                                                : "Keperluan peminjaman alat..."
-                                        }
+                                        placeholder="Contoh: Praktikum Penguat Transistor"
                                         className="form-input min-h-[72px] resize-none"
                                         required
-                                        disabled={processing}
+                                        disabled={busy}
                                     />
                                     <InputError message={errors.purpose} />
                                     <InputError message={errors.notes} />
@@ -1203,58 +1250,25 @@ export default function Create({
 
                                 <button
                                     type="submit"
-                                    disabled={!canSubmit || processing}
+                                    disabled={!canSubmit || busy}
                                     className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-50"
                                 >
                                     <Send className="mr-2 h-4 w-4" />
-                                    {processing
+                                    {busy
                                         ? "Menyimpan..."
                                         : isEdit
                                           ? "Simpan Perubahan"
-                                          : isBahan
-                                            ? "Ajukan Ambil Bahan"
-                                            : "Ajukan Pinjam Alat"}
+                                          : "Ajukan Pengajuan"}
                                 </button>
-
-                                {!isEdit && canPackage && (
-                                    <button
-                                        type="button"
-                                        disabled={
-                                            processing || !canSubmitPackage
-                                        }
-                                        onClick={submitPackage}
-                                        className="mt-2 inline-flex w-full items-center justify-center rounded-md border border-indigo-500/30 bg-indigo-500/10 px-4 py-2 text-sm font-medium text-indigo-800 hover:bg-indigo-500/15 disabled:cursor-not-allowed disabled:opacity-50"
-                                    >
-                                        <Package className="mr-2 h-4 w-4" />
-                                        Ajukan Paket Alat + Bahan (
-                                        {carts.alat.length}+{carts.bahan.length}
-                                        )
-                                    </button>
-                                )}
-                                {!isEdit && canPackage && !canSubmitPackage && (
-                                    <p className="mt-2 text-xs text-amber-700">
-                                        Lengkapi dulu detail alat (guru,
-                                        jadwal/batas kembali, catatan
-                                        {packageIsPribadi
-                                            ? ", lokasi ruang"
-                                            : ""}
-                                        {packageIsBawaPulang
-                                            ? ", persetujuan jaminan"
-                                            : ""}
-                                        ) lalu tekan Ajukan Paket.
+                                {!isEdit && cart.length > 0 && (
+                                    <p className="text-xs text-muted-foreground">
+                                        {isMixed
+                                            ? "Alat dan bahan diajukan sekali. Backend tetap memisahkan proses alat (antrean) dan bahan (habis pakai)."
+                                            : hasBahan
+                                              ? "Pengajuan bahan habis pakai."
+                                              : "Pengajuan peminjaman alat."}
                                     </p>
                                 )}
-                                {!isEdit &&
-                                    ((carts.alat?.length || 0) > 0 ||
-                                        (carts.bahan?.length || 0) > 0) && (
-                                        <p className="mt-2 text-xs text-muted-foreground">
-                                            Keranjang tersimpan per tab: alat{" "}
-                                            {carts.alat?.length || 0}, bahan{" "}
-                                            {carts.bahan?.length || 0}. Tambah
-                                            item di kedua tab, lengkapi form
-                                            alat, lalu Ajukan Paket.
-                                        </p>
-                                    )}
                             </form>
                         </div>
                     </div>

@@ -73,7 +73,7 @@ class SupplyController extends Controller
             ...EquipmentFormatter::format($supply, $detailed),
             'can_request' => $supply->status === 'tersedia',
             'queue_open' => $queueOpen,
-            'cta_label' => $queueOpen ? 'Ajukan' : 'Ambil',
+            'cta_label' => $queueOpen ? 'Ajukan' : 'Tambah',
             'show_url' => route('siswa.supplies.show', $supply),
             'request_url' => $this->requestUrl($supply),
             'location' => $supply->location ?? '—',

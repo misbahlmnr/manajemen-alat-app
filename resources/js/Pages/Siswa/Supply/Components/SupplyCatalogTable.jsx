@@ -116,7 +116,7 @@ export default function SupplyCatalogTable({ items, pagination }) {
                             <Button size="sm" asChild>
                                 <Link href={item.request_url} preserveScroll>
                                     <PackagePlus className="mr-1.5 h-3.5 w-3.5" />
-                                    {item.cta_label ?? (item.queue_open ? "Ajukan" : "Ambil")}
+                                    {item.cta_label ?? (item.queue_open ? "Ajukan" : "Tambah")}
                                 </Link>
                             </Button>
                         )}

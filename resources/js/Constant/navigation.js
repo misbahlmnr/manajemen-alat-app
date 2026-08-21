@@ -124,7 +124,6 @@ const siswaMenuItems = [
         icon: FileText,
         label: "Ajukan Alat / Bahan",
         routeName: "siswa.loans.create",
-        query: { type: "alat" },
     },
     {
         icon: ClipboardList,

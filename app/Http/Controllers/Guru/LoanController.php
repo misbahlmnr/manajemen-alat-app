@@ -4,9 +4,10 @@ namespace App\Http\Controllers\Guru;
 
 use App\Http\Controllers\Controller;
 use App\Models\Loan;
-use App\Services\Loan\LoanListGrouper;
+use App\Models\Submission;
 use App\Services\Loan\LoanQueueService;
 use App\Services\Loan\LoanWorkflowService;
+use App\Services\Loan\SubmissionPresenter;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -15,8 +16,8 @@ class LoanController extends Controller
 {
     public function __construct(
         private LoanWorkflowService $workflow,
-        private LoanListGrouper $listGrouper,
         private LoanQueueService $queueService,
+        private SubmissionPresenter $submissions,
     ) {}
 
     public function index(Request $request): Response
@@ -33,45 +34,56 @@ class LoanController extends Controller
         $dateFrom = $request->string('date_from')->toString();
         $dateTo = $request->string('date_to')->toString();
 
-        $baseQuery = Loan::query()->where('supervisor_id', $user->id);
+        $baseQuery = Submission::query()->where(function ($q) use ($user) {
+            $q->where('supervisor_id', $user->id)
+                ->orWhereHas('loans', fn ($l) => $l->where('supervisor_id', $user->id));
+        });
 
-        $scopedCountQuery = (clone $baseQuery);
-        $this->applyLoanScope($scopedCountQuery, $scope);
+        $scopedCountQuery = (clone $baseQuery)->whereHas(
+            'loans',
+            fn ($q) => $this->applyLoanScope($q, $scope),
+        );
 
         $listQuery = (clone $baseQuery)
             ->with([
                 'borrower:id,name,class',
-                'schedule:id,code,title,mata_kuliah,kelas,tanggal,jam_mulai,jam_selesai,priority',
-                'items.equipment:id,code,name,item_type,unit',
-                'collateral:id,loan_id,status',
+                'supervisor:id,name',
+                'loans.borrower:id,name,class',
+                'loans.schedule:id,code,title,mata_kuliah,kelas,tanggal,jam_mulai,jam_selesai,priority',
+                'loans.items.equipment:id,code,name,item_type,unit',
+                'loans.collateral:id,loan_id,status',
             ])
-            ->tap(fn ($query) => $this->applyLoanScope($query, $scope))
+            ->whereHas('loans', fn ($q) => $this->applyLoanScope($q, $scope))
             ->when($search->isNotEmpty(), function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('code', 'like', "%{$search}%")
                         ->orWhere('purpose', 'like', "%{$search}%")
                         ->orWhereHas('borrower', fn ($b) => $b->where('name', 'like', "%{$search}%"))
-                        ->orWhereHas('items.equipment', fn ($e) => $e->where('name', 'like', "%{$search}%"));
+                        ->orWhereHas('loans.items.equipment', fn ($e) => $e->where('name', 'like', "%{$search}%"));
                 });
             })
-            ->when($status !== 'all', fn ($q) => $q->where('status', $status))
-            ->when($itemType !== 'all', fn ($q) => $q->where('item_type', $itemType))
+            ->when($status !== 'all', fn ($q) => $q->whereHas('loans', fn ($l) => $l->where('status', $status)))
+            ->when($itemType !== 'all', fn ($q) => $q->whereHas('loans', fn ($l) => $l->where('item_type', $itemType)))
             ->when($kelas !== 'all', fn ($q) => $q->whereHas('borrower', fn ($b) => $b->where('class', $kelas)))
             ->when($dateFrom !== '', fn ($q) => $q->whereDate('request_date', '>=', $dateFrom))
-            ->when($dateTo !== '', fn ($q) => $q->whereDate('request_date', '<=', $dateTo));
+            ->when($dateTo !== '', fn ($q) => $q->whereDate('request_date', '<=', $dateTo))
+            ->latest();
 
-        $loans = $this->listGrouper->paginate(
-            $listQuery,
-            10,
-            fn (Loan $loan) => $this->formatLoan($loan, true),
-        )->withQueryString();
+        $loans = $listQuery
+            ->paginate(10)
+            ->withQueryString()
+            ->through(fn (Submission $submission) => $this->submissions->list(
+                $submission,
+                fn (Loan $loan) => $this->formatLoan($loan, true),
+                'guru.loans.submission',
+            ));
 
         return Inertia::render('Guru/Loan/Index', [
             'loans' => $loans,
             'tabCounts' => [
                 'all' => (clone $scopedCountQuery)->count(),
-                'alat' => (clone $scopedCountQuery)->where('item_type', 'alat')->count(),
-                'bahan' => (clone $scopedCountQuery)->where('item_type', 'bahan')->count(),
+                'alat' => (clone $scopedCountQuery)->whereHas('loans', fn ($q) => $q->where('item_type', 'alat'))->count(),
+                'bahan' => (clone $scopedCountQuery)->whereHas('loans', fn ($q) => $q->where('item_type', 'bahan'))->count(),
             ],
             'filters' => [
                 'search' => $search->toString(),
@@ -92,6 +104,7 @@ class LoanController extends Controller
         $this->authorize('view', $loan);
 
         $loan->load([
+            'submission:id,code,borrower_id,supervisor_id,purpose,notes,request_date',
             'borrower:id,name,class,nisn',
             'schedule:id,code,title,mata_kuliah,tanggal,kelas',
             'items.equipment:id,code,name,item_type,category,unit',
@@ -102,6 +115,29 @@ class LoanController extends Controller
 
         return Inertia::render('Guru/Loan/Show', [
             'loan' => $this->formatLoan($loan, true),
+        ]);
+    }
+
+    public function showSubmission(Submission $submission): Response
+    {
+        $this->authorize('view', $submission);
+        $this->workflow->syncOverdue();
+
+        $submission->load([
+            'borrower:id,name,class,nisn',
+            'supervisor:id,name',
+            'loans.borrower:id,name,class',
+            'loans.schedule:id,code,title,mata_kuliah,tanggal,kelas',
+            'loans.items.equipment:id,code,name,item_type,unit',
+            'loans.collateral',
+        ]);
+
+        return Inertia::render('Guru/Loan/Submission', [
+            'submission' => $this->submissions->detail(
+                $submission,
+                fn (Loan $loan) => $this->formatLoan($loan, true),
+                'guru.loans.submission',
+            ),
         ]);
     }
 
@@ -146,13 +182,16 @@ class LoanController extends Controller
 
         $data = [
             'id' => $loan->id,
-            'code' => $loan->code,
+            'code' => $loan->displayCode(),
+            'loan_code' => $loan->code,
+            'submission_id' => $loan->submission_id,
+            'submission_code' => $loan->submission?->code ?? $loan->displayCode(),
             'loan_group_id' => $loan->loan_group_id,
             'is_package' => $loan->isPackaged(),
             'package_mates' => $loan->isPackaged()
                 ? $loan->packageSiblings()->map(fn (Loan $mate) => [
                     'id' => $mate->id,
-                    'code' => $mate->code,
+                    'code' => $mate->displayCode(),
                     'item_type' => $mate->item_type,
                     'item_type_label' => $mate->item_type === 'alat' ? 'Alat' : 'Bahan',
                     'status' => $mate->status,

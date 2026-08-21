@@ -32,8 +32,8 @@ export default function Show({ supply }) {
                             <Link href={supply.request_url}>
                                 <PackagePlus className="mr-2 h-4 w-4" />
                                 {supply.cta_label === "Ajukan" || supply.queue_open
-                                    ? "Ajukan Ambil Bahan"
-                                    : "Ambil Bahan"}
+                                    ? "Ajukan ke Pengajuan"
+                                    : "Tambahkan ke Pengajuan"}
                             </Link>
                         </Button>
                     )}

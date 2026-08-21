@@ -7,10 +7,11 @@ use App\Http\Requests\Admin\RejectLoanRequest;
 use App\Http\Requests\Admin\ReturnLoanRequest;
 use App\Http\Requests\Admin\SetQueuePriorityRequest;
 use App\Models\Loan;
+use App\Models\Submission;
 use App\Models\User;
-use App\Services\Loan\LoanListGrouper;
 use App\Services\Loan\LoanQueueService;
 use App\Services\Loan\LoanWorkflowService;
+use App\Services\Loan\SubmissionPresenter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -21,7 +22,7 @@ class LoanController extends Controller
     public function __construct(
         private LoanWorkflowService $workflow,
         private LoanQueueService $queueService,
-        private LoanListGrouper $listGrouper,
+        private SubmissionPresenter $submissions,
     ) {}
 
     public function index(Request $request): Response
@@ -38,35 +39,41 @@ class LoanController extends Controller
         $dateFrom = $request->string('date_from')->toString();
         $dateTo = $request->string('date_to')->toString();
 
-        $listQuery = Loan::query()
-            ->with(['borrower:id,name,role,class', 'supervisor:id,name', 'items.equipment:id,code,name,item_type'])
+        $listQuery = Submission::query()
+            ->with([
+                'borrower:id,name,role,class',
+                'supervisor:id,name',
+                'loans.borrower:id,name,role,class',
+                'loans.supervisor:id,name',
+                'loans.items.equipment:id,code,name,item_type',
+                'loans.collateral',
+            ])
             ->when($search->isNotEmpty(), function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('code', 'like', "%{$search}%")
                         ->orWhere('purpose', 'like', "%{$search}%")
                         ->orWhere('notes', 'like', "%{$search}%")
                         ->orWhereHas('borrower', fn ($b) => $b->where('name', 'like', "%{$search}%"))
-                        ->orWhereHas('items.equipment', fn ($e) => $e->where('name', 'like', "%{$search}%"));
+                        ->orWhereHas('loans.items.equipment', fn ($e) => $e->where('name', 'like', "%{$search}%"));
                 });
             })
-            ->when($status !== 'all', fn ($q) => $q->where('status', $status))
-            ->when($itemType !== 'all', fn ($q) => $q->where('item_type', $itemType))
+            ->when($status !== 'all', fn ($q) => $q->whereHas('loans', fn ($l) => $l->where('status', $status)))
+            ->when($itemType !== 'all', fn ($q) => $q->whereHas('loans', fn ($l) => $l->where('item_type', $itemType)))
             ->when($borrowerId !== 'all', fn ($q) => $q->where('borrower_id', $borrowerId))
             ->when($supervisorId !== 'all', fn ($q) => $q->where('supervisor_id', $supervisorId))
             ->when($kelas !== 'all', fn ($q) => $q->whereHas('borrower', fn ($b) => $b->where('class', $kelas)))
             ->when($dateFrom !== '', fn ($q) => $q->whereDate('request_date', '>=', $dateFrom))
             ->when($dateTo !== '', fn ($q) => $q->whereDate('request_date', '<=', $dateTo))
-            ->when(
-                $status === 'antrian',
-                fn ($q) => $q->orderByDesc('queue_priority')->orderBy('queued_at'),
-                fn ($q) => $q->latest(),
-            );
+            ->latest();
 
-        $loans = $this->listGrouper->paginate(
-            $listQuery,
-            10,
-            fn (Loan $loan) => $this->formatLoan($loan),
-        )->withQueryString();
+        $loans = $listQuery
+            ->paginate(10)
+            ->withQueryString()
+            ->through(fn (Submission $submission) => $this->submissions->list(
+                $submission,
+                fn (Loan $loan) => $this->formatLoan($loan),
+                'admin.loans.submission',
+            ));
 
         return Inertia::render('Admin/Loan/Index', [
             'loans' => $loans,
@@ -91,6 +98,7 @@ class LoanController extends Controller
     {
         $this->authorize('view', $loan);
         $loan->load([
+            'submission:id,code,borrower_id,supervisor_id,purpose,notes,request_date',
             'borrower:id,name,role,class,nisn',
             'supervisor:id,name,nip',
             'schedule:id,code,title,mata_kuliah,tanggal',
@@ -106,6 +114,30 @@ class LoanController extends Controller
         ]);
     }
 
+    public function showSubmission(Submission $submission): Response
+    {
+        $this->authorize('view', $submission);
+        $this->workflow->syncOverdue();
+
+        $submission->load([
+            'borrower:id,name,role,class,nisn',
+            'supervisor:id,name,nip',
+            'loans.borrower:id,name,role,class',
+            'loans.supervisor:id,name',
+            'loans.schedule:id,code,title,mata_kuliah,tanggal',
+            'loans.items.equipment:id,code,name,item_type,category',
+            'loans.collateral',
+        ]);
+
+        return Inertia::render('Admin/Loan/Submission', [
+            'submission' => $this->submissions->detail(
+                $submission,
+                fn (Loan $loan) => $this->formatLoan($loan, true),
+                'admin.loans.submission',
+            ),
+        ]);
+    }
+
     public function destroy(Loan $loan): RedirectResponse
     {
         $this->authorize('delete', $loan);
@@ -114,7 +146,12 @@ class LoanController extends Controller
             $this->workflow->restoreStock($loan);
         }
 
+        $submission = $loan->submission;
         $loan->delete();
+
+        if ($submission && $submission->loans()->doesntExist()) {
+            $submission->delete();
+        }
 
         return redirect()
             ->route('admin.loans.index')
@@ -250,7 +287,10 @@ class LoanController extends Controller
 
         $data = [
             'id' => $loan->id,
-            'code' => $loan->code,
+            'code' => $loan->displayCode(),
+            'loan_code' => $loan->code,
+            'submission_id' => $loan->submission_id,
+            'submission_code' => $loan->submission?->code ?? $loan->displayCode(),
             'loan_group_id' => $loan->loan_group_id,
             'is_package' => $loan->isPackaged(),
             'package_mates' => $loan->isPackaged()

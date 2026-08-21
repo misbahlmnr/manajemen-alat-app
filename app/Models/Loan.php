@@ -11,6 +11,7 @@ class Loan extends Model
 {
     protected $fillable = [
         'code',
+        'submission_id',
         'loan_group_id',
         'borrower_id',
         'supervisor_id',
@@ -44,6 +45,11 @@ class Loan extends Model
             'queued_at' => 'datetime',
             'queue_priority_set_at' => 'datetime',
         ];
+    }
+
+    public function submission(): BelongsTo
+    {
+        return $this->belongsTo(Submission::class);
     }
 
     public function borrower(): BelongsTo
@@ -190,16 +196,31 @@ class Loan extends Model
         return filled($this->loan_group_id);
     }
 
+    public function displayCode(): string
+    {
+        if ($this->relationLoaded('submission') && $this->submission) {
+            return $this->submission->code;
+        }
+
+        if ($this->submission_id) {
+            return $this->submission()->value('code') ?? $this->code;
+        }
+
+        return $this->code;
+    }
+
     /**
      * @return \Illuminate\Database\Eloquent\Collection<int, Loan>
      */
     public function packageSiblings(bool $includeSelf = false)
     {
-        if (! $this->isPackaged()) {
+        if ($this->submission_id) {
+            $query = static::query()->where('submission_id', $this->submission_id);
+        } elseif (filled($this->loan_group_id)) {
+            $query = static::query()->where('loan_group_id', $this->loan_group_id);
+        } else {
             return static::query()->whereKey([])->get();
         }
-
-        $query = static::query()->where('loan_group_id', $this->loan_group_id);
 
         if (! $includeSelf) {
             $query->whereKeyNot($this->id);

@@ -23,8 +23,8 @@ class LabNotificationService
             $isQueued ? 'loan_queued' : 'loan_submitted',
             $isQueued ? 'Pengajuan Masuk Antrian Stok' : 'Pengajuan Peminjaman Baru',
             $isQueued
-                ? "{$borrower} masuk antrian {$loan->code} — {$summary}."
-                : "{$borrower} mengajukan peminjaman {$loan->code} — {$summary}.",
+                ? "{$borrower} masuk antrian {$loan->displayCode()} — {$summary}."
+                : "{$borrower} mengajukan peminjaman {$loan->displayCode()} — {$summary}.",
             $isQueued ? 'warning' : 'info',
             route('admin.loans.show', $loan),
             $loan,
@@ -36,8 +36,8 @@ class LabNotificationService
                 $isQueued ? 'loan_queued' : 'loan_submitted',
                 $isQueued ? 'Siswa Masuk Antrian Stok' : 'Pengajuan Siswa Bimbingan',
                 $isQueued
-                    ? "{$borrower} masuk antrian {$loan->code} — {$summary}."
-                    : "{$borrower} mengajukan peminjaman {$loan->code} — {$summary}.",
+                    ? "{$borrower} masuk antrian {$loan->displayCode()} — {$summary}."
+                    : "{$borrower} mengajukan peminjaman {$loan->displayCode()} — {$summary}.",
                 $isQueued ? 'warning' : 'info',
                 route('guru.loans.show', $loan),
                 $loan,
@@ -50,8 +50,8 @@ class LabNotificationService
                 $isQueued ? 'loan_queued' : 'loan_submitted',
                 $isQueued ? 'Pengajuan Masuk Antrian' : 'Pengajuan Terkirim',
                 $isQueued
-                    ? "Pengajuan {$loan->code} masuk antrian karena stok habis. Anda akan diberitahu saat stok tersedia."
-                    : "Pengajuan {$loan->code} berhasil dikirim dan menunggu persetujuan.",
+                    ? "Pengajuan {$loan->displayCode()} masuk antrian karena stok habis. Anda akan diberitahu saat stok tersedia."
+                    : "Pengajuan {$loan->displayCode()} berhasil dikirim dan menunggu persetujuan.",
                 $isQueued ? 'warning' : 'info',
                 route('siswa.loans.show', $loan),
                 $loan,
@@ -67,7 +67,7 @@ class LabNotificationService
             $loan->borrower,
             'loan_promoted',
             'Stok Tersedia — Siap Ditinjau',
-            "Pengajuan {$loan->code} keluar dari antrian. Menunggu persetujuan admin.",
+            "Pengajuan {$loan->displayCode()} keluar dari antrian. Menunggu persetujuan admin.",
             'success',
             route('siswa.loans.show', $loan),
             $loan,
@@ -77,7 +77,7 @@ class LabNotificationService
             $this->admins(),
             'loan_promoted',
             'Antrian Stok — Siap Ditinjau',
-            "Pengajuan {$loan->code} dari {$loan->borrower?->name} siap ditinjau (stok tersedia).",
+            "Pengajuan {$loan->displayCode()} dari {$loan->borrower?->name} siap ditinjau (stok tersedia).",
             'info',
             route('admin.loans.show', $loan),
             $loan,
@@ -95,7 +95,7 @@ class LabNotificationService
             $loan->borrower,
             'loan_approved',
             'Pengajuan Disetujui',
-            "Peminjaman {$loan->code} telah {$statusLabel}.",
+            "Peminjaman {$loan->displayCode()} telah {$statusLabel}.",
             'success',
             route('siswa.loans.show', $loan),
             $loan,
@@ -106,7 +106,7 @@ class LabNotificationService
                 $loan->supervisor,
                 'loan_approved',
                 'Pengajuan Siswa Disetujui',
-                "Peminjaman {$loan->code} milik {$borrowerName} telah {$statusLabel}.",
+                "Peminjaman {$loan->displayCode()} milik {$borrowerName} telah {$statusLabel}.",
                 'success',
                 route('guru.loans.show', $loan),
                 $loan,
@@ -123,7 +123,7 @@ class LabNotificationService
             $loan->borrower,
             'loan_rejected',
             'Pengajuan Ditolak',
-            "Peminjaman {$loan->code} ditolak.{$detail}",
+            "Peminjaman {$loan->displayCode()} ditolak.{$detail}",
             'error',
             route('siswa.loans.show', $loan),
             $loan,
@@ -134,7 +134,7 @@ class LabNotificationService
                 $loan->supervisor,
                 'loan_rejected',
                 'Pengajuan Siswa Ditolak',
-                "Peminjaman {$loan->code} milik {$loan->borrower?->name} ditolak.",
+                "Peminjaman {$loan->displayCode()} milik {$loan->borrower?->name} ditolak.",
                 'warning',
                 route('guru.loans.show', $loan),
                 $loan,
@@ -150,7 +150,7 @@ class LabNotificationService
             $loan->borrower,
             'loan_borrowed',
             'Alat Diserahkan',
-            "Peminjaman {$loan->code} telah diserahkan. Pastikan pengembalian tepat waktu.",
+            "Peminjaman {$loan->displayCode()} telah diserahkan. Pastikan pengembalian tepat waktu.",
             'success',
             route('siswa.loans.show', $loan),
             $loan,
@@ -166,7 +166,7 @@ class LabNotificationService
             $loan->borrower,
             'loan_return_requested',
             'Pengembalian Diajukan',
-            "Pengajuan pengembalian {$loan->code} diterima. Menunggu inspeksi admin.",
+            "Pengajuan pengembalian {$loan->displayCode()} diterima. Menunggu inspeksi admin.",
             'info',
             route('siswa.loans.show', $loan),
             $loan,
@@ -176,7 +176,7 @@ class LabNotificationService
             $this->admins(),
             'loan_return_requested',
             'Permintaan Pengembalian',
-            "{$borrower} meminta pengembalian {$loan->code}. Perlu inspeksi admin.",
+            "{$borrower} meminta pengembalian {$loan->displayCode()}. Perlu inspeksi admin.",
             'warning',
             route('admin.loans.show', $loan),
             $loan,
@@ -187,7 +187,7 @@ class LabNotificationService
                 $loan->supervisor,
                 'loan_return_requested',
                 'Siswa Meminta Pengembalian',
-                "{$borrower} mengajukan pengembalian {$loan->code}.",
+                "{$borrower} mengajukan pengembalian {$loan->displayCode()}.",
                 'info',
                 route('guru.loans.show', $loan),
                 $loan,
@@ -203,7 +203,7 @@ class LabNotificationService
             $loan->borrower,
             'loan_returned',
             'Peminjaman Selesai',
-            "Peminjaman {$loan->code} telah dikembalikan dan ditutup.",
+            "Peminjaman {$loan->displayCode()} telah dikembalikan dan ditutup.",
             'success',
             route('siswa.loans.show', $loan),
             $loan,
@@ -214,7 +214,7 @@ class LabNotificationService
                 $loan->supervisor,
                 'loan_returned',
                 'Peminjaman Siswa Selesai',
-                "Peminjaman {$loan->code} milik {$loan->borrower?->name} telah dikembalikan.",
+                "Peminjaman {$loan->displayCode()} milik {$loan->borrower?->name} telah dikembalikan.",
                 'success',
                 route('guru.loans.show', $loan),
                 $loan,
@@ -231,7 +231,7 @@ class LabNotificationService
             $loan->borrower,
             'loan_cancelled',
             'Peminjaman Dibatalkan',
-            "Peminjaman {$loan->code} telah dibatalkan.",
+            "Peminjaman {$loan->displayCode()} telah dibatalkan.",
             'warning',
             route('siswa.loans.show', $loan),
             $loan,
@@ -241,7 +241,7 @@ class LabNotificationService
             $this->admins(),
             'loan_cancelled',
             'Peminjaman Dibatalkan',
-            "{$borrower} membatalkan peminjaman {$loan->code}.",
+            "{$borrower} membatalkan peminjaman {$loan->displayCode()}.",
             'warning',
             route('admin.loans.show', $loan),
             $loan,
@@ -252,7 +252,7 @@ class LabNotificationService
                 $loan->supervisor,
                 'loan_cancelled',
                 'Peminjaman Siswa Dibatalkan',
-                "{$borrower} membatalkan peminjaman {$loan->code}.",
+                "{$borrower} membatalkan peminjaman {$loan->displayCode()}.",
                 'warning',
                 route('guru.loans.show', $loan),
                 $loan,
@@ -269,7 +269,7 @@ class LabNotificationService
             $loan->borrower,
             'loan_overdue',
             'Peminjaman Terlambat',
-            "Peminjaman {$loan->code} melewati batas waktu. Segera kembalikan alat.",
+            "Peminjaman {$loan->displayCode()} melewati batas waktu. Segera kembalikan alat.",
             'error',
             route('siswa.loans.show', $loan),
             $loan,
@@ -279,7 +279,7 @@ class LabNotificationService
             $this->admins(),
             'loan_overdue',
             'Peminjaman Terlambat',
-            "{$borrower} — peminjaman {$loan->code} terlambat dikembalikan.",
+            "{$borrower} — peminjaman {$loan->displayCode()} terlambat dikembalikan.",
             'error',
             route('admin.loans.show', $loan),
             $loan,
@@ -290,7 +290,7 @@ class LabNotificationService
                 $loan->supervisor,
                 'loan_overdue',
                 'Siswa Bimbingan Terlambat',
-                "{$borrower} — peminjaman {$loan->code} terlambat.",
+                "{$borrower} — peminjaman {$loan->displayCode()} terlambat.",
                 'error',
                 route('guru.loans.show', $loan),
                 $loan,
@@ -312,15 +312,15 @@ class LabNotificationService
             $title = 'Alat Rusak';
             $message = $damageDescription
                 ? "Alat rusak: {$damageDescription}."
-                : "Alat peminjaman {$loan->code} dinyatakan rusak.";
+                : "Alat peminjaman {$loan->displayCode()} dinyatakan rusak.";
             $message .= ' '.($studentInstruction ?: 'Segera datang ke kantor lab untuk penyelesaian.');
             $eventType = 'equipment_damaged';
         } else {
             $missingItems = $inspectionData['missing_items'] ?? $loan->inspection?->missing_items;
             $title = 'Pengembalian Tidak Lengkap';
             $message = $missingItems
-                ? "Pengembalian {$loan->code} tidak lengkap: {$missingItems}."
-                : "Pengembalian {$loan->code} tidak lengkap.";
+                ? "Pengembalian {$loan->displayCode()} tidak lengkap: {$missingItems}."
+                : "Pengembalian {$loan->displayCode()} tidak lengkap.";
             $message .= ' '.($studentInstruction ?: 'Segera datang ke kantor lab untuk penyelesaian.');
             $eventType = 'compensation_required';
         }
@@ -366,7 +366,7 @@ class LabNotificationService
             $loan->borrower,
             'compensation_completed',
             'Kompensasi Selesai',
-            "Kompensasi peminjaman {$loan->code} telah diselesaikan. Kartu dapat diambil.",
+            "Kompensasi peminjaman {$loan->displayCode()} telah diselesaikan. Kartu dapat diambil.",
             'success',
             route('siswa.loans.show', $loan),
             $loan,
@@ -386,7 +386,7 @@ class LabNotificationService
             $loan->borrower,
             'collateral_held',
             'Kartu Pelajar Ditahan',
-            "Kartu pelajar ditahan untuk jaminan peminjaman {$loan->code}.",
+            "Kartu pelajar ditahan untuk jaminan peminjaman {$loan->displayCode()}.",
             'warning',
             route('siswa.loans.show', $loan),
             $loan,

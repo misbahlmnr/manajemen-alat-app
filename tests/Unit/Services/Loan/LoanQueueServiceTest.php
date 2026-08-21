@@ -6,6 +6,7 @@ use App\Models\Equipment;
 use App\Models\Loan;
 use App\Models\LoanItem;
 use App\Models\PracticumSchedule;
+use App\Models\Submission;
 use App\Models\User;
 use App\Services\Loan\LoanQueueService;
 use Carbon\Carbon;
@@ -188,9 +189,25 @@ class LoanQueueServiceTest extends TestCase
         $guru = User::query()->where('role', 'guru')->first()
             ?? $this->makeUser('guru', 'guru-'.Str::lower(Str::random(4)));
 
+        $submissionId = null;
+        if ($loanGroupId) {
+            $submissionId = Loan::query()
+                ->where('loan_group_id', $loanGroupId)
+                ->value('submission_id');
+        }
+
+        if (! $submissionId) {
+            $submissionId = Submission::createForBorrower($borrower, [
+                'supervisor_id' => $guru->id,
+                'purpose' => 'Tes antrian',
+                'request_date' => now()->toDateString(),
+            ])->id;
+        }
+
         $loan = Loan::query()->create([
             'code' => Loan::generateCode(),
             'loan_group_id' => $loanGroupId,
+            'submission_id' => $submissionId,
             'borrower_id' => $borrower->id,
             'supervisor_id' => $guru->id,
             'item_type' => $itemType,

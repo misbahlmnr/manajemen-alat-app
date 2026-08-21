@@ -77,10 +77,26 @@ class LoanQueueFlowTest extends TestCase
         $response->assertRedirect(route('siswa.loans.index', ['scope' => 'active']));
 
         $loans = Loan::query()->where('borrower_id', $siswa->id)->orderBy('item_type')->get();
+        $loans->load('submission');
         $this->assertCount(2, $loans);
         $this->assertNotNull($loans[0]->loan_group_id);
         $this->assertSame($loans[0]->loan_group_id, $loans[1]->loan_group_id);
+        $this->assertNotNull($loans[0]->submission_id);
+        $this->assertSame($loans[0]->submission_id, $loans[1]->submission_id);
+        $this->assertMatchesRegularExpression('/^SUB-\d{4}$/', $loans[0]->submission->code);
         $this->assertEqualsCanonicalizing(['alat', 'bahan'], $loans->pluck('item_type')->all());
+
+        $admin = $this->makeUser('admin', 'admin-sub-list');
+        $this->actingAs($admin)
+            ->get(route('admin.loans.index'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Admin/Loan/Index')
+                ->has('loans.data', 1)
+                ->where('loans.data.0.code', $loans[0]->submission->code)
+                ->where('loans.data.0.alat_count', 1)
+                ->where('loans.data.0.bahan_count', 1)
+            );
     }
 
     public function test_admin_approve_deducts_stock_for_alat_and_bahan(): void

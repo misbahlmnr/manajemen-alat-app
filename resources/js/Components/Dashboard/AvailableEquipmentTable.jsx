@@ -126,7 +126,7 @@ export function AvailableEquipmentTable({ equipment = [], pageSize = 5 }) {
                                                     {item.cta_label ??
                                                         (item.queue_open
                                                             ? "Ajukan"
-                                                            : "Pinjam")}
+                                                            : "Tambah")}
                                                 </Link>
                                             </Button>
                                         )}

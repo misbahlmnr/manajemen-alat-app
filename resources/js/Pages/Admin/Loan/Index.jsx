@@ -2,16 +2,12 @@ import AppLayout from "@/Layouts/AppLayout";
 import PageHeader from "@/Components/PageHeader";
 import EmptyState from "@/Components/EmptyState";
 import { paginatorTotal } from "@/lib/paginator";
-import { Button } from "@/Components/ui/button";
 import { Input } from "@/Components/ui/input";
 import { Select } from "@/Components/ui/select";
-import { Head, Link, router, useForm } from "@inertiajs/react";
+import { Head, router, useForm } from "@inertiajs/react";
 import { ClipboardList, Search } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import LoanTable from "./Components/LoanTable";
-import DeleteLoanDialog from "./Components/DeleteLoanDialog";
-import RejectLoanDialog from "./Components/RejectLoanDialog";
-import ReturnLoanDialog from "./Components/ReturnLoanDialog";
 
 export default function Index({
     loans,
@@ -32,12 +28,6 @@ export default function Index({
         date_to: filters.date_to ?? "",
     });
 
-    const [deleteTarget, setDeleteTarget] = useState(null);
-    const [rejectTarget, setRejectTarget] = useState(null);
-    const [returnTarget, setReturnTarget] = useState(null);
-    const [deleting, setDeleting] = useState(false);
-    const [rejecting, setRejecting] = useState(false);
-    const [returning, setReturning] = useState(false);
     const isFirstRender = useRef(true);
 
     useEffect(() => {
@@ -64,50 +54,6 @@ export default function Index({
         data.date_to,
     ]);
 
-    const handleDelete = () => {
-        if (!deleteTarget) return;
-        setDeleting(true);
-        router.delete(route("admin.loans.destroy", deleteTarget.id), {
-            preserveScroll: true,
-            onFinish: () => {
-                setDeleting(false);
-                setDeleteTarget(null);
-            },
-        });
-    };
-
-    const handleReject = (reason) => {
-        if (!rejectTarget) return;
-        setRejecting(true);
-        router.post(
-            route("admin.loans.reject", rejectTarget.id),
-            { rejection_reason: reason },
-            {
-                preserveScroll: true,
-                onFinish: () => {
-                    setRejecting(false);
-                    setRejectTarget(null);
-                },
-            },
-        );
-    };
-
-    const handleReturn = (note) => {
-        if (!returnTarget) return;
-        setReturning(true);
-        router.post(
-            route("admin.loans.return", returnTarget.id),
-            { note: note ?? "" },
-            {
-                preserveScroll: true,
-                onFinish: () => {
-                    setReturning(false);
-                    setReturnTarget(null);
-                },
-            },
-        );
-    };
-
     const list = loans.data ?? [];
     const total = paginatorTotal(loans);
 
@@ -127,7 +73,7 @@ export default function Index({
                         <Input
                             value={data.search}
                             onChange={(e) => setData("search", e.target.value)}
-                            placeholder="Cari kode, peminjam, barang..."
+                            placeholder="Cari SUB-0004, peminjam, barang..."
                             className="rounded-xl border-border/60 bg-card pl-10 shadow-sm"
                         />
                     </div>
@@ -214,44 +160,15 @@ export default function Index({
                 </div>
 
                 {total > 0 ? (
-                    <LoanTable
-                        items={list}
-                        pagination={loans}
-                        onDelete={setDeleteTarget}
-                        onReject={setRejectTarget}
-                        onReturn={setReturnTarget}
-                    />
+                    <LoanTable items={list} pagination={loans} />
                 ) : (
                     <EmptyState
                         icon={ClipboardList}
-                        title="Tidak ada peminjaman ditemukan"
-                        description="Pengajuan dari siswa akan muncul di sini untuk disetujui atau ditolak."
+                        title="Tidak ada pengajuan ditemukan"
+                        description="Pengajuan alat dan bahan dari siswa tampil sebagai satu baris di sini."
                     />
                 )}
             </div>
-
-            <DeleteLoanDialog
-                open={!!deleteTarget}
-                onOpenChange={(open) => !open && setDeleteTarget(null)}
-                itemName={deleteTarget?.code}
-                onConfirm={handleDelete}
-                loading={deleting}
-            />
-            <RejectLoanDialog
-                open={!!rejectTarget}
-                onOpenChange={(open) => !open && setRejectTarget(null)}
-                itemName={rejectTarget?.code}
-                onConfirm={handleReject}
-                loading={rejecting}
-            />
-            <ReturnLoanDialog
-                open={!!returnTarget}
-                onOpenChange={(open) => !open && setReturnTarget(null)}
-                itemName={returnTarget?.code}
-                requiresInspection={returnTarget?.requires_return_inspection}
-                onConfirm={handleReturn}
-                loading={returning}
-            />
         </AppLayout>
     );
 }

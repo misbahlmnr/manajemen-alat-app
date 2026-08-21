@@ -46,8 +46,13 @@ const config = {
         dot: "bg-slate-500",
         className: "border-slate-500/20 bg-slate-500/10 text-slate-600",
     },
+    diproses: {
+        label: "Diproses",
+        dot: "bg-indigo-500",
+        className: "border-indigo-500/20 bg-indigo-500/10 text-indigo-700",
+    },
     paket: {
-        label: "Paket",
+        label: "Pengajuan",
         dot: "bg-indigo-500",
         className: "border-indigo-500/20 bg-indigo-500/10 text-indigo-700",
     },

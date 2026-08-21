@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Equipment;
 use App\Models\Loan;
 use App\Models\PracticumSchedule;
+use App\Models\Submission;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
@@ -26,8 +27,16 @@ class LoanSeeder extends Seeder
             ->where('kelas', $siswa->class)
             ->first();
 
+        $sub1 = Submission::createForBorrower($siswa, [
+            'supervisor_id' => $guru->id,
+            'purpose' => 'Praktik sesuai jadwal mapel',
+            'notes' => 'Untuk praktikum hari ini',
+            'request_date' => Carbon::today()->toDateString(),
+        ]);
+
         $loan1 = Loan::create([
             'code' => Loan::generateCode(),
+            'submission_id' => $sub1->id,
             'borrower_id' => $siswa->id,
             'supervisor_id' => $guru->id,
             'practicum_schedule_id' => $schedule?->id,
@@ -51,8 +60,16 @@ class LoanSeeder extends Seeder
         ]);
 
         if ($schedule) {
+            $subCatchUp = Submission::createForBorrower($siswa, [
+                'supervisor_id' => $guru->id,
+                'purpose' => 'Lanjutan praktikum — progress belum selesai',
+                'notes' => 'Belum selesai saat jam mapel, melanjutkan di lab besok.',
+                'request_date' => Carbon::tomorrow()->toDateString(),
+            ]);
+
             $loanCatchUp = Loan::create([
                 'code' => Loan::generateCode(),
+                'submission_id' => $subCatchUp->id,
                 'borrower_id' => $siswa->id,
                 'supervisor_id' => $guru->id,
                 'practicum_schedule_id' => $schedule->id,
@@ -77,8 +94,15 @@ class LoanSeeder extends Seeder
         }
 
         if ($bahan) {
+            $sub2 = Submission::createForBorrower($siswa, [
+                'supervisor_id' => $guru->id,
+                'purpose' => 'Praktik elektronika',
+                'request_date' => Carbon::today()->subDays(1)->toDateString(),
+            ]);
+
             $loan2 = Loan::create([
                 'code' => Loan::generateCode(),
+                'submission_id' => $sub2->id,
                 'borrower_id' => $siswa->id,
                 'supervisor_id' => $guru->id,
                 'item_type' => 'bahan',

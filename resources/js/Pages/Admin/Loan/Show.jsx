@@ -90,7 +90,24 @@ export default function Show({ loan }) {
             <Head title={loan.code} />
 
             <div className="animate-fade-in mx-auto max-w-5xl">
-                <PageHeader title="Detail Peminjaman" subtitle={loan.code}>
+                <PageHeader
+                    title={
+                        isBahan ? "Kelola Bahan" : "Kelola Alat"
+                    }
+                    subtitle={`${loan.submission_code || loan.code}${loan.item_type_label ? ` · ${loan.item_type_label}` : ""}`}
+                >
+                    {loan.submission_code && (
+                        <Button variant="outline" asChild>
+                            <Link
+                                href={route(
+                                    "admin.loans.submission",
+                                    loan.submission_code,
+                                )}
+                            >
+                                Kembali ke pengajuan
+                            </Link>
+                        </Button>
+                    )}
                     {loan.can_approve && (
                         <Button
                             variant="outline"

@@ -44,14 +44,7 @@ function CatalogMobileCard({ item, isBahan, cart, onAdd, maxQty }) {
     const remain = maxQty(item);
     const disabled =
         remain <= 0 || (inCart && inCart.quantity >= remain);
-    const ctaLabel =
-        item.available <= 0
-            ? isBahan
-                ? "Ajukan"
-                : "Ajukan"
-            : isBahan
-              ? "Ambil"
-              : "Tambah";
+    const ctaLabel = "Tambah";
 
     return (
         <div className="rounded-xl border border-border/60 bg-card p-4 shadow-sm">
@@ -185,12 +178,7 @@ export default function LoanCatalogTable({
                     const disabled =
                         remain <= 0 ||
                         (inCart && inCart.quantity >= remain);
-                    const ctaLabel =
-                        item.available <= 0
-                            ? "Ajukan"
-                            : isBahan
-                              ? "Ambil"
-                              : "Tambah";
+                    const ctaLabel = "Tambah";
 
                     return (
                         <Button

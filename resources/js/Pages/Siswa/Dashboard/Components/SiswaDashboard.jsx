@@ -7,7 +7,7 @@ import QuickActionCard from "./QuickActionCard";
 import NotificationBanner from "./NotificationBanner";
 import CompensationAlert from "./CompensationAlert";
 import { usePage } from "@inertiajs/react";
-import { Bell, ClipboardCheck, FileText, Package, Wrench } from "lucide-react";
+import { Bell, ClipboardCheck, FileText } from "lucide-react";
 
 export default function SiswaDashboard({
     loans,
@@ -62,20 +62,13 @@ export default function SiswaDashboard({
                 />
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="mb-8">
                 <QuickActionCard
-                    href={route("siswa.loans.create", { type: "alat" })}
-                    icon={Wrench}
-                    title="Ajukan Pinjam Alat"
-                    description="Pinjam kamera, mixer, mikrofon, dan alat lab lainnya."
+                    href={route("siswa.loans.create")}
+                    icon={FileText}
+                    title="Ajukan Alat / Bahan"
+                    description="Pilih alat dan bahan ke satu keranjang, lalu ajukan sekali untuk kebutuhan praktikum."
                     accent="primary"
-                />
-                <QuickActionCard
-                    href={route("siswa.loans.create", { type: "bahan" })}
-                    icon={Package}
-                    title="Ambil Bahan"
-                    description="Komponen elektro, kabel, timah, dan bahan habis pakai."
-                    accent="warning"
                 />
             </div>
 

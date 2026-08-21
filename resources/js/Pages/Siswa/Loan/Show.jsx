@@ -65,7 +65,16 @@ export default function Show({ loan }) {
                     subtitle={loan.code}
                 >
                     <Button variant="outline" asChild>
-                        <Link href={route("siswa.loans.index")}>
+                        <Link
+                            href={
+                                loan.submission_code
+                                    ? route(
+                                          "siswa.loans.submission",
+                                          loan.submission_code,
+                                      )
+                                    : route("siswa.loans.index")
+                            }
+                        >
                             <ArrowLeft className="mr-2 h-4 w-4" />
                             Kembali
                         </Link>

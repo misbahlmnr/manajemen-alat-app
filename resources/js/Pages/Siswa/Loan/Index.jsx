@@ -159,8 +159,8 @@ export default function Index({ loans, filters, tabCounts, statusOptions }) {
                     }
                     subtitle={
                         isHistory
-                            ? `${total} arsip: peminjaman alat & pengambilan bahan`
-                            : `${total} pengajuan aktif (pinjam alat / ambil bahan)`
+                            ? `${total} arsip pengajuan alat & bahan`
+                            : `${total} pengajuan aktif alat & bahan`
                     }
                 >
                     {!isHistory && (
@@ -244,7 +244,7 @@ export default function Index({ loans, filters, tabCounts, statusOptions }) {
                         description={
                             isHistory
                                 ? "Peminjaman alat yang selesai dan bahan yang sudah diambil akan tampil di sini."
-                                : "Ajukan pinjam alat atau ambil bahan untuk melacak statusnya di halaman ini."
+                                : "Ajukan alat dan bahan dalam satu keranjang untuk melacak statusnya di halaman ini."
                         }
                         action={
                             !isHistory ? (

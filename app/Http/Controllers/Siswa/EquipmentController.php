@@ -86,7 +86,7 @@ class EquipmentController extends Controller
             'borrowed' => max(0, $equipment->qty_baik - $equipment->available),
             'can_borrow' => $equipment->status === 'tersedia',
             'queue_open' => $queueOpen,
-            'cta_label' => $queueOpen ? 'Ajukan' : 'Pinjam',
+            'cta_label' => $queueOpen ? 'Ajukan' : 'Tambah',
             'show_url' => route('siswa.equipment.show', $equipment),
             'borrow_url' => $this->borrowUrl($equipment),
             'location' => $equipment->location ?? '—',
