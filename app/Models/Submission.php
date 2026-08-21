@@ -96,37 +96,113 @@ class Submission extends Model
             return 'diminta';
         }
 
-        // Bahan yang sudah diambil (dipinjam) dianggap selesai untuk status pengajuan,
-        // karena bahan habis pakai tidak melalui pengembalian seperti alat.
-        $effective = $loans->map(function (Loan $loan) {
-            if ($loan->item_type === 'bahan' && $loan->status === 'dipinjam') {
-                return 'dikembalikan';
+        // Prioritas: Antrian > Dibatalkan > Selesai > Menunggu > Diproses
+        if ($loans->contains(fn (Loan $loan) => $loan->status === 'antrian')) {
+            return 'antrian';
+        }
+
+        if ($loans->every(fn (Loan $loan) => in_array($loan->status, ['dibatalkan', 'ditolak'], true))) {
+            return 'dibatalkan';
+        }
+
+        if ($loans->every(fn (Loan $loan) => $this->loanIsFinishedForSubmission($loan))) {
+            return 'selesai';
+        }
+
+        if ($loans->every(fn (Loan $loan) => $loan->status === 'diminta')) {
+            return 'diminta';
+        }
+
+        return 'diproses';
+    }
+
+    public function statusSummary(): string
+    {
+        /** @var Collection<int, Loan> $loans */
+        $loans = $this->relationLoaded('loans') ? $this->loans : $this->loans()->get();
+
+        $parts = [];
+
+        foreach (['alat', 'bahan'] as $itemType) {
+            $loan = $loans->firstWhere('item_type', $itemType);
+            if (! $loan) {
+                continue;
             }
 
-            return $loan->status;
-        });
-
-        $unique = $effective->unique()->values();
-        if ($unique->count() === 1) {
-            $status = (string) $unique->first();
-
-            return $status === 'dikembalikan' ? 'selesai' : $status;
+            $label = $itemType === 'alat' ? 'Alat' : 'Bahan';
+            $parts[] = "{$label}: {$this->loanStatusLabelForSummary($loan)}";
         }
 
-        $open = ['diminta', 'antrian', 'disetujui', 'dipinjam', 'terlambat', 'menunggu_inspeksi'];
-        if ($effective->contains(fn (string $status) => in_array($status, $open, true))) {
-            return 'diproses';
+        return implode(' · ', $parts);
+    }
+
+    /**
+     * Filter submission list by aggregated progress status (not raw loan status).
+     */
+    public function scopeWhereAggregateStatus($query, string $status)
+    {
+        return match ($status) {
+            'antrian' => $query->whereHas('loans', fn ($q) => $q->where('status', 'antrian')),
+            'diminta' => $query
+                ->whereHas('loans')
+                ->whereDoesntHave('loans', fn ($q) => $q->where('status', '!=', 'diminta')),
+            'dibatalkan' => $query
+                ->whereHas('loans')
+                ->whereDoesntHave('loans', fn ($q) => $q->whereNotIn('status', ['dibatalkan', 'ditolak'])),
+            'selesai' => $query
+                ->whereHas('loans')
+                ->whereDoesntHave('loans', fn ($q) => $q->where('status', 'antrian'))
+                ->whereDoesntHave('loans', function ($q) {
+                    $q->where(function ($inner) {
+                        $inner->where(function ($alat) {
+                            $alat->where('item_type', 'alat')
+                                ->where('status', '!=', 'dikembalikan');
+                        })->orWhere(function ($bahan) {
+                            $bahan->where('item_type', 'bahan')
+                                ->whereNotIn('status', ['dipinjam', 'dikembalikan']);
+                        });
+                    });
+                }),
+            'diproses' => $query
+                ->whereHas('loans')
+                ->whereDoesntHave('loans', fn ($q) => $q->where('status', 'antrian'))
+                ->whereHas('loans', fn ($q) => $q->where('status', '!=', 'diminta'))
+                ->whereHas('loans', fn ($q) => $q->whereNotIn('status', ['dibatalkan', 'ditolak']))
+                ->whereHas('loans', function ($q) {
+                    $q->where(function ($inner) {
+                        $inner->where(function ($alat) {
+                            $alat->where('item_type', 'alat')
+                                ->where('status', '!=', 'dikembalikan');
+                        })->orWhere(function ($bahan) {
+                            $bahan->where('item_type', 'bahan')
+                                ->whereNotIn('status', ['dipinjam', 'dikembalikan']);
+                        });
+                    });
+                }),
+            default => $query,
+        };
+    }
+
+    private function loanIsFinishedForSubmission(Loan $loan): bool
+    {
+        if ($loan->item_type === 'bahan') {
+            return in_array($loan->status, ['dipinjam', 'dikembalikan'], true);
         }
 
-        foreach (['terlambat', 'dikembalikan', 'ditolak', 'dibatalkan'] as $status) {
-            if ($effective->contains($status)) {
-                return $status === 'dikembalikan' ? 'selesai' : $status;
-            }
+        return $loan->status === 'dikembalikan';
+    }
+
+    private function loanStatusLabelForSummary(Loan $loan): string
+    {
+        if ($loan->item_type === 'bahan') {
+            return match ($loan->status) {
+                'dipinjam' => 'Diambil',
+                'dikembalikan' => 'Selesai',
+                default => config("lab.loan_statuses.{$loan->status}", $loan->status),
+            };
         }
 
-        $fallback = (string) $unique->first();
-
-        return $fallback === 'dikembalikan' ? 'selesai' : $fallback;
+        return config("lab.loan_statuses.{$loan->status}", $loan->status);
     }
 
     public function alatItemCount(): int

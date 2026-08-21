@@ -62,10 +62,17 @@ export default function LoanTable({ items, pagination }) {
             accessorKey: "status",
             header: "Status",
             cell: ({ row }) => (
-                <LoanStatusBadge
-                    status={row.original.status}
-                    itemType="submission"
-                />
+                <div className="min-w-[10rem] space-y-1">
+                    <LoanStatusBadge
+                        status={row.original.status}
+                        itemType="submission"
+                    />
+                    {row.original.status_summary ? (
+                        <p className="text-xs leading-snug text-muted-foreground">
+                            {row.original.status_summary}
+                        </p>
+                    ) : null}
+                </div>
             ),
         },
         {

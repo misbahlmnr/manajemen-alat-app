@@ -45,6 +45,7 @@ class SubmissionPresenter
             'request_date_formatted' => $submission->request_date?->translatedFormat('d M Y'),
             'created_at_formatted' => $submission->created_at?->translatedFormat('d M Y'),
             'status' => $submission->aggregateStatus(),
+            'status_summary' => $submission->statusSummary(),
             'alat_count' => $submission->alatItemCount(),
             'bahan_count' => $submission->bahanItemCount(),
             'has_alat' => (bool) $alat,

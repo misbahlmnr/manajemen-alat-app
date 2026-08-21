@@ -71,6 +71,14 @@ return [
         'dibatalkan' => 'Dibatalkan',
     ],
 
+    'submission_statuses' => [
+        'diminta' => 'Menunggu Persetujuan',
+        'antrian' => 'Antrian',
+        'diproses' => 'Diproses',
+        'selesai' => 'Selesai',
+        'dibatalkan' => 'Dibatalkan',
+    ],
+
     'practicum_subjects' => [
         'DTE (Dasar Teknik Elektronika)',
         'TPMM (Teknik Pemrograman Mikroprosessor dan Mikrokontroller)',

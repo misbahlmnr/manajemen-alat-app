@@ -13,13 +13,8 @@ import { Head, Link, router, useForm } from "@inertiajs/react";
 import { ClipboardList, History, Plus, Search } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-const HISTORY_STATUSES = [
-    "dikembalikan",
-    "ditolak",
-    "dibatalkan",
-    "dipinjam",
-];
-const ACTIVE_STATUSES_EXCLUDE = ["dikembalikan", "ditolak", "dibatalkan"];
+const HISTORY_STATUSES = ["selesai", "dibatalkan"];
+const ACTIVE_STATUSES = ["diminta", "antrian", "diproses"];
 
 export default function Index({ loans, filters, tabCounts, statusOptions }) {
     const isHistory = filters.scope === "history";
@@ -45,28 +40,15 @@ export default function Index({ loans, filters, tabCounts, statusOptions }) {
 
     const filteredStatusOptions = useMemo(() => {
         const entries = Object.entries(statusOptions ?? {});
-        const bahanLabels = {
-            dipinjam: "Diambil",
-            dikembalikan: "Selesai",
-            terlambat: "Terlambat",
-            menunggu_inspeksi: "Menunggu Inspeksi",
-        };
 
         return Object.fromEntries(
-            entries
-                .filter(([key]) =>
-                    isHistory
-                        ? HISTORY_STATUSES.includes(key)
-                        : !ACTIVE_STATUSES_EXCLUDE.includes(key),
-                )
-                .map(([key, label]) => [
-                    key,
-                    tabValue === "bahan" && bahanLabels[key]
-                        ? bahanLabels[key]
-                        : label,
-                ]),
+            entries.filter(([key]) =>
+                isHistory
+                    ? HISTORY_STATUSES.includes(key)
+                    : ACTIVE_STATUSES.includes(key),
+            ),
         );
-    }, [statusOptions, isHistory, tabValue]);
+    }, [statusOptions, isHistory]);
 
     useEffect(() => {
         if (isFirstRender.current) {

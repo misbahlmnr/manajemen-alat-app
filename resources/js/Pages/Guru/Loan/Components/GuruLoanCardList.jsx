@@ -27,7 +27,14 @@ function SubmissionCard({ loan, isHistory }) {
                         />
                     </div>
                 </div>
-                <LoanStatusBadge status={loan.status} itemType="submission" />
+                <div className="flex flex-col items-end gap-1">
+                    <LoanStatusBadge status={loan.status} itemType="submission" />
+                    {loan.status_summary ? (
+                        <p className="max-w-[16rem] text-right text-xs leading-snug text-muted-foreground">
+                            {loan.status_summary}
+                        </p>
+                    ) : null}
+                </div>
             </div>
             <div className="space-y-3 p-3">
                 {members.map((member) => (

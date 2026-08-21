@@ -11,13 +11,8 @@ import { ClipboardList, History, Search } from "lucide-react";
 import { useEffect, useMemo, useRef } from "react";
 import GuruLoanCardList from "./Components/GuruLoanCardList";
 
-const HISTORY_STATUSES = [
-    "dikembalikan",
-    "ditolak",
-    "dibatalkan",
-    "dipinjam",
-];
-const ACTIVE_STATUSES_EXCLUDE = ["dikembalikan", "ditolak", "dibatalkan"];
+const HISTORY_STATUSES = ["selesai", "dibatalkan"];
+const ACTIVE_STATUSES = ["diminta", "antrian", "diproses"];
 
 export default function Index({
     loans,
@@ -49,7 +44,7 @@ export default function Index({
             entries.filter(([key]) =>
                 isHistory
                     ? HISTORY_STATUSES.includes(key)
-                    : !ACTIVE_STATUSES_EXCLUDE.includes(key),
+                    : ACTIVE_STATUSES.includes(key),
             ),
         );
     }, [statusOptions, isHistory]);

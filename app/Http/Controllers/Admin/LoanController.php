@@ -57,7 +57,7 @@ class LoanController extends Controller
                         ->orWhereHas('loans.items.equipment', fn ($e) => $e->where('name', 'like', "%{$search}%"));
                 });
             })
-            ->when($status !== 'all', fn ($q) => $q->whereHas('loans', fn ($l) => $l->where('status', $status)))
+            ->when($status !== 'all', fn ($q) => $q->whereAggregateStatus($status))
             ->when($itemType !== 'all', fn ($q) => $q->whereHas('loans', fn ($l) => $l->where('item_type', $itemType)))
             ->when($borrowerId !== 'all', fn ($q) => $q->where('borrower_id', $borrowerId))
             ->when($supervisorId !== 'all', fn ($q) => $q->where('supervisor_id', $supervisorId))
@@ -90,7 +90,7 @@ class LoanController extends Controller
             'borrowerOptions' => $this->borrowerOptions(),
             'supervisorOptions' => $this->supervisorOptions(),
             'kelasOptions' => config('lab.class_options'),
-            'statusOptions' => config('lab.loan_statuses'),
+            'statusOptions' => config('lab.submission_statuses'),
         ]);
     }
 

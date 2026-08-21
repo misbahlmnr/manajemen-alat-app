@@ -164,6 +164,11 @@ export default function Submission({ submission }) {
                                     itemType="submission"
                                 />
                             </div>
+                            {submission.status_summary ? (
+                                <p className="pt-1 text-xs text-muted-foreground">
+                                    {submission.status_summary}
+                                </p>
+                            ) : null}
                         </div>
                     </CardContent>
                 </Card>

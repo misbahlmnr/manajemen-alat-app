@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 
-const config = {
+const loanConfig = {
     diminta: {
         label: "Menunggu Persetujuan",
         dot: "bg-blue-500",
@@ -41,6 +41,29 @@ const config = {
         dot: "bg-slate-400",
         className: "border-slate-400/20 bg-slate-500/10 text-slate-600",
     },
+    dibatalkan: {
+        label: "Dibatalkan",
+        dot: "bg-slate-500",
+        className: "border-slate-500/20 bg-slate-500/10 text-slate-600",
+    },
+};
+
+const submissionConfig = {
+    diminta: {
+        label: "Menunggu Persetujuan",
+        dot: "bg-blue-500",
+        className: "border-blue-500/20 bg-blue-500/10 text-blue-700",
+    },
+    antrian: {
+        label: "Antrian",
+        dot: "bg-amber-500",
+        className: "border-amber-500/20 bg-amber-500/10 text-amber-800",
+    },
+    diproses: {
+        label: "Diproses",
+        dot: "bg-indigo-500",
+        className: "border-indigo-500/20 bg-indigo-500/10 text-indigo-700",
+    },
     selesai: {
         label: "Selesai",
         dot: "bg-emerald-500",
@@ -51,16 +74,6 @@ const config = {
         dot: "bg-slate-500",
         className: "border-slate-500/20 bg-slate-500/10 text-slate-600",
     },
-    diproses: {
-        label: "Diproses",
-        dot: "bg-indigo-500",
-        className: "border-indigo-500/20 bg-indigo-500/10 text-indigo-700",
-    },
-    paket: {
-        label: "Pengajuan",
-        dot: "bg-indigo-500",
-        className: "border-indigo-500/20 bg-indigo-500/10 text-indigo-700",
-    },
 };
 
 const bahanStatusLabels = {
@@ -69,13 +82,11 @@ const bahanStatusLabels = {
 };
 
 export default function LoanStatusBadge({ status, itemType }) {
-    const displayStatus =
-        itemType === "submission" && status === "dikembalikan"
-            ? "selesai"
-            : status;
+    const config =
+        itemType === "submission" ? submissionConfig : loanConfig;
 
-    const item = config[displayStatus] ?? {
-        label: displayStatus,
+    const item = config[status] ?? {
+        label: status,
         dot: "bg-muted-foreground",
         className: "border-muted-foreground/20 bg-muted text-muted-foreground",
     };

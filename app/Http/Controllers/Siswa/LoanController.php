@@ -70,7 +70,7 @@ class LoanController extends Controller
                         ->orWhereHas('loans.items.equipment', fn ($e) => $e->where('name', 'like', "%{$search}%"));
                 });
             })
-            ->when($status !== 'all', fn ($q) => $q->whereHas('loans', fn ($l) => $l->where('status', $status)))
+            ->when($status !== 'all', fn ($q) => $q->whereAggregateStatus($status))
             ->when($itemType !== 'all', function ($q) use ($itemType) {
                 $q->whereHas('loans', fn ($l) => $l->where('item_type', $itemType));
             })
@@ -102,7 +102,7 @@ class LoanController extends Controller
                 'date_from' => $dateFrom,
                 'date_to' => $dateTo,
             ],
-            'statusOptions' => config('lab.loan_statuses'),
+            'statusOptions' => config('lab.submission_statuses'),
             'queueConfig' => [
                 'school_close_time' => config('lab.queue.school_close_time'),
                 'bawa_pulang_max_days' => config('lab.queue.bawa_pulang_max_days'),
