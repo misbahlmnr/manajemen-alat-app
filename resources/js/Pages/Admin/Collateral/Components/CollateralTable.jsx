@@ -1,21 +1,27 @@
 import DataTable from "@/Components/DataTable";
 import CollateralStatusBadge from "@/Components/CollateralStatusBadge";
 import CollateralTableActions from "./CollateralTableActions";
+import { Link } from "@inertiajs/react";
 
 export default function CollateralTable({
     items,
     pagination,
     onDelete,
     onInspect,
+    onHold,
 }) {
     const columns = [
         {
-            accessorKey: "code",
-            header: "No. Jaminan",
-            cell: ({ getValue }) => (
-                <span className="font-mono text-xs text-muted-foreground">
-                    {getValue()}
-                </span>
+            id: "submission",
+            header: "Submission",
+            accessorFn: (row) => row.submission_code || row.loan_code,
+            cell: ({ row }) => (
+                <Link
+                    href={route("admin.collaterals.show", row.original.id)}
+                    className="font-mono text-xs text-primary hover:underline"
+                >
+                    {row.original.submission_code || row.original.loan_code}
+                </Link>
             ),
         },
         {
@@ -24,49 +30,25 @@ export default function CollateralTable({
             accessorFn: (row) => row.student_name,
             cell: ({ row }) => (
                 <div>
-                    <p className="font-medium text-foreground">{row.original.student_name}</p>
-                    <p className="text-xs text-muted-foreground">{row.original.student_class}</p>
-                </div>
-            ),
-        },
-        { accessorKey: "card_type_label", header: "Jenis Kartu" },
-        {
-            id: "card_no",
-            header: "No. Kartu",
-            accessorFn: (row) => row.card_number || row.student_nisn || "—",
-            cell: ({ getValue }) => <span className="font-mono text-xs">{getValue()}</span>,
-        },
-        {
-            id: "loan",
-            header: "Peminjaman",
-            accessorFn: (row) => row.loan_code,
-            cell: ({ row }) => (
-                <div>
-                    <p className="font-mono text-xs">{row.original.loan_code}</p>
-                    <p className="line-clamp-1 text-xs text-muted-foreground">
-                        {row.original.equipment_summary}
+                    <p className="font-medium text-foreground">
+                        {row.original.student_name}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                        {row.original.student_class}
                     </p>
                 </div>
             ),
         },
         {
-            accessorKey: "held_at_formatted",
-            header: "Dititipkan",
-            meta: { cellClassName: "whitespace-nowrap text-muted-foreground" },
-        },
-        {
-            accessorKey: "returned_at_formatted",
-            header: "Diambil Kembali",
-            meta: { cellClassName: "whitespace-nowrap text-muted-foreground" },
-        },
-        {
             accessorKey: "status",
             header: "Status",
-            cell: ({ getValue }) => <CollateralStatusBadge status={getValue()} />,
+            cell: ({ getValue }) => (
+                <CollateralStatusBadge status={getValue()} />
+            ),
         },
         {
-            accessorKey: "created_at_formatted",
-            header: "Dibuat",
+            accessorKey: "held_at_formatted",
+            header: "Diterima",
             meta: { cellClassName: "whitespace-nowrap text-muted-foreground" },
         },
         {
@@ -79,6 +61,7 @@ export default function CollateralTable({
                     item={row.original}
                     onDelete={onDelete}
                     onInspect={onInspect}
+                    onHold={onHold}
                 />
             ),
         },
@@ -89,10 +72,10 @@ export default function CollateralTable({
             data={items ?? []}
             columns={columns}
             pagination={pagination}
-            tableClassName="min-w-[1050px]"
+            tableClassName="min-w-[720px]"
             getRowId={(row) => String(row.id)}
             emptyState="Tidak ada jaminan kartu ditemukan"
-            initialSorting={[{ id: "created_at_formatted", desc: true }]}
+            initialSorting={[{ id: "held_at_formatted", desc: true }]}
         />
     );
 }

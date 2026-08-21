@@ -132,8 +132,9 @@ export default function LoanForm({
                                 </Select>
                                 {data.borrow_scope === "bawa_pulang" && (
                                     <p className="text-xs text-amber-700">
-                                        Kartu pelajar wajib ditahan sebagai
-                                        jaminan hingga alat dikembalikan lengkap.
+                                        Kartu pelajar diserahkan kepada admin
+                                        laboratorium saat pengambilan alat, lalu
+                                        dikembalikan setelah alat dikembalikan.
                                     </p>
                                 )}
                                 <InputError message={errors.borrow_scope} />

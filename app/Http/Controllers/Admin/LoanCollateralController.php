@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\HoldLoanCollateralRequest;
 use App\Http\Requests\Admin\InspectReturnRequest;
 use App\Http\Requests\Admin\StoreLoanCollateralRequest;
 use App\Http\Requests\Admin\UpdateLoanCollateralRequest;
@@ -35,7 +36,8 @@ class LoanCollateralController extends Controller
         $collaterals = LoanCollateral::query()
             ->with([
                 'student:id,name,class,nisn',
-                'loan:id,code,status,borrow_scope',
+                'loan:id,code,status,borrow_scope,submission_id',
+                'loan.submission:id,code',
                 'loan.items.equipment:id,name',
                 'heldByAdmin:id,name',
             ])
@@ -44,7 +46,8 @@ class LoanCollateralController extends Controller
                     $q->where('code', 'like', "%{$search}%")
                         ->orWhere('card_number', 'like', "%{$search}%")
                         ->orWhereHas('student', fn ($s) => $s->where('name', 'like', "%{$search}%"))
-                        ->orWhereHas('loan', fn ($l) => $l->where('code', 'like', "%{$search}%"));
+                        ->orWhereHas('loan', fn ($l) => $l->where('code', 'like', "%{$search}%"))
+                        ->orWhereHas('loan.submission', fn ($s) => $s->where('code', 'like', "%{$search}%"));
                 });
             })
             ->when($status !== 'all', fn ($q) => $q->where('status', $status))
@@ -113,6 +116,7 @@ class LoanCollateralController extends Controller
         $collateral->load([
             'student:id,name,class,nisn,email',
             'loan.borrower:id,name',
+            'loan.submission:id,code',
             'loan.items.equipment:id,code,name',
             'loan.inspection',
             'loan.compensation',
@@ -154,12 +158,12 @@ class LoanCollateralController extends Controller
             ->with('success', 'Jaminan kartu berhasil dihapus.');
     }
 
-    public function hold(LoanCollateral $collateral): RedirectResponse
+    public function hold(HoldLoanCollateralRequest $request, LoanCollateral $collateral): RedirectResponse
     {
         $this->authorize('hold', $collateral);
-        $this->workflow->holdCard($collateral, request()->user());
+        $this->workflow->holdCard($collateral, $request->user(), $request->validated());
 
-        return back()->with('success', 'Kartu ditandai sebagai ditahan.');
+        return back()->with('success', 'Kartu pelajar diterima sebagai jaminan.');
     }
 
     public function returnCard(LoanCollateral $collateral): RedirectResponse
@@ -247,6 +251,7 @@ class LoanCollateralController extends Controller
             'loan_id' => $collateral->loan_id,
             'loan_code' => $loan?->code,
             'loan_status' => $loan?->status,
+            'submission_code' => $loan?->submission?->code ?? $loan?->code,
             'equipment_summary' => $equipmentSummary,
             'student_id' => $collateral->student_id,
             'student_name' => $collateral->student?->name,
@@ -262,7 +267,10 @@ class LoanCollateralController extends Controller
             'notes' => $collateral->notes,
             'created_at_formatted' => $collateral->created_at?->translatedFormat('d M Y'),
             'can_hold' => $collateral->status === 'dititipkan',
-            'can_return_card' => in_array($collateral->status, ['ditahan', 'menunggu_kompensasi'], true),
+            'can_return_card' => (
+                ($collateral->status === 'ditahan' && $loan?->status === 'dikembalikan')
+                || $collateral->status === 'menunggu_kompensasi'
+            ),
             'can_complete_compensation' => $collateral->status === 'menunggu_kompensasi',
             'can_inspect' => $loan?->status === 'menunggu_inspeksi',
         ];

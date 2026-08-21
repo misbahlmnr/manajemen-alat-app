@@ -21,6 +21,7 @@ export default function CollateralTableActions({
     item,
     onDelete,
     onInspect,
+    onHold,
 }) {
     const post = (routeName) => {
         router.post(route(routeName, item.id), {}, { preserveScroll: true });
@@ -65,10 +66,10 @@ export default function CollateralTableActions({
                 {item.can_hold && (
                     <DropdownMenuItem
                         className="cursor-pointer"
-                        onClick={() => post("admin.collaterals.hold")}
+                        onClick={() => onHold(item)}
                     >
                         <CreditCard className="mr-2 h-4 w-4" />
-                        Tahan Kartu
+                        Terima Kartu Pelajar
                     </DropdownMenuItem>
                 )}
                 {item.can_return_card && !item.can_complete_compensation && (

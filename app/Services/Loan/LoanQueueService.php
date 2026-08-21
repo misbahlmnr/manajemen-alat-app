@@ -183,6 +183,60 @@ class LoanQueueService
     }
 
     /**
+     * Pindahkan pengajuan diminta ke antrian jika stok fisik sudah tidak cukup.
+     */
+    public function demoteToQueue(Loan $loan, ?User $actor = null): bool
+    {
+        if ($loan->status !== 'diminta') {
+            return false;
+        }
+
+        $loan->update([
+            'status' => 'antrian',
+            'queued_at' => $loan->queued_at ?? $loan->created_at ?? now(),
+        ]);
+
+        $this->enqueue($loan->fresh(), $actor);
+        app(\App\Services\Notification\LabNotificationService::class)->loanMovedToQueue($loan->fresh());
+
+        return true;
+    }
+
+    /**
+     * @param  array<int>  $equipmentIds
+     * @return array<int, Loan>
+     */
+    public function demotePendingLoansForEquipments(array $equipmentIds, ?User $actor = null, ?int $exceptLoanId = null): array
+    {
+        $equipmentIds = array_values(array_unique(array_filter(array_map('intval', $equipmentIds))));
+
+        if ($equipmentIds === []) {
+            return [];
+        }
+
+        $pending = Loan::query()
+            ->where('status', 'diminta')
+            ->when($exceptLoanId, fn ($q) => $q->where('id', '!=', $exceptLoanId))
+            ->whereHas('items', fn ($q) => $q->whereIn('equipment_id', $equipmentIds))
+            ->with(['items.equipment'])
+            ->get();
+
+        $demoted = [];
+
+        foreach ($pending as $loan) {
+            if ($this->allItemsAvailable($loan)) {
+                continue;
+            }
+
+            if ($this->demoteToQueue($loan, $actor)) {
+                $demoted[] = $loan->fresh();
+            }
+        }
+
+        return $demoted;
+    }
+
+    /**
      * @return array<int, Loan>
      */
     public function processQueueForEquipment(int $equipmentId, ?User $actor = null): array

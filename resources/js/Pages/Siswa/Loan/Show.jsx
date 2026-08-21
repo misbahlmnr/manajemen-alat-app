@@ -264,7 +264,12 @@ export default function Show({ loan }) {
                                 <CardHeader>
                                     <CardTitle>Jaminan Kartu</CardTitle>
                                     <CardDescription>
-                                        {loan.collateral_code ?? "Menunggu penahanan kartu"}
+                                        {loan.collateral_status ===
+                                            "dititipkan" ||
+                                        !loan.collateral_status
+                                            ? "Belum diterima — serahkan kartu saat pengambilan alat"
+                                            : (loan.collateral_code ??
+                                              "Jaminan kartu pelajar")}
                                     </CardDescription>
                                 </CardHeader>
                                 {loan.collateral_status && (

@@ -12,6 +12,8 @@ import {
 import { Head, Link, router } from "@inertiajs/react";
 import {
     Check,
+    CheckCircle,
+    CreditCard,
     PackageCheck,
     RotateCcw,
     X,
@@ -21,6 +23,7 @@ import DeleteLoanDialog from "./Components/DeleteLoanDialog";
 import RejectLoanDialog from "./Components/RejectLoanDialog";
 import ReturnLoanDialog from "./Components/ReturnLoanDialog";
 import InspectReturnDialog from "../Collateral/Components/InspectReturnDialog";
+import ReceiveCardDialog from "../Collateral/Components/ReceiveCardDialog";
 import CollateralStatusBadge from "@/Components/CollateralStatusBadge";
 import QueuePriorityPanel from "./Components/QueuePriorityPanel";
 
@@ -33,6 +36,9 @@ export default function Show({ loan }) {
     const [deleting, setDeleting] = useState(false);
     const [rejecting, setRejecting] = useState(false);
     const [returning, setReturning] = useState(false);
+    const [receiveOpen, setReceiveOpen] = useState(false);
+    const [receiving, setReceiving] = useState(false);
+    const [returningCard, setReturningCard] = useState(false);
 
     const post = (routeName, data = {}) => {
         router.post(route(routeName, loan.id), data, { preserveScroll: true });
@@ -79,6 +85,31 @@ export default function Show({ loan }) {
                 setInspectOpen(false);
             },
         });
+    };
+
+    const handleReceiveCard = (payload) => {
+        if (!loan.collateral_id) return;
+        setReceiving(true);
+        router.post(route("admin.collaterals.hold", loan.collateral_id), payload, {
+            preserveScroll: true,
+            onFinish: () => {
+                setReceiving(false);
+                setReceiveOpen(false);
+            },
+        });
+    };
+
+    const handleReturnCard = () => {
+        if (!loan.collateral_id) return;
+        setReturningCard(true);
+        router.post(
+            route("admin.collaterals.return-card", loan.collateral_id),
+            {},
+            {
+                preserveScroll: true,
+                onFinish: () => setReturningCard(false),
+            },
+        );
     };
 
     const timeline = loan.timeline ?? [];
@@ -128,9 +159,14 @@ export default function Show({ loan }) {
                             Tolak
                         </Button>
                     )}
-                    {loan.can_mark_borrowed && (
+                    {(loan.can_mark_borrowed ||
+                        loan.mark_borrowed_blocked_reason) && (
                         <Button
                             variant="outline"
+                            disabled={!loan.can_mark_borrowed}
+                            title={
+                                loan.mark_borrowed_blocked_reason || undefined
+                            }
                             onClick={() => post("admin.loans.mark-borrowed")}
                         >
                             <PackageCheck className="mr-2 h-4 w-4" />
@@ -146,6 +182,16 @@ export default function Show({ loan }) {
                         <Button onClick={() => setReturnOpen(true)}>
                             <RotateCcw className="mr-2 h-4 w-4" />
                             Ajukan Inspeksi
+                        </Button>
+                    )}
+                    {loan.can_return_card && (
+                        <Button
+                            variant="outline"
+                            disabled={returningCard}
+                            onClick={handleReturnCard}
+                        >
+                            <CheckCircle className="mr-2 h-4 w-4" />
+                            Kembalikan Kartu
                         </Button>
                     )}
                     <Button
@@ -179,6 +225,13 @@ export default function Show({ loan }) {
                                         itemType={loan.item_type}
                                     />
                                 </MetaRow>
+                                {loan.borrow_scope === "bawa_pulang" && (
+                                    <MetaRow label="Jenis">
+                                        <span className="text-sm font-medium">
+                                            Bawa Pulang
+                                        </span>
+                                    </MetaRow>
+                                )}
                                 {loan.is_catch_up && (
                                     <MetaRow label="Jenis">
                                         <span className="rounded-full bg-amber-500/15 px-2.5 py-0.5 text-xs font-medium text-amber-800 dark:text-amber-200">
@@ -298,7 +351,7 @@ export default function Show({ loan }) {
                         {loan.requires_collateral && (
                             <Card className="rounded-2xl border-border/60 shadow-card">
                                 <CardHeader>
-                                    <CardTitle>Jaminan Kartu</CardTitle>
+                                    <CardTitle>Jaminan</CardTitle>
                                     <CardDescription>
                                         {loan.collateral_id ? (
                                             <Link
@@ -311,17 +364,78 @@ export default function Show({ loan }) {
                                                 {loan.collateral_code}
                                             </Link>
                                         ) : (
-                                            "Belum dicatat — akan dibuat saat alat dipinjam"
+                                            "Kartu pelajar sebagai jaminan peminjaman bawa pulang"
                                         )}
                                     </CardDescription>
                                 </CardHeader>
-                                {loan.collateral_status && (
-                                    <CardContent>
-                                        <CollateralStatusBadge
-                                            status={loan.collateral_status}
-                                        />
-                                    </CardContent>
-                                )}
+                                <CardContent className="space-y-4">
+                                    <div className="flex items-center justify-between gap-4">
+                                        <span className="text-sm text-muted-foreground">
+                                            Status
+                                        </span>
+                                        {loan.collateral_status ? (
+                                            <CollateralStatusBadge
+                                                status={loan.collateral_status}
+                                            />
+                                        ) : (
+                                            <span className="text-sm text-muted-foreground">
+                                                Belum diterima
+                                            </span>
+                                        )}
+                                    </div>
+                                    {loan.collateral_status === "ditahan" && (
+                                        <div className="space-y-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+                                            <p className="text-sm font-medium text-emerald-800">
+                                                Kartu diterima
+                                            </p>
+                                            {loan.collateral_held_at_formatted && (
+                                                <p className="text-xs text-muted-foreground">
+                                                    Tanggal{" "}
+                                                    {
+                                                        loan.collateral_held_at_formatted
+                                                    }
+                                                </p>
+                                            )}
+                                            {loan.collateral_held_by_name && (
+                                                <p className="text-xs text-muted-foreground">
+                                                    Penerima{" "}
+                                                    {loan.collateral_held_by_name}
+                                                </p>
+                                            )}
+                                        </div>
+                                    )}
+                                    {loan.can_receive_card && (
+                                        <Button
+                                            type="button"
+                                            onClick={() => setReceiveOpen(true)}
+                                        >
+                                            <CreditCard className="mr-2 h-4 w-4" />
+                                            Terima Kartu Pelajar
+                                        </Button>
+                                    )}
+                                    {loan.can_return_card && (
+                                        <div className="space-y-2">
+                                            <p className="text-sm text-muted-foreground">
+                                                Alat lengkap. Kembalikan kartu
+                                                pelajar kepada siswa.
+                                            </p>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                disabled={returningCard}
+                                                onClick={handleReturnCard}
+                                            >
+                                                <CheckCircle className="mr-2 h-4 w-4" />
+                                                Kembalikan Kartu
+                                            </Button>
+                                        </div>
+                                    )}
+                                    {loan.mark_borrowed_blocked_reason && (
+                                        <p className="text-xs text-amber-800">
+                                            {loan.mark_borrowed_blocked_reason}.
+                                        </p>
+                                    )}
+                                </CardContent>
                             </Card>
                         )}
 
@@ -397,6 +511,14 @@ export default function Show({ loan }) {
                 loanCode={loan.code}
                 onConfirm={handleInspect}
                 loading={inspecting}
+            />
+            <ReceiveCardDialog
+                open={receiveOpen}
+                onOpenChange={setReceiveOpen}
+                studentName={loan.borrower_name}
+                defaultCardNumber={loan.collateral_card_number ?? ""}
+                onConfirm={handleReceiveCard}
+                loading={receiving}
             />
         </AppLayout>
     );

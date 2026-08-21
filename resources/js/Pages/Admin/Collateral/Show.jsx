@@ -15,12 +15,15 @@ import { CreditCard, Pencil } from "lucide-react";
 import { useState } from "react";
 import DeleteCollateralDialog from "./Components/DeleteCollateralDialog";
 import InspectReturnDialog from "./Components/InspectReturnDialog";
+import ReceiveCardDialog from "./Components/ReceiveCardDialog";
 
 export default function Show({ collateral }) {
     const [deleteOpen, setDeleteOpen] = useState(false);
     const [inspectOpen, setInspectOpen] = useState(false);
+    const [receiveOpen, setReceiveOpen] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [inspecting, setInspecting] = useState(false);
+    const [receiving, setReceiving] = useState(false);
 
     const post = (routeName) => {
         router.post(route(routeName, collateral.id), {}, { preserveScroll: true });
@@ -41,6 +44,17 @@ export default function Show({ collateral }) {
         });
     };
 
+    const handleReceiveCard = (payload) => {
+        setReceiving(true);
+        router.post(route("admin.collaterals.hold", collateral.id), payload, {
+            preserveScroll: true,
+            onFinish: () => {
+                setReceiving(false);
+                setReceiveOpen(false);
+            },
+        });
+    };
+
     return (
         <AppLayout>
             <Head title={collateral.code} />
@@ -56,10 +70,10 @@ export default function Show({ collateral }) {
                     {collateral.can_hold && (
                         <Button
                             variant="outline"
-                            onClick={() => post("admin.collaterals.hold")}
+                            onClick={() => setReceiveOpen(true)}
                         >
                             <CreditCard className="mr-2 h-4 w-4" />
-                            Tahan Kartu
+                            Terima Kartu Pelajar
                         </Button>
                     )}
                     {collateral.can_inspect && (
@@ -127,33 +141,43 @@ export default function Show({ collateral }) {
                     <div className="space-y-6 lg:col-span-2">
                         <Card className="rounded-2xl border-border/60 shadow-card">
                             <CardHeader>
-                                <CardTitle>Informasi Kartu</CardTitle>
+                                <CardTitle>Kartu</CardTitle>
                             </CardHeader>
                             <CardContent className="grid gap-4 sm:grid-cols-2">
+                                <Info
+                                    label="Jenis"
+                                    value={collateral.card_type_label}
+                                />
                                 <Info
                                     label="Nomor kartu"
                                     value={collateral.card_number || "—"}
                                 />
                                 <Info
-                                    label="Dititipkan"
+                                    label="Status"
+                                    value={
+                                        <CollateralStatusBadge
+                                            status={collateral.status}
+                                        />
+                                    }
+                                />
+                                <Info
+                                    label="Tanggal diterima"
                                     value={collateral.held_at_formatted}
                                 />
                                 <Info
-                                    label="Diambil kembali"
-                                    value={collateral.returned_at_formatted}
-                                />
-                                <Info
-                                    label="Petugas"
+                                    label="Admin"
                                     value={collateral.held_by_name || "—"}
                                 />
-                                {collateral.notes && (
-                                    <div className="sm:col-span-2">
-                                        <Info
-                                            label="Catatan"
-                                            value={collateral.notes}
-                                        />
-                                    </div>
-                                )}
+                                <Info
+                                    label="Tanggal dikembalikan"
+                                    value={collateral.returned_at_formatted}
+                                />
+                                <div className="sm:col-span-2">
+                                    <Info
+                                        label="Catatan"
+                                        value={collateral.notes || "—"}
+                                    />
+                                </div>
                             </CardContent>
                         </Card>
 
@@ -161,15 +185,40 @@ export default function Show({ collateral }) {
                             <CardHeader>
                                 <CardTitle>Peminjaman Terkait</CardTitle>
                                 <CardDescription>
-                                    <Link
-                                        href={route(
-                                            "admin.loans.show",
-                                            collateral.loan_id,
-                                        )}
-                                        className="text-primary hover:underline"
-                                    >
-                                        {collateral.loan_code}
-                                    </Link>
+                                    {collateral.submission_code &&
+                                    collateral.submission_code !==
+                                        collateral.loan_code ? (
+                                        <span className="flex flex-col gap-1">
+                                            <Link
+                                                href={route(
+                                                    "admin.loans.submission",
+                                                    collateral.submission_code,
+                                                )}
+                                                className="text-primary hover:underline"
+                                            >
+                                                {collateral.submission_code}
+                                            </Link>
+                                            <Link
+                                                href={route(
+                                                    "admin.loans.show",
+                                                    collateral.loan_id,
+                                                )}
+                                                className="text-xs text-muted-foreground hover:underline"
+                                            >
+                                                {collateral.loan_code}
+                                            </Link>
+                                        </span>
+                                    ) : (
+                                        <Link
+                                            href={route(
+                                                "admin.loans.show",
+                                                collateral.loan_id,
+                                            )}
+                                            className="text-primary hover:underline"
+                                        >
+                                            {collateral.loan_code}
+                                        </Link>
+                                    )}
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-3">
@@ -265,6 +314,14 @@ export default function Show({ collateral }) {
                 onConfirm={handleInspect}
                 loading={inspecting}
             />
+            <ReceiveCardDialog
+                open={receiveOpen}
+                onOpenChange={setReceiveOpen}
+                studentName={collateral.student_name}
+                defaultCardNumber={collateral.card_number ?? ""}
+                onConfirm={handleReceiveCard}
+                loading={receiving}
+            />
         </AppLayout>
     );
 }
@@ -284,7 +341,9 @@ function Info({ label, value }) {
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 {label}
             </p>
-            <p className="mt-2 text-sm font-medium text-foreground">{value}</p>
+            <div className="mt-2 text-sm font-medium text-foreground">
+                {value}
+            </div>
         </div>
     );
 }

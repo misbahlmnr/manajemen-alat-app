@@ -96,17 +96,37 @@ class Submission extends Model
             return 'diminta';
         }
 
-        $statuses = $loans->pluck('status')->unique()->values();
-        if ($statuses->count() === 1) {
-            return (string) $statuses->first();
+        // Bahan yang sudah diambil (dipinjam) dianggap selesai untuk status pengajuan,
+        // karena bahan habis pakai tidak melalui pengembalian seperti alat.
+        $effective = $loans->map(function (Loan $loan) {
+            if ($loan->item_type === 'bahan' && $loan->status === 'dipinjam') {
+                return 'dikembalikan';
+            }
+
+            return $loan->status;
+        });
+
+        $unique = $effective->unique()->values();
+        if ($unique->count() === 1) {
+            $status = (string) $unique->first();
+
+            return $status === 'dikembalikan' ? 'selesai' : $status;
         }
 
         $open = ['diminta', 'antrian', 'disetujui', 'dipinjam', 'terlambat', 'menunggu_inspeksi'];
-        if ($loans->contains(fn (Loan $loan) => in_array($loan->status, $open, true))) {
+        if ($effective->contains(fn (string $status) => in_array($status, $open, true))) {
             return 'diproses';
         }
 
-        return 'diproses';
+        foreach (['terlambat', 'dikembalikan', 'ditolak', 'dibatalkan'] as $status) {
+            if ($effective->contains($status)) {
+                return $status === 'dikembalikan' ? 'selesai' : $status;
+            }
+        }
+
+        $fallback = (string) $unique->first();
+
+        return $fallback === 'dikembalikan' ? 'selesai' : $fallback;
     }
 
     public function alatItemCount(): int

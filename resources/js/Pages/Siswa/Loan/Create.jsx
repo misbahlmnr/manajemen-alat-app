@@ -9,7 +9,6 @@ import {
     AlertTriangle,
     Calendar,
     CalendarDays,
-    CreditCard,
     FileText,
     Info,
     MapPin,
@@ -1186,16 +1185,30 @@ export default function Create({
                                         {collateralRequired && (
                                             <div className="space-y-2 rounded-lg border border-warning/30 bg-warning/10 p-3">
                                                 <div className="flex items-start gap-2">
-                                                    <CreditCard className="mt-0.5 h-4 w-4 text-warning" />
-                                                    <p className="text-xs">
-                                                        Anda wajib menyerahkan{" "}
-                                                        <strong>
-                                                            kartu pelajar
-                                                        </strong>{" "}
-                                                        sebagai jaminan hingga
-                                                        alat dikembalikan
-                                                        lengkap.
-                                                    </p>
+                                                    <AlertTriangle className="mt-0.5 h-4 w-4 text-warning" />
+                                                    <div className="space-y-1">
+                                                        <p className="text-xs font-semibold">
+                                                            Bawa Pulang
+                                                        </p>
+                                                        <p className="text-xs">
+                                                            Peminjaman ini
+                                                            memerlukan jaminan{" "}
+                                                            <strong>
+                                                                kartu pelajar
+                                                            </strong>
+                                                            .
+                                                        </p>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            Kartu diserahkan
+                                                            kepada admin
+                                                            laboratorium saat
+                                                            pengambilan alat
+                                                            dan akan
+                                                            dikembalikan
+                                                            setelah alat
+                                                            dikembalikan.
+                                                        </p>
+                                                    </div>
                                                 </div>
                                                 <label className="flex cursor-pointer items-start gap-2 border-t border-warning/20 pt-2">
                                                     <Checkbox
@@ -1212,9 +1225,10 @@ export default function Create({
                                                         className="mt-0.5"
                                                     />
                                                     <span className="text-xs font-medium">
-                                                        Saya setuju menyerahkan
-                                                        kartu pelajar sebagai
-                                                        jaminan
+                                                        Saya memahami bahwa
+                                                        peminjaman ini
+                                                        memerlukan jaminan
+                                                        kartu pelajar
                                                     </span>
                                                 </label>
                                                 <InputError

@@ -161,14 +161,7 @@ export default function Submission({ submission }) {
                                 />
                                 <LoanStatusBadge
                                     status={submission.status}
-                                    itemType={
-                                        submission.has_alat &&
-                                        submission.has_bahan
-                                            ? "paket"
-                                            : submission.has_bahan
-                                              ? "bahan"
-                                              : "alat"
-                                    }
+                                    itemType="submission"
                                 />
                             </div>
                         </div>

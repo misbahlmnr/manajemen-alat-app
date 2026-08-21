@@ -147,7 +147,10 @@ export default function Submission({ submission }) {
                                     alatCount={submission.alat_count}
                                     bahanCount={submission.bahan_count}
                                 />
-                                <LoanStatusBadge status={submission.status} />
+                                <LoanStatusBadge
+                                    status={submission.status}
+                                    itemType="submission"
+                                />
                             </div>
                         </div>
                     </CardContent>

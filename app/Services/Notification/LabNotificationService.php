@@ -84,6 +84,31 @@ class LabNotificationService
         );
     }
 
+    public function loanMovedToQueue(Loan $loan): void
+    {
+        $loan->loadMissing(['borrower', 'supervisor']);
+
+        $this->notifyUser(
+            $loan->borrower,
+            'loan_queued',
+            'Pengajuan Masuk Antrian',
+            "Pengajuan {$loan->displayCode()} masuk antrian karena stok tidak mencukupi. Anda akan diberitahu saat stok tersedia.",
+            'warning',
+            route('siswa.loans.show', $loan),
+            $loan,
+        );
+
+        $this->notifyUsers(
+            $this->admins(),
+            'loan_queued',
+            'Pengajuan Dipindah ke Antrian Stok',
+            "Pengajuan {$loan->displayCode()} dari {$loan->borrower?->name} masuk antrian karena stok tidak mencukupi.",
+            'warning',
+            route('admin.loans.show', $loan),
+            $loan,
+        );
+    }
+
     public function loanApproved(Loan $loan): void
     {
         $loan->loadMissing(['borrower', 'supervisor']);
@@ -385,8 +410,8 @@ class LabNotificationService
         $this->notifyUser(
             $loan->borrower,
             'collateral_held',
-            'Kartu Pelajar Ditahan',
-            "Kartu pelajar ditahan untuk jaminan peminjaman {$loan->displayCode()}.",
+            'Kartu Pelajar Diterima',
+            "Kartu pelajar diterima sebagai jaminan peminjaman {$loan->displayCode()}.",
             'warning',
             route('siswa.loans.show', $loan),
             $loan,

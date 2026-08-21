@@ -46,10 +46,10 @@ return [
     'jurusan_default' => 'Audio Video',
 
     'collateral_statuses' => [
-        'dititipkan' => 'Dititipkan',
-        'ditahan' => 'Digunakan Sebagai Jaminan',
+        'dititipkan' => 'Belum diterima',
+        'ditahan' => 'Ditahan',
         'menunggu_kompensasi' => 'Menunggu Kompensasi',
-        'dikembalikan' => 'Sudah Diambil',
+        'dikembalikan' => 'Sudah dikembalikan',
         'dibatalkan' => 'Dibatalkan',
     ],
 

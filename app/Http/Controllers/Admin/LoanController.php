@@ -46,7 +46,7 @@ class LoanController extends Controller
                 'loans.borrower:id,name,role,class',
                 'loans.supervisor:id,name',
                 'loans.items.equipment:id,code,name,item_type',
-                'loans.collateral',
+                'loans.collateral.heldByAdmin:id,name',
             ])
             ->when($search->isNotEmpty(), function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
@@ -105,6 +105,7 @@ class LoanController extends Controller
             'items.equipment:id,code,name,item_type,category',
             'statusLogs.user:id,name',
             'collateral',
+            'collateral.heldByAdmin:id,name',
             'inspection',
             'compensation',
         ]);
@@ -126,7 +127,7 @@ class LoanController extends Controller
             'loans.supervisor:id,name',
             'loans.schedule:id,code,title,mata_kuliah,tanggal',
             'loans.items.equipment:id,code,name,item_type,category',
-            'loans.collateral',
+            'loans.collateral.heldByAdmin:id,name',
         ]);
 
         return Inertia::render('Admin/Loan/Submission', [
@@ -285,6 +286,10 @@ class LoanController extends Controller
             ->map(fn ($i) => ($i['equipment_name'] ?? 'Item').' ×'.$i['quantity'])
             ->join(', ');
 
+        $collateral = $loan->collateral;
+        $needsCollateralReceipt = $loan->requiresCollateral() && $collateral?->status !== 'ditahan';
+        $approvedAlat = $loan->isAlat() && $loan->status === 'disetujui';
+
         $data = [
             'id' => $loan->id,
             'code' => $loan->displayCode(),
@@ -335,15 +340,24 @@ class LoanController extends Controller
             'can_approve' => $loan->status === 'diminta',
             'can_reject' => in_array($loan->status, ['diminta', 'antrian', 'disetujui'], true),
             'can_set_queue_priority' => $loan->status === 'antrian',
-            'can_mark_borrowed' => $loan->isAlat() && $loan->status === 'disetujui',
+            'can_mark_borrowed' => $approvedAlat && ! $needsCollateralReceipt,
+            'mark_borrowed_blocked_reason' => $approvedAlat && $needsCollateralReceipt
+                ? 'Belum menerima jaminan kartu'
+                : null,
             'can_return' => $loan->isAlat() && in_array($loan->status, ['dipinjam', 'terlambat'], true),
             'can_inspect' => $loan->status === 'menunggu_inspeksi',
             'can_edit' => false,
             'requires_collateral' => $loan->requiresCollateral(),
             'requires_return_inspection' => $loan->requiresReturnInspection(),
-            'collateral_id' => $loan->collateral?->id,
-            'collateral_code' => $loan->collateral?->code,
-            'collateral_status' => $loan->collateral?->status,
+            'can_receive_card' => $loan->requiresCollateral() && $collateral?->status === 'dititipkan',
+            'can_return_card' => $collateral?->status === 'ditahan' && $loan->status === 'dikembalikan',
+            'collateral_id' => $collateral?->id,
+            'collateral_code' => $collateral?->code,
+            'collateral_status' => $collateral?->status,
+            'collateral_card_number' => $collateral?->card_number,
+            'collateral_notes' => $collateral?->notes,
+            'collateral_held_at_formatted' => $collateral?->held_at?->translatedFormat('d M Y') ?: null,
+            'collateral_held_by_name' => $collateral?->heldByAdmin?->name,
             ...($loan->status === 'antrian' ? $this->queueService->queueSummary($loan) : []),
         ];
 

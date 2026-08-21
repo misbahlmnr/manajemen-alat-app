@@ -115,7 +115,7 @@ class StoreStudentLoanRequest extends FormRequest
             'borrow_scope' => 'kebutuhan penggunaan',
             'borrow_reason' => 'kebutuhan penggunaan',
             'usage_room' => 'lokasi ruang/lab',
-            'collateral_agreed' => 'persetujuan jaminan kartu',
+            'collateral_agreed' => 'pemahaman jaminan kartu',
             'items' => 'item peminjaman',
         ];
     }
@@ -123,7 +123,7 @@ class StoreStudentLoanRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'collateral_agreed.accepted' => 'Anda harus menyetujui penyerahan kartu pelajar sebagai jaminan.',
+            'collateral_agreed.accepted' => 'Anda harus memahami bahwa peminjaman ini memerlukan jaminan kartu pelajar.',
             'practicum_schedule_id.required' => 'Pilih mata pelajaran dari jadwal hari ini.',
         ];
     }

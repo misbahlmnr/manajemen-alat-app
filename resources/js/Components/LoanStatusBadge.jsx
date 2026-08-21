@@ -41,6 +41,11 @@ const config = {
         dot: "bg-slate-400",
         className: "border-slate-400/20 bg-slate-500/10 text-slate-600",
     },
+    selesai: {
+        label: "Selesai",
+        dot: "bg-emerald-500",
+        className: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700",
+    },
     dibatalkan: {
         label: "Dibatalkan",
         dot: "bg-slate-500",
@@ -64,8 +69,13 @@ const bahanStatusLabels = {
 };
 
 export default function LoanStatusBadge({ status, itemType }) {
-    const item = config[status] ?? {
-        label: status,
+    const displayStatus =
+        itemType === "submission" && status === "dikembalikan"
+            ? "selesai"
+            : status;
+
+    const item = config[displayStatus] ?? {
+        label: displayStatus,
         dot: "bg-muted-foreground",
         className: "border-muted-foreground/20 bg-muted text-muted-foreground",
     };

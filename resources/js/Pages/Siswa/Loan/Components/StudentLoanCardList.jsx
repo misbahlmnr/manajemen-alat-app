@@ -27,7 +27,7 @@ function SubmissionCard({ loan, isHistory, onCancel, onRequestReturn }) {
                         />
                     </div>
                 </div>
-                <LoanStatusBadge status={loan.status} />
+                <LoanStatusBadge status={loan.status} itemType="submission" />
             </div>
             <div className="space-y-3 p-3">
                 {members.map((member) => (

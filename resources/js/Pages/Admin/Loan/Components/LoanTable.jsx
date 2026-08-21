@@ -64,13 +64,7 @@ export default function LoanTable({ items, pagination }) {
             cell: ({ row }) => (
                 <LoanStatusBadge
                     status={row.original.status}
-                    itemType={
-                        row.original.has_alat && row.original.has_bahan
-                            ? "paket"
-                            : row.original.has_bahan
-                              ? "bahan"
-                              : "alat"
-                    }
+                    itemType="submission"
                 />
             ),
         },

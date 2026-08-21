@@ -2,12 +2,12 @@ import { cn } from "@/lib/utils";
 
 const config = {
     dititipkan: {
-        label: "Dititipkan",
+        label: "Belum diterima",
         dot: "bg-blue-500",
         className: "border-blue-500/20 bg-blue-500/10 text-blue-700",
     },
     ditahan: {
-        label: "Digunakan Sebagai Jaminan",
+        label: "Ditahan",
         dot: "bg-violet-500",
         className: "border-violet-500/20 bg-violet-500/10 text-violet-700",
     },
@@ -17,7 +17,7 @@ const config = {
         className: "border-amber-500/20 bg-amber-500/10 text-amber-800",
     },
     dikembalikan: {
-        label: "Sudah Diambil",
+        label: "Sudah dikembalikan",
         dot: "bg-emerald-500",
         className: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700",
     },

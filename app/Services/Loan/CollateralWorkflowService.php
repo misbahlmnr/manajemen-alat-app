@@ -17,19 +17,29 @@ class CollateralWorkflowService
         private LoanWorkflowService $loanWorkflow,
     ) {}
 
-    public function holdCard(LoanCollateral $collateral, User $admin): void
+    public function holdCard(LoanCollateral $collateral, User $admin, array $data = []): void
     {
         if (! in_array($collateral->status, ['dititipkan'], true)) {
             throw ValidationException::withMessages([
-                'status' => 'Kartu hanya dapat ditahan dari status dititipkan.',
+                'status' => 'Kartu hanya dapat diterima dari status belum diterima.',
             ]);
         }
 
-        $collateral->update([
+        $updates = [
             'status' => 'ditahan',
             'held_at' => now(),
             'held_by_admin_id' => $admin->id,
-        ]);
+        ];
+
+        if (filled($data['card_number'] ?? null)) {
+            $updates['card_number'] = $data['card_number'];
+        }
+
+        if (array_key_exists('notes', $data) && $data['notes'] !== null) {
+            $updates['notes'] = $data['notes'] !== '' ? $data['notes'] : $collateral->notes;
+        }
+
+        $collateral->update($updates);
 
         app(LabNotificationService::class)->collateralHeld($collateral->fresh());
     }
@@ -98,12 +108,6 @@ class CollateralWorkflowService
             $collateral = $loan->collateral;
 
             if ($result === 'lengkap') {
-                if ($collateral) {
-                    $collateral->update([
-                        'status' => 'dikembalikan',
-                        'returned_at' => now(),
-                    ]);
-                }
                 LoanCompensation::updateOrCreate(
                     ['loan_id' => $loan->id],
                     ['required' => false, 'status' => 'tidak_perlu']
@@ -168,6 +172,14 @@ class CollateralWorkflowService
         if (! in_array($collateral->status, ['ditahan', 'menunggu_kompensasi'], true)) {
             throw ValidationException::withMessages([
                 'status' => 'Kartu tidak dalam status yang dapat dikembalikan.',
+            ]);
+        }
+
+        $collateral->loadMissing('loan');
+        $loan = $collateral->loan;
+        if ($collateral->status === 'ditahan' && $loan && $loan->status !== 'dikembalikan') {
+            throw ValidationException::withMessages([
+                'status' => 'Alat harus dikembalikan terlebih dahulu sebelum kartu dikembalikan.',
             ]);
         }
 

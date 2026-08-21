@@ -69,6 +69,12 @@ export default function LoanTableActions({ loan, onDelete, onReject, onReturn })
                             : "Tandai Dipinjam"}
                     </DropdownMenuItem>
                 )}
+                {loan.mark_borrowed_blocked_reason && (
+                    <DropdownMenuItem disabled>
+                        <PackageCheck className="mr-2 h-4 w-4" />
+                        {loan.mark_borrowed_blocked_reason}
+                    </DropdownMenuItem>
+                )}
                 {loan.can_return && (
                     <DropdownMenuItem
                         className="cursor-pointer"

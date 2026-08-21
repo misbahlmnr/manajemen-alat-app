@@ -191,6 +191,74 @@ class LoanQueueFlowTest extends TestCase
         $this->assertSame(2, $queue->getQueuePosition($loanB));
     }
 
+    public function test_approve_demotes_other_pending_loans_when_stock_no_longer_enough(): void
+    {
+        $siswaA = $this->makeUser('siswa', 'siswa-demote-a');
+        $siswaB = $this->makeUser('siswa', 'siswa-demote-b');
+        $siswaC = $this->makeUser('siswa', 'siswa-demote-c');
+        $siswaQueued = $this->makeUser('siswa', 'siswa-demote-q');
+        $guru = $this->makeUser('guru', 'guru-demote');
+        $admin = $this->makeUser('admin', 'admin-demote');
+        $alat = $this->makeEquipment('alat', available: 0);
+        $workflow = app(\App\Services\Loan\LoanWorkflowService::class);
+        $queue = app(\App\Services\Loan\LoanQueueService::class);
+
+        $payload = fn (int $qty) => [
+            'supervisor_id' => $guru->id,
+            'item_type' => 'alat',
+            'request_date' => now()->toDateString(),
+            'purpose' => 'Pinjam alat',
+            'notes' => 'Pinjam alat',
+            'borrow_scope' => 'lab',
+            'borrow_reason' => 'lanjutan',
+            'usage_room' => 'Lab AV 1',
+            'due_at' => now()->setTime(17, 0)->format('Y-m-d\TH:i'),
+            'items' => [
+                ['equipment_id' => $alat->id, 'quantity' => $qty],
+            ],
+        ];
+
+        $this->actingAs($siswaQueued)->post(route('siswa.loans.store'), $payload(10))->assertRedirect();
+        $queuedEarlier = Loan::query()->where('borrower_id', $siswaQueued->id)->latest('id')->first();
+        $this->assertSame('antrian', $queuedEarlier->status);
+
+        $alat->update(['available' => 20, 'stock' => 20, 'qty_baik' => 20]);
+
+        $this->actingAs($siswaA)->post(route('siswa.loans.store'), $payload(15))->assertRedirect();
+        $this->actingAs($siswaB)->post(route('siswa.loans.store'), $payload(10))->assertRedirect();
+        $this->actingAs($siswaC)->post(route('siswa.loans.store'), $payload(4))->assertRedirect();
+
+        $loanA = Loan::query()->where('borrower_id', $siswaA->id)->latest('id')->first();
+        $loanB = Loan::query()->where('borrower_id', $siswaB->id)->latest('id')->first();
+        $loanC = Loan::query()->where('borrower_id', $siswaC->id)->latest('id')->first();
+
+        $this->assertSame('diminta', $loanA->status);
+        $this->assertSame('diminta', $loanB->status);
+        $this->assertSame('diminta', $loanC->status);
+
+        $workflow->approve($loanA->fresh(), $admin);
+
+        $this->assertSame('disetujui', $loanA->fresh()->status);
+        $this->assertSame(5, (int) $alat->fresh()->available);
+        $this->assertSame('antrian', $loanB->fresh()->status);
+        $this->assertSame('diminta', $loanC->fresh()->status);
+        $this->assertNotNull($loanB->fresh()->queued_at);
+        $this->assertTrue($loanB->fresh()->queued_at->equalTo($loanB->created_at));
+
+        $ordered = $queue->queuedLoansForEquipment($alat->id);
+        $this->assertSame([$queuedEarlier->id, $loanB->id], $ordered->pluck('id')->all());
+
+        try {
+            $workflow->approve($loanB->fresh(), $admin);
+            $this->fail('Pengajuan B seharusnya tidak dapat disetujui.');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->assertStringContainsString('antrian', $e->errors()['status'][0] ?? '');
+        }
+
+        $this->assertSame('antrian', $loanB->fresh()->status);
+        $this->assertSame(5, (int) $alat->fresh()->available);
+    }
+
     private function makeUser(string $role, string $username): User
     {
         return User::query()->create([

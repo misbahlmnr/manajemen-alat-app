@@ -37,21 +37,49 @@ class LoanWorkflowService
             ]);
         }
 
-        DB::transaction(function () use ($loan, $actor) {
-            // Stok di-reserve saat admin menyetujui (alat & bahan).
-            $this->deductStock($loan);
+        $queue = app(LoanQueueService::class);
+        $loan->loadMissing('items.equipment');
 
-            if ($loan->isAlat()) {
-                $loan->update(['status' => 'disetujui']);
-                $this->logStatus($loan, 'disetujui', 'Pengajuan disetujui admin.', $actor);
-            } else {
-                $loan->update([
-                    'status' => 'dipinjam',
-                    'borrowed_at' => now(),
+        if (! $queue->allItemsAvailable($loan)) {
+            $queue->demoteToQueue($loan, $actor);
+
+            throw ValidationException::withMessages([
+                'status' => 'Pengajuan masih dalam antrian stok. Tunggu hingga stok tersedia atau atur prioritas antrian.',
+            ]);
+        }
+
+        try {
+            DB::transaction(function () use ($loan, $actor, $queue) {
+                // Stok di-reserve saat admin menyetujui (alat & bahan).
+                $this->deductStock($loan);
+
+                if ($loan->isAlat()) {
+                    $loan->update(['status' => 'disetujui']);
+                    $this->logStatus($loan, 'disetujui', 'Pengajuan disetujui admin.', $actor);
+                } else {
+                    $loan->update([
+                        'status' => 'dipinjam',
+                        'borrowed_at' => now(),
+                    ]);
+                    $this->logStatus($loan, 'dipinjam', 'Bahan disetujui dan diambil.', $actor);
+                }
+
+                $equipmentIds = $loan->items->pluck('equipment_id')->all();
+                $queue->demotePendingLoansForEquipments($equipmentIds, $actor, $loan->id);
+            });
+        } catch (ValidationException $e) {
+            $loan->refresh();
+
+            if ($loan->status === 'diminta' && $this->isInsufficientStockException($e)) {
+                $queue->demoteToQueue($loan, $actor);
+
+                throw ValidationException::withMessages([
+                    'status' => 'Pengajuan masih dalam antrian stok. Tunggu hingga stok tersedia atau atur prioritas antrian.',
                 ]);
-                $this->logStatus($loan, 'dipinjam', 'Bahan disetujui dan diambil.', $actor);
             }
-        });
+
+            throw $e;
+        }
     }
 
     public function reject(Loan $loan, string $reason, User $actor): void
@@ -87,6 +115,15 @@ class LoanWorkflowService
             ]);
         }
 
+        if ($loan->requiresCollateral()) {
+            $loan->loadMissing('collateral');
+            if ($loan->collateral?->status !== 'ditahan') {
+                throw ValidationException::withMessages([
+                    'status' => 'Terima kartu pelajar terlebih dahulu sebelum menyerahkan alat.',
+                ]);
+            }
+        }
+
         DB::transaction(function () use ($loan, $actor) {
             $borrowedAt = $loan->borrowed_at ?? now();
             $dueAt = app(LoanQueueService::class)->clampDueAtToTimeSlice($loan, $borrowedAt);
@@ -98,10 +135,6 @@ class LoanWorkflowService
                 'due_at' => $dueAt,
             ]);
             $this->logStatus($loan, 'dipinjam', 'Alat diserahkan ke peminjam.', $actor);
-
-            if ($loan->requiresCollateral()) {
-                app(CollateralWorkflowService::class)->ensureCollateralForBawaPulangLoan($loan, $actor);
-            }
         });
     }
 
@@ -193,6 +226,19 @@ class LoanWorkflowService
         }
 
         app(LoanQueueService::class)->processQueueForEquipments($equipmentIds);
+    }
+
+    private function isInsufficientStockException(ValidationException $e): bool
+    {
+        $messages = $e->errors()['items'] ?? $e->errors()['status'] ?? [];
+
+        foreach ($messages as $message) {
+            if (str_contains((string) $message, 'tidak mencukupi')) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function validateStockForItems(array $items, string $itemType, ?int $borrowerId = null): void

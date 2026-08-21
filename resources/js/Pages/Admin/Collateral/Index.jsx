@@ -11,6 +11,7 @@ import { useEffect, useRef, useState } from "react";
 import CollateralTable from "./Components/CollateralTable";
 import DeleteCollateralDialog from "./Components/DeleteCollateralDialog";
 import InspectReturnDialog from "./Components/InspectReturnDialog";
+import ReceiveCardDialog from "./Components/ReceiveCardDialog";
 
 export default function Index({
     collaterals,
@@ -30,8 +31,10 @@ export default function Index({
 
     const [deleteTarget, setDeleteTarget] = useState(null);
     const [inspectTarget, setInspectTarget] = useState(null);
+    const [holdTarget, setHoldTarget] = useState(null);
     const [deleting, setDeleting] = useState(false);
     const [inspecting, setInspecting] = useState(false);
+    const [holding, setHolding] = useState(false);
     const isFirstRender = useRef(true);
 
     useEffect(() => {
@@ -79,6 +82,18 @@ export default function Index({
         });
     };
 
+    const handleHold = (payload) => {
+        if (!holdTarget) return;
+        setHolding(true);
+        router.post(route("admin.collaterals.hold", holdTarget.id), payload, {
+            preserveScroll: true,
+            onFinish: () => {
+                setHolding(false);
+                setHoldTarget(null);
+            },
+        });
+    };
+
     const list = collaterals.data ?? [];
     const total = paginatorTotal(collaterals);
 
@@ -105,7 +120,7 @@ export default function Index({
                         <Input
                             value={data.search}
                             onChange={(e) => setData("search", e.target.value)}
-                            placeholder="Cari kode, siswa, peminjaman..."
+                            placeholder="Cari submission, siswa, kartu..."
                             className="rounded-xl border-border/60 bg-card pl-10 shadow-sm"
                         />
                     </div>
@@ -170,6 +185,7 @@ export default function Index({
                         pagination={collaterals}
                         onDelete={setDeleteTarget}
                         onInspect={setInspectTarget}
+                        onHold={setHoldTarget}
                     />
                 ) : (
                     <EmptyState
@@ -201,6 +217,14 @@ export default function Index({
                 loanCode={inspectTarget?.loan_code}
                 onConfirm={handleInspect}
                 loading={inspecting}
+            />
+            <ReceiveCardDialog
+                open={!!holdTarget}
+                onOpenChange={(open) => !open && setHoldTarget(null)}
+                studentName={holdTarget?.student_name}
+                defaultCardNumber={holdTarget?.card_number ?? ""}
+                onConfirm={handleHold}
+                loading={holding}
             />
         </AppLayout>
     );
