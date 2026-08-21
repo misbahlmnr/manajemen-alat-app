@@ -437,6 +437,23 @@ class LoanQueueService
     public function queueSummary(Loan $loan): array
     {
         $position = $this->getQueuePosition($loan);
+        $loan->loadMissing('items.equipment');
+
+        $stockAvailable = null;
+        $stockNeeded = null;
+
+        foreach ($loan->items as $item) {
+            $available = (int) ($item->equipment?->available ?? 0);
+            $needed = (int) $item->quantity;
+
+            if ($stockAvailable === null || $available < $stockAvailable) {
+                $stockAvailable = $available;
+                $stockNeeded = $needed;
+            }
+        }
+
+        $waitingStock = ! $this->allItemsAvailable($loan);
+        $hasAdminPriority = (int) ($loan->queue_priority ?? 0) > 0;
 
         return [
             'queue_position' => $position,
@@ -445,7 +462,14 @@ class LoanQueueService
             'queued_at' => $loan->queued_at?->toIso8601String(),
             'queued_at_formatted' => $loan->queued_at?->translatedFormat('d M Y H:i'),
             'queue_priority_note' => $loan->queue_priority_note,
-            'has_admin_priority' => (int) ($loan->queue_priority ?? 0) > 0,
+            'has_admin_priority' => $hasAdminPriority,
+            'queue_priority_label' => $hasAdminPriority ? 'Prioritas Tinggi' : 'Normal',
+            'queue_stock_available' => $stockAvailable ?? 0,
+            'queue_stock_needed' => $stockNeeded ?? 0,
+            'queue_waiting_stock' => $waitingStock,
+            'queue_status_label' => $waitingStock
+                ? 'Menunggu stok kembali'
+                : 'Siap ditinjau',
         ];
     }
 
