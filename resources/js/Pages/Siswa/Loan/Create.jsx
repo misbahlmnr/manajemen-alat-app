@@ -313,7 +313,7 @@ export default function Create({
     const scheduleRequired = isPakaiDiLab;
     const scheduleList = isPakaiDiLab || isBawaPulang ? todaySchedules : [];
     const showSupervisor = !isPribadi || bahanCart.length > 0;
-    const showUsageRoom = needsAlatFields;
+    const showUsageRoom = needsAlatFields && !isBawaPulang;
 
     const usageLocation = isBawaPulang
         ? "bawa_pulang"
@@ -383,8 +383,7 @@ export default function Create({
                 practicum_schedule_id: "",
                 supervisor_id:
                     isPakaiDiLab || isBawaPulang ? "" : prev.supervisor_id,
-                usage_room:
-                    isPakaiDiLab || isBawaPulang ? "" : prev.usage_room,
+                usage_room: isPakaiDiLab ? "" : prev.usage_room,
             }));
             return;
         }
@@ -405,7 +404,9 @@ export default function Create({
             ...prev,
             practicum_schedule_id: scheduleId,
             supervisor_id: s.guru_id ? String(s.guru_id) : prev.supervisor_id,
-            usage_room: s.ruangan || prev.usage_room,
+            usage_room: isPakaiDiLab
+                ? s.ruangan || prev.usage_room
+                : prev.usage_room,
             request_date:
                 isPakaiDiLab || isBawaPulang ? requestDate : prev.request_date,
             due_at: isPakaiDiLab || isBawaPulang ? dueAt : prev.due_at,
@@ -414,8 +415,7 @@ export default function Create({
 
     const supervisorLocked =
         (isPakaiDiLab || isBawaPulang) && Boolean(selectedSchedule?.guru_id);
-    const roomLocked =
-        (isPakaiDiLab || isBawaPulang) && Boolean(selectedSchedule?.ruangan);
+    const roomLocked = isPakaiDiLab && Boolean(selectedSchedule?.ruangan);
 
     const totalItems = cart.reduce((s, i) => s + i.quantity, 0);
     const collateralRequired =
@@ -453,7 +453,10 @@ export default function Create({
             if (formData.borrow_scope === "bawa_pulang") {
                 payload.collateral_agreed = formData.collateral_agreed ? 1 : 0;
             }
-            if (formData.usage_room) {
+            if (
+                formData.borrow_scope !== "bawa_pulang" &&
+                formData.usage_room
+            ) {
                 payload.usage_room = formData.usage_room;
             }
         }
@@ -531,9 +534,7 @@ export default function Create({
             ((!scheduleRequired || data.practicum_schedule_id) &&
                 data.request_date &&
                 data.due_at &&
-                (!showUsageRoom ||
-                    isBawaPulang ||
-                    data.usage_room?.trim()) &&
+                (!showUsageRoom || data.usage_room?.trim()) &&
                 (!collateralRequired || data.collateral_agreed))) &&
         (data.notes?.trim() || data.purpose?.trim());
 
@@ -1044,25 +1045,16 @@ export default function Create({
                                         <label className="flex items-center gap-1.5 text-sm font-medium">
                                             <MapPin className="h-3.5 w-3.5" />{" "}
                                             Lokasi Ruang / Lab
-                                            {!isBawaPulang && (
-                                                <span className="text-destructive">
-                                                    *
-                                                </span>
-                                            )}
-                                            {isBawaPulang && (
-                                                <span className="text-xs font-normal text-muted-foreground">
-                                                    (opsional)
-                                                </span>
-                                            )}
+                                            <span className="text-destructive">
+                                                *
+                                            </span>
                                         </label>
                                         <p className="text-xs text-muted-foreground">
                                             {isPribadi
                                                 ? "Alat tetap digunakan di dalam lab. Pilih ruang yang akan dipakai."
                                                 : roomLocked
                                                   ? "Terisi otomatis dari mata pelajaran yang dipilih."
-                                                  : isBawaPulang
-                                                    ? "Otomatis terisi jika memilih mata pelajaran, atau pilih sendiri."
-                                                    : "Otomatis terisi dari jadwal mata pelajaran."}
+                                                  : "Otomatis terisi dari jadwal mata pelajaran."}
                                         </p>
                                         <select
                                             value={data.usage_room}

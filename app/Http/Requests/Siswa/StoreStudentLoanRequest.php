@@ -48,7 +48,7 @@ class StoreStudentLoanRequest extends FormRequest
             $merge['borrow_reason'] = 'reguler';
         }
 
-        if (! $isAlat) {
+        if (! $isAlat || $bawaPulang) {
             $merge['usage_room'] = null;
         } elseif (! $this->filled('usage_room')) {
             $merge['usage_room'] = null;
@@ -69,7 +69,7 @@ class StoreStudentLoanRequest extends FormRequest
                 $merge['supervisor_id'] = $schedule->guru_id;
             }
 
-            if (filled($schedule?->ruangan)) {
+            if (! $bawaPulang && filled($schedule?->ruangan)) {
                 $merge['usage_room'] = $schedule->ruangan;
             }
         }
@@ -256,10 +256,11 @@ class StoreStudentLoanRequest extends FormRequest
 
             if (
                 $schedule
+                && ! $bawaPulang
+                && $borrowReason === 'reguler'
                 && filled($schedule->ruangan)
                 && $this->filled('usage_room')
                 && $schedule->ruangan !== $this->input('usage_room')
-                && ($bawaPulang || $borrowReason === 'reguler')
             ) {
                 $validator->errors()->add(
                     'usage_room',
