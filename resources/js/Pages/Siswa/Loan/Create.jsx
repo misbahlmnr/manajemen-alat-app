@@ -312,7 +312,9 @@ export default function Create({
     const isPakaiDiLab = needsAlatFields && !isBawaPulang && !isPribadi;
     const scheduleRequired = isPakaiDiLab;
     const scheduleList = isPakaiDiLab || isBawaPulang ? todaySchedules : [];
-    const showSupervisor = !isPribadi || bahanCart.length > 0;
+    const showSupervisor =
+        isPakaiDiLab ||
+        (isBawaPulang && Boolean(data.practicum_schedule_id));
     const showUsageRoom = needsAlatFields && !isBawaPulang;
 
     const usageLocation = isBawaPulang

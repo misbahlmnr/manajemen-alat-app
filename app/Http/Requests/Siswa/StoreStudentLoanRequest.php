@@ -54,7 +54,7 @@ class StoreStudentLoanRequest extends FormRequest
             $merge['usage_room'] = null;
         }
 
-        if ($isPribadi) {
+        if (! $isAlat || $isPribadi || ($bawaPulang && ! $this->filled('practicum_schedule_id'))) {
             $merge['supervisor_id'] = null;
         }
 
@@ -84,6 +84,8 @@ class StoreStudentLoanRequest extends FormRequest
         $isLab = $isAlat && ! $bawaPulang;
         $isLabReguler = $isLab && $this->input('borrow_reason') === 'reguler';
         $isPribadi = $isLab && $this->input('borrow_reason') === 'lanjutan';
+        $supervisorRequired = $isLabReguler
+            || ($isAlat && $bawaPulang && $this->filled('practicum_schedule_id'));
         $roomOptions = config('lab.lab_room_options', []);
 
         if ($this->filled('practicum_schedule_id')) {
@@ -98,7 +100,7 @@ class StoreStudentLoanRequest extends FormRequest
 
         return [
             'supervisor_id' => [
-                $isPribadi ? 'nullable' : 'required',
+                $supervisorRequired ? 'required' : 'nullable',
                 'integer',
                 Rule::exists(User::class, 'id')->where('role', 'guru'),
             ],

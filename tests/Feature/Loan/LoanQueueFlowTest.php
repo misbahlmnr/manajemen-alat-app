@@ -16,11 +16,9 @@ class LoanQueueFlowTest extends TestCase
     public function test_siswa_can_submit_bahan_into_queue_when_stock_short(): void
     {
         $siswa = $this->makeUser('siswa', 'siswa-bahan');
-        $guru = $this->makeUser('guru', 'guru-bahan');
         $bahan = $this->makeEquipment('bahan', available: 0);
 
         $response = $this->actingAs($siswa)->post(route('siswa.loans.store'), [
-            'supervisor_id' => $guru->id,
             'item_type' => 'bahan',
             'request_date' => now()->toDateString(),
             'purpose' => 'Ambil bahan',
@@ -36,6 +34,7 @@ class LoanQueueFlowTest extends TestCase
         $this->assertNotNull($loan);
         $this->assertSame('antrian', $loan->status);
         $this->assertSame('bahan', $loan->item_type);
+        $this->assertNull($loan->supervisor_id);
         $this->assertNotNull($loan->queued_at);
     }
 
@@ -63,7 +62,6 @@ class LoanQueueFlowTest extends TestCase
                 ],
             ],
             'bahan' => [
-                'supervisor_id' => $guru->id,
                 'item_type' => 'bahan',
                 'request_date' => $today,
                 'purpose' => 'Paket praktikum',
@@ -124,7 +122,6 @@ class LoanQueueFlowTest extends TestCase
         ])->assertRedirect();
 
         $this->actingAs($siswa)->post(route('siswa.loans.store'), [
-            'supervisor_id' => $guru->id,
             'item_type' => 'bahan',
             'request_date' => now()->toDateString(),
             'purpose' => 'Ambil bahan',
