@@ -299,7 +299,7 @@ class LoanController extends Controller
         $dueAt = $loan->isAlat() ? ($validated['due_at'] ?? null) : null;
 
         $loan->update([
-            'supervisor_id' => $validated['supervisor_id'],
+            'supervisor_id' => $validated['supervisor_id'] ?? null,
             'practicum_schedule_id' => $validated['practicum_schedule_id'] ?? null,
             'request_date' => $validated['request_date'],
             'purpose' => $validated['purpose'],
@@ -439,20 +439,8 @@ class LoanController extends Controller
                 ->values()
                 ->all(),
             'todaySchedules' => $this->schedulesForToday($user, $loan),
-            'labRoomOptions' => $this->labRoomOptions(),
+            'labRoomOptions' => config('lab.lab_room_options', []),
         ];
-    }
-
-    private function labRoomOptions(): array
-    {
-        return PracticumSchedule::query()
-            ->whereNotNull('ruangan')
-            ->where('ruangan', '!=', '')
-            ->distinct()
-            ->orderBy('ruangan')
-            ->pluck('ruangan')
-            ->values()
-            ->all();
     }
 
     private function schedulesForToday(User $user, ?Loan $loan = null): array
@@ -493,7 +481,7 @@ class LoanController extends Controller
             ->orderByHari()
             ->orderBy('jam_mulai')
             ->orderBy('tanggal')
-            ->get(['id', 'code', 'title', 'mata_kuliah', 'kelas', 'type', 'hari', 'tanggal', 'jam_mulai', 'jam_selesai', 'priority', 'guru_id'])
+            ->get(['id', 'code', 'title', 'mata_kuliah', 'kelas', 'type', 'hari', 'tanggal', 'jam_mulai', 'jam_selesai', 'priority', 'guru_id', 'ruangan'])
             ->when($todayOnly, fn ($collection) => $collection->filter(
                 fn (PracticumSchedule $schedule) => $schedule->matchesRequestDate($now)
             ))
@@ -520,6 +508,7 @@ class LoanController extends Controller
             'priority' => $schedule->priority,
             'guru_id' => $schedule->guru_id,
             'guru_name' => $schedule->guru?->name,
+            'ruangan' => $schedule->ruangan,
         ];
     }
 

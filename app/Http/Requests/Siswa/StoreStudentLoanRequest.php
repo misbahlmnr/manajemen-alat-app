@@ -27,6 +27,7 @@ class StoreStudentLoanRequest extends FormRequest
 
         $isAlat = $this->input('item_type') === 'alat';
         $bawaPulang = $this->input('borrow_scope') === 'bawa_pulang';
+        $isPribadi = $isAlat && ! $bawaPulang && $this->input('borrow_reason') === 'lanjutan';
 
         $merge = [
             'items' => $items,
@@ -37,7 +38,7 @@ class StoreStudentLoanRequest extends FormRequest
             $merge['collateral_agreed'] = null;
         }
 
-        if (! $this->filled('practicum_schedule_id')) {
+        if (! $this->filled('practicum_schedule_id') || $isPribadi) {
             $merge['practicum_schedule_id'] = null;
         }
 
@@ -47,8 +48,30 @@ class StoreStudentLoanRequest extends FormRequest
             $merge['borrow_reason'] = 'reguler';
         }
 
-        if (! $isAlat || $bawaPulang || $this->input('borrow_reason') !== 'lanjutan') {
+        if (! $isAlat) {
             $merge['usage_room'] = null;
+        } elseif (! $this->filled('usage_room')) {
+            $merge['usage_room'] = null;
+        }
+
+        if ($isPribadi) {
+            $merge['supervisor_id'] = null;
+        }
+
+        if (
+            $isAlat
+            && ! $isPribadi
+            && $this->filled('practicum_schedule_id')
+        ) {
+            $schedule = PracticumSchedule::query()->find($this->input('practicum_schedule_id'));
+
+            if ($schedule?->guru_id) {
+                $merge['supervisor_id'] = $schedule->guru_id;
+            }
+
+            if (filled($schedule?->ruangan)) {
+                $merge['usage_room'] = $schedule->ruangan;
+            }
         }
 
         $this->merge($merge);
@@ -61,10 +84,21 @@ class StoreStudentLoanRequest extends FormRequest
         $isLab = $isAlat && ! $bawaPulang;
         $isLabReguler = $isLab && $this->input('borrow_reason') === 'reguler';
         $isPribadi = $isLab && $this->input('borrow_reason') === 'lanjutan';
+        $roomOptions = config('lab.lab_room_options', []);
+
+        if ($this->filled('practicum_schedule_id')) {
+            $scheduleRoom = PracticumSchedule::query()
+                ->whereKey($this->input('practicum_schedule_id'))
+                ->value('ruangan');
+
+            if (filled($scheduleRoom)) {
+                $roomOptions = array_values(array_unique([...$roomOptions, $scheduleRoom]));
+            }
+        }
 
         return [
             'supervisor_id' => [
-                'required',
+                $isPribadi ? 'nullable' : 'required',
                 'integer',
                 Rule::exists(User::class, 'id')->where('role', 'guru'),
             ],
@@ -87,9 +121,11 @@ class StoreStudentLoanRequest extends FormRequest
                 Rule::in(['reguler', 'lanjutan']),
             ],
             'usage_room' => [
-                $isPribadi ? 'required' : 'nullable',
+                Rule::requiredIf($isLab),
+                'nullable',
                 'string',
                 'max:100',
+                Rule::in($roomOptions),
             ],
             'collateral_agreed' => [
                 Rule::excludeIf(fn () => ! $isAlat || ! $bawaPulang),
@@ -125,6 +161,8 @@ class StoreStudentLoanRequest extends FormRequest
         return [
             'collateral_agreed.accepted' => 'Anda harus memahami bahwa peminjaman ini memerlukan jaminan kartu pelajar.',
             'practicum_schedule_id.required' => 'Pilih mata pelajaran dari jadwal hari ini.',
+            'usage_room.required' => 'Pilih lokasi ruang/lab.',
+            'usage_room.in' => 'Lokasi ruang/lab tidak valid.',
         ];
     }
 
@@ -213,6 +251,19 @@ class StoreStudentLoanRequest extends FormRequest
                 $validator->errors()->add(
                     'supervisor_id',
                     'Guru pembimbing harus sesuai dengan guru mata pelajaran yang dipilih.',
+                );
+            }
+
+            if (
+                $schedule
+                && filled($schedule->ruangan)
+                && $this->filled('usage_room')
+                && $schedule->ruangan !== $this->input('usage_room')
+                && ($bawaPulang || $borrowReason === 'reguler')
+            ) {
+                $validator->errors()->add(
+                    'usage_room',
+                    'Lokasi ruang/lab harus sesuai dengan jadwal mata pelajaran yang dipilih.',
                 );
             }
 

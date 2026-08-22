@@ -95,6 +95,13 @@ return [
         'lanjutan' => 'Pribadi',
     ],
 
+    'lab_room_options' => [
+        'Ruang Assembly',
+        'Ruang Komputer',
+        'Ruang Instalasi',
+        'Ruang Terbuka',
+    ],
+
     'queue' => [
         // Round Robin: FIFO + prioritas admin saja (tanpa skor jadwal otomatis).
         'school_close_time' => env('LAB_SCHOOL_CLOSE_TIME', '17:00'),

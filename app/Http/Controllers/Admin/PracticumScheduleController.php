@@ -91,6 +91,7 @@ class PracticumScheduleController extends Controller
             'subjectOptions' => config('lab.practicum_subjects'),
             'dayOptions' => config('lab.schedule_days'),
             'typeOptions' => config('lab.schedule_types'),
+            'labRoomOptions' => config('lab.lab_room_options'),
         ]);
     }
 
@@ -129,6 +130,7 @@ class PracticumScheduleController extends Controller
             'subjectOptions' => config('lab.practicum_subjects'),
             'dayOptions' => config('lab.schedule_days'),
             'typeOptions' => config('lab.schedule_types'),
+            'labRoomOptions' => config('lab.lab_room_options'),
         ]);
     }
 

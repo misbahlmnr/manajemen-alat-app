@@ -56,7 +56,7 @@ class LoanQueueFlowTest extends TestCase
                 'notes' => 'Paket praktikum',
                 'borrow_scope' => 'lab',
                 'borrow_reason' => 'lanjutan',
-                'usage_room' => 'Lab AV 1',
+                'usage_room' => 'Ruang Assembly',
                 'due_at' => now()->setTime(17, 0)->format('Y-m-d\TH:i'),
                 'items' => [
                     ['equipment_id' => $alat->id, 'quantity' => 1],
@@ -116,7 +116,7 @@ class LoanQueueFlowTest extends TestCase
             'notes' => 'Pinjam alat',
             'borrow_scope' => 'lab',
             'borrow_reason' => 'lanjutan',
-            'usage_room' => 'Lab AV 1',
+            'usage_room' => 'Ruang Assembly',
             'due_at' => now()->setTime(17, 0)->format('Y-m-d\TH:i'),
             'items' => [
                 ['equipment_id' => $alat->id, 'quantity' => 3],
@@ -169,7 +169,7 @@ class LoanQueueFlowTest extends TestCase
             'notes' => 'Antre toolset',
             'borrow_scope' => 'lab',
             'borrow_reason' => 'lanjutan',
-            'usage_room' => 'Lab AV 1',
+            'usage_room' => 'Ruang Assembly',
             'due_at' => now()->setTime(17, 0)->format('Y-m-d\TH:i'),
             'items' => [
                 ['equipment_id' => $alat->id, 'quantity' => 2],
@@ -211,7 +211,7 @@ class LoanQueueFlowTest extends TestCase
             'notes' => 'Pinjam alat',
             'borrow_scope' => 'lab',
             'borrow_reason' => 'lanjutan',
-            'usage_room' => 'Lab AV 1',
+            'usage_room' => 'Ruang Assembly',
             'due_at' => now()->setTime(17, 0)->format('Y-m-d\TH:i'),
             'items' => [
                 ['equipment_id' => $alat->id, 'quantity' => $qty],

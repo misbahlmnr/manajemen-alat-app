@@ -11,6 +11,7 @@ export default function Edit({
     subjectOptions,
     dayOptions,
     typeOptions,
+    labRoomOptions = [],
 }) {
     const { data, setData, put, processing, errors } = useForm({
         title: schedule.title,
@@ -53,6 +54,7 @@ export default function Edit({
                         subjectOptions={subjectOptions}
                         dayOptions={dayOptions}
                         typeOptions={typeOptions}
+                        labRoomOptions={labRoomOptions}
                     />
 
                     <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-6">

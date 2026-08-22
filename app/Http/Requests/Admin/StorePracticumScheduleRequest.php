@@ -49,7 +49,15 @@ class StorePracticumScheduleRequest extends FormRequest
             ],
             'jam_mulai' => ['required', 'date_format:H:i'],
             'jam_selesai' => ['required', 'date_format:H:i', 'after:jam_mulai'],
-            'ruangan' => ['nullable', 'string', 'max:100'],
+            'ruangan' => [
+                'nullable',
+                'string',
+                'max:100',
+                Rule::in(array_values(array_unique([
+                    ...config('lab.lab_room_options', []),
+                    ...array_filter([(string) $this->route('schedule')?->ruangan]),
+                ]))),
+            ],
             'guru_id' => [
                 'required',
                 'integer',

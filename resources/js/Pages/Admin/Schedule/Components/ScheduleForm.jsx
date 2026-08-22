@@ -20,6 +20,7 @@ export default function ScheduleForm({
     subjectOptions = [],
     dayOptions = {},
     typeOptions = {},
+    labRoomOptions = [],
 }) {
     const isMingguan = data.type === "mingguan";
     const isKhusus = data.type === "khusus";
@@ -142,13 +143,25 @@ export default function ScheduleForm({
 
                     <div className="space-y-2">
                         <Label htmlFor="ruangan">Ruang / Lab</Label>
-                        <Input
+                        <Select
                             id="ruangan"
                             value={data.ruangan ?? ""}
                             onChange={(e) => setData("ruangan", e.target.value)}
-                            placeholder="Lab AV-1"
                             disabled={processing}
-                        />
+                        >
+                            <option value="">Pilih ruang/lab</option>
+                            {[
+                                ...labRoomOptions,
+                                ...(data.ruangan &&
+                                !labRoomOptions.includes(data.ruangan)
+                                    ? [data.ruangan]
+                                    : []),
+                            ].map((room) => (
+                                <option key={room} value={room}>
+                                    {room}
+                                </option>
+                            ))}
+                        </Select>
                         <InputError message={errors.ruangan} />
                     </div>
 

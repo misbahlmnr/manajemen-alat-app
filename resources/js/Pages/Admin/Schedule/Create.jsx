@@ -10,6 +10,7 @@ export default function Create({
     subjectOptions,
     dayOptions,
     typeOptions,
+    labRoomOptions = [],
 }) {
     const { data, setData, post, processing, errors } = useForm({
         title: "",
@@ -52,6 +53,7 @@ export default function Create({
                         subjectOptions={subjectOptions}
                         dayOptions={dayOptions}
                         typeOptions={typeOptions}
+                        labRoomOptions={labRoomOptions}
                     />
 
                     <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-6">

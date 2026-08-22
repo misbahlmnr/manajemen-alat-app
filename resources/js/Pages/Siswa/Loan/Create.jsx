@@ -311,8 +311,9 @@ export default function Create({
     const isPribadi = needsAlatFields && data.borrow_reason === "lanjutan";
     const isPakaiDiLab = needsAlatFields && !isBawaPulang && !isPribadi;
     const scheduleRequired = isPakaiDiLab;
-    const matpelDisabled = isPribadi;
     const scheduleList = isPakaiDiLab || isBawaPulang ? todaySchedules : [];
+    const showSupervisor = !isPribadi || bahanCart.length > 0;
+    const showUsageRoom = needsAlatFields;
 
     const usageLocation = isBawaPulang
         ? "bawa_pulang"
@@ -348,6 +349,7 @@ export default function Create({
                 borrow_reason: "lanjutan",
                 practicum_schedule_id: "",
                 supervisor_id: "",
+                usage_room: "",
                 collateral_agreed: false,
                 due_at: buildDueAt(today, schoolCloseTime),
             }));
@@ -381,6 +383,8 @@ export default function Create({
                 practicum_schedule_id: "",
                 supervisor_id:
                     isPakaiDiLab || isBawaPulang ? "" : prev.supervisor_id,
+                usage_room:
+                    isPakaiDiLab || isBawaPulang ? "" : prev.usage_room,
             }));
             return;
         }
@@ -401,6 +405,7 @@ export default function Create({
             ...prev,
             practicum_schedule_id: scheduleId,
             supervisor_id: s.guru_id ? String(s.guru_id) : prev.supervisor_id,
+            usage_room: s.ruangan || prev.usage_room,
             request_date:
                 isPakaiDiLab || isBawaPulang ? requestDate : prev.request_date,
             due_at: isPakaiDiLab || isBawaPulang ? dueAt : prev.due_at,
@@ -409,6 +414,8 @@ export default function Create({
 
     const supervisorLocked =
         (isPakaiDiLab || isBawaPulang) && Boolean(selectedSchedule?.guru_id);
+    const roomLocked =
+        (isPakaiDiLab || isBawaPulang) && Boolean(selectedSchedule?.ruangan);
 
     const totalItems = cart.reduce((s, i) => s + i.quantity, 0);
     const collateralRequired =
@@ -419,7 +426,6 @@ export default function Create({
             formData.notes?.trim() || formData.purpose?.trim() || "Peminjaman";
 
         const payload = {
-            supervisor_id: formData.supervisor_id,
             item_type: itemType,
             request_date:
                 formData.request_date || new Date().toISOString().slice(0, 10),
@@ -430,6 +436,10 @@ export default function Create({
                 quantity: i.quantity,
             })),
         };
+
+        if (formData.supervisor_id) {
+            payload.supervisor_id = formData.supervisor_id;
+        }
 
         if (itemType !== "bahan") {
             payload.borrow_scope = formData.borrow_scope;
@@ -516,12 +526,14 @@ export default function Create({
 
     const canSubmit =
         cart.length > 0 &&
-        data.supervisor_id &&
+        (!showSupervisor || data.supervisor_id) &&
         (!needsAlatFields ||
             ((!scheduleRequired || data.practicum_schedule_id) &&
                 data.request_date &&
                 data.due_at &&
-                (!isPribadi || data.usage_room?.trim()) &&
+                (!showUsageRoom ||
+                    isBawaPulang ||
+                    data.usage_room?.trim()) &&
                 (!collateralRequired || data.collateral_agreed))) &&
         (data.notes?.trim() || data.purpose?.trim());
 
@@ -888,83 +900,7 @@ export default function Create({
                                     </div>
                                 )}
 
-                                {needsAlatFields && matpelDisabled && (
-                                    <div className="space-y-1.5">
-                                        <label className="flex items-center gap-1.5 text-sm font-medium">
-                                            <CalendarDays className="h-3.5 w-3.5" />{" "}
-                                            Mata Pelajaran
-                                        </label>
-                                        <select
-                                            className="form-input opacity-60"
-                                            disabled
-                                        >
-                                            <option>
-                                                Tidak diperlukan untuk
-                                                penggunaan pribadi
-                                            </option>
-                                        </select>
-                                    </div>
-                                )}
-
-                                {needsAlatFields && isPribadi && (
-                                    <div className="space-y-1.5">
-                                        <label className="flex items-center gap-1.5 text-sm font-medium">
-                                            <MapPin className="h-3.5 w-3.5" />{" "}
-                                            Lokasi Ruang / Lab
-                                            <span className="text-destructive">
-                                                *
-                                            </span>
-                                        </label>
-                                        <p className="text-xs text-muted-foreground">
-                                            Alat tetap digunakan di dalam lab.
-                                            Pilih ruang yang akan dipakai.
-                                        </p>
-                                        {labRoomOptions.length > 0 ? (
-                                            <select
-                                                value={data.usage_room}
-                                                onChange={(e) =>
-                                                    setData(
-                                                        "usage_room",
-                                                        e.target.value,
-                                                    )
-                                                }
-                                                className="form-input"
-                                                disabled={busy}
-                                            >
-                                                <option value="">
-                                                    Pilih ruang/lab...
-                                                </option>
-                                                {labRoomOptions.map((room) => (
-                                                    <option
-                                                        key={room}
-                                                        value={room}
-                                                    >
-                                                        {room}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        ) : (
-                                            <input
-                                                type="text"
-                                                value={data.usage_room}
-                                                onChange={(e) =>
-                                                    setData(
-                                                        "usage_room",
-                                                        e.target.value,
-                                                    )
-                                                }
-                                                placeholder="Contoh: Lab AV-1"
-                                                className="form-input"
-                                                disabled={busy}
-                                            />
-                                        )}
-                                        <InputError
-                                            message={errors.usage_room}
-                                        />
-                                    </div>
-                                )}
-
-                                {needsAlatFields && !matpelDisabled && (
+                                {needsAlatFields && !isPribadi && (
                                     <div className="space-y-1.5">
                                         <label className="flex items-center gap-1.5 text-sm font-medium">
                                             <CalendarDays className="h-3.5 w-3.5" />{" "}
@@ -1083,6 +1019,14 @@ export default function Create({
                                                         }
                                                     </p>
                                                 )}
+                                                {selectedSchedule.ruangan && (
+                                                    <p className="text-muted-foreground">
+                                                        Ruang:{" "}
+                                                        {
+                                                            selectedSchedule.ruangan
+                                                        }
+                                                    </p>
+                                                )}
                                                 {selectedSchedule.priority ===
                                                     "lomba" && (
                                                     <p className="flex items-center gap-1 font-medium text-destructive">
@@ -1095,10 +1039,65 @@ export default function Create({
                                     </div>
                                 )}
 
+                                {showUsageRoom && (
+                                    <div className="space-y-1.5">
+                                        <label className="flex items-center gap-1.5 text-sm font-medium">
+                                            <MapPin className="h-3.5 w-3.5" />{" "}
+                                            Lokasi Ruang / Lab
+                                            {!isBawaPulang && (
+                                                <span className="text-destructive">
+                                                    *
+                                                </span>
+                                            )}
+                                            {isBawaPulang && (
+                                                <span className="text-xs font-normal text-muted-foreground">
+                                                    (opsional)
+                                                </span>
+                                            )}
+                                        </label>
+                                        <p className="text-xs text-muted-foreground">
+                                            {isPribadi
+                                                ? "Alat tetap digunakan di dalam lab. Pilih ruang yang akan dipakai."
+                                                : roomLocked
+                                                  ? "Terisi otomatis dari mata pelajaran yang dipilih."
+                                                  : isBawaPulang
+                                                    ? "Otomatis terisi jika memilih mata pelajaran, atau pilih sendiri."
+                                                    : "Otomatis terisi dari jadwal mata pelajaran."}
+                                        </p>
+                                        <select
+                                            value={data.usage_room}
+                                            onChange={(e) =>
+                                                setData(
+                                                    "usage_room",
+                                                    e.target.value,
+                                                )
+                                            }
+                                            className="form-input"
+                                            disabled={busy || roomLocked}
+                                        >
+                                            <option value="">
+                                                Pilih ruang/lab...
+                                            </option>
+                                            {labRoomOptions.map((room) => (
+                                                <option key={room} value={room}>
+                                                    {room}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <InputError
+                                            message={errors.usage_room}
+                                        />
+                                    </div>
+                                )}
+
+                                {showSupervisor && (
                                 <div className="space-y-1.5">
                                     <label className="flex items-center gap-1.5 text-sm font-medium">
                                         <User className="h-3.5 w-3.5" /> Guru
                                         Pembimbing
+                                        <span className="text-destructive">
+                                            *
+                                        </span>
                                     </label>
                                     {supervisorLocked && (
                                         <p className="text-xs text-muted-foreground">
@@ -1128,6 +1127,7 @@ export default function Create({
                                         message={errors.supervisor_id}
                                     />
                                 </div>
+                                )}
 
                                 {needsAlatFields && (
                                     <>
