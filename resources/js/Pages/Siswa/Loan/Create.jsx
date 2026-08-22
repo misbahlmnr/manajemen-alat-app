@@ -1131,12 +1131,27 @@ export default function Create({
                                             <input
                                                 type="date"
                                                 value={data.request_date}
-                                                onChange={(e) =>
+                                                onChange={(e) => {
+                                                    const nextDate =
+                                                        e.target.value;
+                                                    if (isBawaPulang) {
+                                                        setData((prev) => ({
+                                                            ...prev,
+                                                            request_date:
+                                                                nextDate,
+                                                            due_at: addDaysDateTime(
+                                                                nextDate,
+                                                                bawaPulangMaxDays,
+                                                                schoolCloseTime,
+                                                            ),
+                                                        }));
+                                                        return;
+                                                    }
                                                     setData(
                                                         "request_date",
-                                                        e.target.value,
-                                                    )
-                                                }
+                                                        nextDate,
+                                                    );
+                                                }}
                                                 className="form-input"
                                                 disabled={
                                                     busy || isPakaiDiLab
@@ -1169,6 +1184,15 @@ export default function Create({
                                                 className="form-input"
                                                 disabled={busy}
                                             />
+                                            {isBawaPulang && (
+                                                <p className="text-xs text-muted-foreground">
+                                                    Maksimal {bawaPulangMaxDays}{" "}
+                                                    hari setelah tanggal
+                                                    pengajuan, hingga pukul{" "}
+                                                    {schoolCloseTime} (jam
+                                                    operasional lab).
+                                                </p>
+                                            )}
                                             <InputError
                                                 message={errors.due_at}
                                             />

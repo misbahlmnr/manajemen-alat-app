@@ -129,8 +129,15 @@ class LoanQueueServiceTest extends TestCase
         );
 
         $this->assertSame(
-            $from->copy()->addDay()->format('Y-m-d H:i:s'),
+            $from->copy()->addDay()->format('Y-m-d').' 17:00:00',
             $this->queue->resolveTimeSliceDueAt($bawaPulang, $from)->format('Y-m-d H:i:s'),
+        );
+
+        // Jam pengajuan tidak mempengaruhi batas maksimal bawa pulang.
+        $lateFrom = Carbon::parse(now()->toDateString().' 16:45:00');
+        $this->assertSame(
+            $lateFrom->copy()->addDay()->format('Y-m-d').' 17:00:00',
+            $this->queue->resolveTimeSliceDueAt($bawaPulang, $lateFrom)->format('Y-m-d H:i:s'),
         );
     }
 

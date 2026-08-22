@@ -359,7 +359,11 @@ class LoanQueueService
     }
 
     /**
-     * Batas due_at menurut time slice Round Robin.
+     * Batas due_at menurut time slice operasional lab.
+     *
+     * - Bawa pulang: tanggal pengajuan + N hari pada jam tutup sekolah
+     * - Pribadi / catch-up: jam tutup sekolah hari yang sama
+     * - Pakai di lab: jam selesai jadwal
      */
     public function resolveTimeSliceDueAt(Loan $loan, ?Carbon $from = null): Carbon
     {
@@ -368,8 +372,11 @@ class LoanQueueService
 
         if ($loan->borrow_scope === 'bawa_pulang') {
             $days = max(1, (int) config('lab.queue.bawa_pulang_max_days', 1));
+            $close = (string) config('lab.queue.school_close_time', '17:00');
+            $baseDate = $loan->request_date?->toDateString()
+                ?? $from->toDateString();
 
-            return $from->copy()->addDays($days);
+            return Carbon::parse($baseDate.' '.$close)->addDays($days);
         }
 
         if ($loan->isCatchUp() || ($loan->borrow_scope === 'lab' && $loan->borrow_reason === 'lanjutan')) {

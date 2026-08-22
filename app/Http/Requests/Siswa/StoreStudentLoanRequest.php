@@ -191,86 +191,83 @@ class StoreStudentLoanRequest extends FormRequest
             $bawaPulang = $this->input('borrow_scope') === 'bawa_pulang';
             $borrowReason = $this->input('borrow_reason');
 
-            if (! $this->filled('practicum_schedule_id')) {
-                return;
-            }
+            if ($this->filled('practicum_schedule_id')) {
+                $schedule = PracticumSchedule::query()->find($this->input('practicum_schedule_id'));
+                $class = $this->user()?->class;
 
-            $schedule = PracticumSchedule::query()->find($this->input('practicum_schedule_id'));
-            $class = $this->user()?->class;
+                if ($schedule && $class && $schedule->kelas !== $class) {
+                    $validator->errors()->add(
+                        'practicum_schedule_id',
+                        'Jadwal praktikum harus sesuai dengan kelas Anda.',
+                    );
+                }
 
-            if ($schedule && $class && $schedule->kelas !== $class) {
-                $validator->errors()->add(
-                    'practicum_schedule_id',
-                    'Jadwal praktikum harus sesuai dengan kelas Anda.',
-                );
-            }
+                if (
+                    $bawaPulang
+                    && $schedule
+                    && ! $schedule->matchesRequestDate(now())
+                ) {
+                    $validator->errors()->add(
+                        'practicum_schedule_id',
+                        'Mata pelajaran harus dari jadwal hari ini.',
+                    );
+                }
 
-            if (
-                $bawaPulang
-                && $schedule
-                && ! $schedule->matchesRequestDate(now())
-            ) {
-                $validator->errors()->add(
-                    'practicum_schedule_id',
-                    'Mata pelajaran harus dari jadwal hari ini.',
-                );
-            }
+                if (
+                    ! $bawaPulang
+                    && $borrowReason === 'reguler'
+                    && $schedule
+                    && $this->filled('request_date')
+                    && ! $schedule->matchesRequestDate($this->input('request_date'))
+                ) {
+                    $validator->errors()->add(
+                        'request_date',
+                        'Tanggal pengajuan harus sesuai jadwal mata pelajaran hari ini.',
+                    );
+                }
 
-            if (
-                ! $bawaPulang
-                && $borrowReason === 'reguler'
-                && $schedule
-                && $this->filled('request_date')
-                && ! $schedule->matchesRequestDate($this->input('request_date'))
-            ) {
-                $validator->errors()->add(
-                    'request_date',
-                    'Tanggal pengajuan harus sesuai jadwal mata pelajaran hari ini.',
-                );
-            }
+                if (
+                    $bawaPulang
+                    && $schedule
+                    && $this->filled('request_date')
+                    && ! $schedule->matchesRequestDate($this->input('request_date'))
+                ) {
+                    $validator->errors()->add(
+                        'request_date',
+                        'Tanggal pengajuan harus sesuai jadwal mata pelajaran hari ini.',
+                    );
+                }
 
-            if (
-                $bawaPulang
-                && $schedule
-                && $this->filled('request_date')
-                && ! $schedule->matchesRequestDate($this->input('request_date'))
-            ) {
-                $validator->errors()->add(
-                    'request_date',
-                    'Tanggal pengajuan harus sesuai jadwal mata pelajaran hari ini.',
-                );
-            }
+                if (
+                    $schedule
+                    && $this->filled('supervisor_id')
+                    && $schedule->guru_id
+                    && (int) $schedule->guru_id !== (int) $this->input('supervisor_id')
+                    && ($bawaPulang || $borrowReason === 'reguler')
+                ) {
+                    $validator->errors()->add(
+                        'supervisor_id',
+                        'Guru pembimbing harus sesuai dengan guru mata pelajaran yang dipilih.',
+                    );
+                }
 
-            if (
-                $schedule
-                && $this->filled('supervisor_id')
-                && $schedule->guru_id
-                && (int) $schedule->guru_id !== (int) $this->input('supervisor_id')
-                && ($bawaPulang || $borrowReason === 'reguler')
-            ) {
-                $validator->errors()->add(
-                    'supervisor_id',
-                    'Guru pembimbing harus sesuai dengan guru mata pelajaran yang dipilih.',
-                );
-            }
-
-            if (
-                $schedule
-                && ! $bawaPulang
-                && $borrowReason === 'reguler'
-                && filled($schedule->ruangan)
-                && $this->filled('usage_room')
-                && $schedule->ruangan !== $this->input('usage_room')
-            ) {
-                $validator->errors()->add(
-                    'usage_room',
-                    'Lokasi ruang/lab harus sesuai dengan jadwal mata pelajaran yang dipilih.',
-                );
+                if (
+                    $schedule
+                    && ! $bawaPulang
+                    && $borrowReason === 'reguler'
+                    && filled($schedule->ruangan)
+                    && $this->filled('usage_room')
+                    && $schedule->ruangan !== $this->input('usage_room')
+                ) {
+                    $validator->errors()->add(
+                        'usage_room',
+                        'Lokasi ruang/lab harus sesuai dengan jadwal mata pelajaran yang dipilih.',
+                    );
+                }
             }
 
             if (
                 $this->isMethod('post')
-                && $itemType === 'alat'
                 && $this->filled('due_at')
                 && Carbon::parse($this->input('due_at'))->lte(now())
             ) {
@@ -280,7 +277,7 @@ class StoreStudentLoanRequest extends FormRequest
                 );
             }
 
-            if ($itemType === 'alat' && $this->filled('due_at')) {
+            if ($this->filled('due_at')) {
                 $loan = new Loan([
                     'borrow_scope' => $this->input('borrow_scope', 'lab'),
                     'borrow_reason' => $this->input('borrow_reason'),
@@ -303,10 +300,27 @@ class StoreStudentLoanRequest extends FormRequest
                 if (Carbon::parse($this->input('due_at'))->gt($sliceEnd)) {
                     $validator->errors()->add(
                         'due_at',
-                        'Batas pengembalian melebihi time slice (maksimal '.$sliceEnd->translatedFormat('d M Y H:i').').',
+                        $this->timeSliceExceededMessage($bawaPulang, $sliceEnd),
                     );
                 }
             }
         });
+    }
+
+    private function timeSliceExceededMessage(bool $bawaPulang, Carbon $sliceEnd): string
+    {
+        if ($bawaPulang) {
+            $days = max(1, (int) config('lab.queue.bawa_pulang_max_days', 1));
+            $dayLabel = $days === 1 ? '1 hari' : "{$days} hari";
+
+            return 'Batas pengembalian untuk peminjaman bawa pulang maksimal '.$dayLabel
+                .' setelah tanggal pengajuan, yaitu hingga '
+                .$sliceEnd->translatedFormat('d F Y')
+                .' pukul '.$sliceEnd->format('H.i')
+                .' sesuai jam operasional laboratorium.';
+        }
+
+        return 'Batas pengembalian melebihi time slice (maksimal '
+            .$sliceEnd->translatedFormat('d M Y H:i').').';
     }
 }
