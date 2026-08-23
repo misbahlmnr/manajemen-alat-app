@@ -22,7 +22,7 @@ class InspectReturnRequest extends FormRequest
             'damage_description' => ['nullable', 'string', 'max:2000'],
             'amount' => ['nullable', 'integer', 'min:0'],
             'description' => ['nullable', 'string', 'max:2000'],
-            'damage_level' => ['nullable', Rule::in(['rusak_ringan', 'rusak_berat'])],
+            'damage_level' => ['nullable', 'required_if:result,rusak', Rule::in(['rusak_ringan', 'rusak_berat'])],
         ];
     }
 
@@ -31,6 +31,10 @@ class InspectReturnRequest extends FormRequest
         $validator->after(function (Validator $validator): void {
             if ($this->input('result') === 'rusak' && blank($this->input('damage_description'))) {
                 $validator->errors()->add('damage_description', 'Deskripsi kerusakan wajib diisi.');
+            }
+
+            if ($this->input('result') === 'rusak' && blank($this->input('damage_level'))) {
+                $validator->errors()->add('damage_level', 'Tingkat kerusakan wajib dipilih (Rusak Ringan / Rusak Berat).');
             }
 
             if ($this->input('result') === 'rusak' && blank($this->input('description'))) {

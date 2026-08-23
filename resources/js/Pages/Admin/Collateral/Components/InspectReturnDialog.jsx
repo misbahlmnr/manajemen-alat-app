@@ -12,6 +12,7 @@ export default function InspectReturnDialog({
     loading,
 }) {
     const [result, setResult] = useState("lengkap");
+    const [damageLevel, setDamageLevel] = useState("rusak_ringan");
     const [missingItems, setMissingItems] = useState("");
     const [damageDescription, setDamageDescription] = useState("");
     const [studentInstruction, setStudentInstruction] = useState("");
@@ -27,7 +28,7 @@ export default function InspectReturnDialog({
             notes: null,
             missing_items: isIncomplete ? missingItems || null : null,
             damage_description: isDamaged ? damageDescription || null : null,
-            damage_level: isDamaged ? "rusak_ringan" : null,
+            damage_level: isDamaged ? damageLevel : null,
             amount: null,
             description: isDamaged || isIncomplete ? studentInstruction || null : null,
         });
@@ -63,7 +64,15 @@ export default function InspectReturnDialog({
                         <Label>Hasil inspeksi *</Label>
                         <Select
                             value={result}
-                            onChange={(e) => setResult(e.target.value)}
+                            onChange={(e) => {
+                                setResult(e.target.value);
+                                setMissingItems("");
+                                setDamageDescription("");
+                                setStudentInstruction("");
+                                if (e.target.value !== "rusak") {
+                                    setDamageLevel("rusak_ringan");
+                                }
+                            }}
                             disabled={loading}
                         >
                             <option value="lengkap">Lengkap & Baik</option>
@@ -74,6 +83,28 @@ export default function InspectReturnDialog({
 
                     {isDamaged && (
                         <>
+                            <div className="space-y-2">
+                                <Label>Tingkat kerusakan *</Label>
+                                <Select
+                                    value={damageLevel}
+                                    onChange={(e) =>
+                                        setDamageLevel(e.target.value)
+                                    }
+                                    disabled={loading}
+                                >
+                                    <option value="rusak_ringan">
+                                        Rusak Ringan
+                                    </option>
+                                    <option value="rusak_berat">
+                                        Rusak Berat
+                                    </option>
+                                </Select>
+                                <p className="text-xs text-muted-foreground">
+                                    Pilihan ini langsung mengubah kondisi stok
+                                    di inventaris (Baik / Rusak Ringan / Rusak
+                                    Berat).
+                                </p>
+                            </div>
                             <div className="space-y-2">
                                 <Label>Deskripsi kerusakan *</Label>
                                 <textarea
