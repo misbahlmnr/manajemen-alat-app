@@ -165,6 +165,8 @@ class AdminReportDataService
             ->values()
             ->all();
 
+        $analytics = $this->buildRingkasanAnalytics($loanBase, $from, $to);
+
         return [
             'rows' => [],
             'stats' => [
@@ -173,6 +175,8 @@ class AdminReportDataService
                 'loans_alat' => (clone $loanBase)->where('item_type', 'alat')->count(),
                 'loans_bahan' => (clone $loanBase)->where('item_type', 'bahan')->count(),
                 'pending' => (clone $loanBase)->whereIn('status', ['diminta', 'antrian'])->count(),
+                'queued' => $analytics['queued'],
+                'awaiting_approval' => $analytics['awaiting_approval'],
                 'approved' => (clone $loanBase)->where('status', 'disetujui')->count(),
                 'active_borrows' => (clone $loanBase)->whereIn('status', ['dipinjam', 'terlambat'])->count(),
                 'overdue' => (clone $loanBase)->where('status', 'terlambat')->count(),
@@ -210,6 +214,10 @@ class AdminReportDataService
                 'overdue_loans' => $overdueLoans,
                 'low_stock' => $lowStock,
             ],
+            'charts' => $analytics['charts'],
+            'insights' => $analytics['insights'],
+            'round_robin' => $analytics['round_robin'],
+            'recent_activity' => $analytics['recent_activity'],
         ];
     }
 

@@ -1,5 +1,14 @@
 import PageHeader from "@/Components/PageHeader";
 import LoanStatusBadge from "@/Components/LoanStatusBadge";
+import ReportCharts from "@/Components/Report/ReportCharts";
+import ReportEmptyState from "@/Components/Report/ReportEmptyState";
+import ReportExportCard from "@/Components/Report/ReportExportCard";
+import ReportInsights from "@/Components/Report/ReportInsights";
+import ReportKpiGrid from "@/Components/Report/ReportKpiGrid";
+import ReportRecentActivity from "@/Components/Report/ReportRecentActivity";
+import ReportRoundRobinStats from "@/Components/Report/ReportRoundRobinStats";
+import { Input } from "@/Components/ui/input";
+import { Select } from "@/Components/ui/select";
 import { cn } from "@/lib/utils";
 import {
     exportInventarisExcel,
@@ -11,15 +20,11 @@ import {
     exportRingkasanExcel,
     exportRingkasanPdf,
 } from "@/lib/reportExport";
-import { Button } from "@/Components/ui/button";
-import { Input } from "@/Components/ui/input";
-import { Select } from "@/Components/ui/select";
 import { router, useForm } from "@inertiajs/react";
 import {
     BarChart3,
     Box,
     ClipboardList,
-    FileSpreadsheet,
     FileText,
     Filter,
     Users,
@@ -43,6 +48,10 @@ export default function ReportWorkspace({
     rows = [],
     stats = {},
     highlights = {},
+    charts = {},
+    insights = {},
+    round_robin: roundRobin = {},
+    recent_activity: recentActivity = [],
     meta = {},
     statusOptions = {},
 }) {
@@ -57,11 +66,11 @@ export default function ReportWorkspace({
 
     const { data, setData } = useForm({
         type: reportType ?? "ringkasan",
-        item_type: filters.item_type ?? "all",
-        status: filters.status ?? "all",
-        role: filters.role ?? "all",
-        date_from: filters.date_from ?? "",
-        date_to: filters.date_to ?? "",
+        item_type: filters?.item_type ?? "all",
+        status: filters?.status ?? "all",
+        role: filters?.role ?? "all",
+        date_from: filters?.date_from ?? "",
+        date_to: filters?.date_to ?? "",
     });
 
     const isFirstRender = useRef(true);
@@ -138,12 +147,18 @@ export default function ReportWorkspace({
 
     const previewRows = rows.slice(0, 8);
     const totalRows = data.type === "ringkasan" ? 0 : rows.length;
+    const isRingkasan = data.type === "ringkasan";
+    const hasOperationalData =
+        Number(stats.total_loans ?? 0) > 0 ||
+        Number(stats.active_borrows ?? 0) > 0 ||
+        Number(stats.queued ?? 0) > 0 ||
+        Number(stats.awaiting_approval ?? 0) > 0;
 
     return (
-        <div className="animate-fade-in">
+        <div className="animate-fade-in space-y-6">
             <PageHeader title="Laporan & Export" subtitle={pageSubtitle} />
 
-            <div className="mb-6 flex w-full flex-wrap items-center gap-2 rounded-xl border border-border/60 bg-card p-1 shadow-sm">
+            <div className="flex w-full flex-wrap items-center gap-2 rounded-xl border border-border/60 bg-card p-1 shadow-sm">
                 {reportTabs.map(({ key, label, icon: Icon }) => (
                     <button
                         key={key}
@@ -162,13 +177,13 @@ export default function ReportWorkspace({
                 ))}
             </div>
 
-            <div className="mb-6 rounded-2xl border border-border/60 bg-card p-5 shadow-card">
+            <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
                 <div className="mb-4 flex items-center gap-2 text-sm font-medium">
                     <Filter className="h-4 w-4 text-muted-foreground" />
                     Filter Laporan
                 </div>
 
-                {data.type === "ringkasan" && (
+                {isRingkasan && (
                     <p className="mb-4 text-sm text-muted-foreground">
                         {isGuruScope
                             ? "Ringkasan peminjaman siswa bimbingan dan kondisi inventaris lab untuk periode tertentu."
@@ -195,7 +210,7 @@ export default function ReportWorkspace({
                     </div>
                 )}
 
-                {(data.type === "peminjaman" || data.type === "ringkasan") && (
+                {(data.type === "peminjaman" || isRingkasan) && (
                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                         <Input
                             type="date"
@@ -265,43 +280,37 @@ export default function ReportWorkspace({
                 )}
             </div>
 
-            <ReportStats
-                type={data.type}
-                stats={stats}
-                isGuruScope={isGuruScope}
-            />
+            {isRingkasan ? (
+                hasOperationalData ? (
+                    <>
+                        <ReportKpiGrid
+                            stats={stats}
+                            isGuruScope={isGuruScope}
+                        />
+                        <ReportCharts charts={charts} />
+                        <ReportInsights insights={insights} />
+                        {!isGuruScope && (
+                            <ReportRoundRobinStats roundRobin={roundRobin} />
+                        )}
+                        <ReportRecentActivity items={recentActivity} />
+                    </>
+                ) : (
+                    <ReportEmptyState />
+                )
+            ) : (
+                <>
+                    <TabStats type={data.type} stats={stats} />
+                    <DataPreview
+                        type={data.type}
+                        rows={previewRows}
+                        totalRows={totalRows}
+                    />
+                </>
+            )}
 
-            <div className="mb-6 rounded-2xl border border-border/60 bg-card p-6 shadow-card">
-                <h3 className="mb-2 font-semibold">Export Laporan</h3>
-                <p className="mb-4 text-sm text-muted-foreground">
-                    Unduh laporan lengkap dalam format PDF atau Excel untuk
-                    diserahkan ke atasan.
-                </p>
-                <div className="flex flex-wrap gap-3">
-                    <Button
-                        onClick={handleExportPdf}
-                        className="bg-red-600 hover:bg-red-700"
-                    >
-                        <FileText className="mr-2 h-4 w-4" />
-                        Export PDF
-                    </Button>
-                    <Button
-                        onClick={handleExportExcel}
-                        className="bg-emerald-600 hover:bg-emerald-700"
-                    >
-                        <FileSpreadsheet className="mr-2 h-4 w-4" />
-                        Export Excel
-                    </Button>
-                </div>
-            </div>
-
-            <ReportPreview
-                type={data.type}
-                rows={previewRows}
-                totalRows={totalRows}
-                stats={stats}
-                highlights={highlights}
-                isGuruScope={isGuruScope}
+            <ReportExportCard
+                onExportPdf={handleExportPdf}
+                onExportExcel={handleExportExcel}
             />
         </div>
     );
@@ -323,74 +332,10 @@ function StatBox({ label, value, accent }) {
     );
 }
 
-function ReportStats({ type, stats, isGuruScope }) {
-    if (type === "ringkasan") {
-        if (isGuruScope) {
-            return (
-                <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    <StatBox label="Total Pengajuan" value={stats.total_loans} />
-                    <StatBox
-                        label="Aktif / Dipinjam"
-                        value={stats.active_borrows}
-                        accent="text-primary"
-                    />
-                    <StatBox
-                        label="Keterlambatan"
-                        value={stats.overdue}
-                        accent="text-destructive"
-                    />
-                    <StatBox
-                        label="Bahan Menipis"
-                        value={stats.low_stock_bahan}
-                        accent="text-warning"
-                    />
-                    <StatBox label="Dikembalikan" value={stats.returned} />
-                    <StatBox
-                        label="Siswa Bimbingan"
-                        value={stats.siswa_bimbingan}
-                    />
-                    <StatBox
-                        label="Jadwal (Periode)"
-                        value={stats.schedules_period}
-                    />
-                    <StatBox
-                        label="Kompensasi Pending"
-                        value={stats.compensation_pending}
-                        accent="text-warning"
-                    />
-                </div>
-            );
-        }
-
-        return (
-            <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <StatBox label="Total Pengajuan" value={stats.total_loans} />
-                <StatBox
-                    label="Aktif / Dipinjam"
-                    value={stats.active_borrows}
-                    accent="text-primary"
-                />
-                <StatBox
-                    label="Keterlambatan"
-                    value={stats.overdue}
-                    accent="text-destructive"
-                />
-                <StatBox
-                    label="Bahan Menipis"
-                    value={stats.low_stock_bahan}
-                    accent="text-warning"
-                />
-                <StatBox label="Dikembalikan" value={stats.returned} />
-                <StatBox label="Kartu Ditahan" value={stats.collateral_held} />
-                <StatBox label="Total Siswa" value={stats.total_siswa} />
-                <StatBox label="Total Guru" value={stats.total_guru} />
-            </div>
-        );
-    }
-
+function TabStats({ type, stats }) {
     if (type === "inventaris") {
         return (
-            <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <StatBox label="Total Item" value={stats.total} />
                 <StatBox
                     label="Unit Tersedia"
@@ -409,7 +354,7 @@ function ReportStats({ type, stats, isGuruScope }) {
 
     if (type === "peminjaman") {
         return (
-            <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <StatBox label="Total" value={stats.total} />
                 <StatBox
                     label="Aktif"
@@ -431,7 +376,7 @@ function ReportStats({ type, stats, isGuruScope }) {
     }
 
     return (
-        <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatBox label="Total Pengguna" value={stats.total} />
             <StatBox label="Siswa" value={stats.siswa} accent="text-primary" />
             <StatBox label="Guru" value={stats.guru} accent="text-success" />
@@ -440,44 +385,14 @@ function ReportStats({ type, stats, isGuruScope }) {
     );
 }
 
-function ReportPreview({
-    type,
-    rows,
-    totalRows,
-    stats,
-    highlights,
-    isGuruScope,
-}) {
-    const ringkasanItems = isGuruScope
-        ? [
-              ["Pengajuan", stats.total_loans],
-              ["Aktif", stats.active_borrows],
-              ["Terlambat", stats.overdue],
-              ["Dikembalikan", stats.returned],
-              ["Siswa bimbingan", stats.siswa_bimbingan],
-              ["Jadwal periode", stats.schedules_period],
-          ]
-        : [
-              ["Pengajuan", stats.total_loans],
-              ["Aktif", stats.active_borrows],
-              ["Terlambat", stats.overdue],
-              ["Dikembalikan", stats.returned],
-              ["Alat terdaftar", stats.total_alat],
-              ["Bahan menipis", stats.low_stock_bahan],
-          ];
-
+function DataPreview({ type, rows, totalRows }) {
     return (
-        <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-card">
+        <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
             <div className="border-b border-border/60 bg-muted/30 px-5 py-4">
                 <h3 className="flex items-center gap-2 font-semibold">
                     <FileText className="h-4 w-4" />
                     Preview Data
                 </h3>
-                {type === "ringkasan" && (
-                    <p className="mt-1 text-sm text-muted-foreground">
-                        Periode: {stats.period_label}
-                    </p>
-                )}
             </div>
 
             <div className="overflow-x-auto">
@@ -555,62 +470,6 @@ function ReportPreview({
                             row.class,
                         ])}
                     />
-                )}
-
-                {type === "ringkasan" && (
-                    <div className="space-y-6 p-5">
-                        <div className="grid gap-3 sm:grid-cols-2">
-                            {ringkasanItems.map(([label, value]) => (
-                                <div
-                                    key={label}
-                                    className="flex items-center justify-between rounded-lg bg-secondary/40 px-4 py-3 text-sm"
-                                >
-                                    <span className="text-muted-foreground">
-                                        {label}
-                                    </span>
-                                    <span className="font-semibold tabular-nums">
-                                        {value ?? 0}
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-
-                        {highlights?.overdue_loans?.length > 0 && (
-                            <div>
-                                <p className="mb-2 text-sm font-medium text-destructive">
-                                    Peminjaman Terlambat
-                                </p>
-                                <PreviewTable
-                                    headers={["Kode", "Peminjam", "Barang"]}
-                                    rows={highlights.overdue_loans
-                                        .slice(0, 5)
-                                        .map((row) => [
-                                            row.code,
-                                            row.borrower_name,
-                                            row.items_summary,
-                                        ])}
-                                />
-                            </div>
-                        )}
-
-                        {highlights?.low_stock?.length > 0 && (
-                            <div>
-                                <p className="mb-2 text-sm font-medium text-warning">
-                                    Bahan Stok Menipis
-                                </p>
-                                <PreviewTable
-                                    headers={["Kode", "Nama", "Tersedia"]}
-                                    rows={highlights.low_stock
-                                        .slice(0, 5)
-                                        .map((row) => [
-                                            row.code,
-                                            row.name,
-                                            `${row.available} / ${row.stock}`,
-                                        ])}
-                                />
-                            </div>
-                        )}
-                    </div>
                 )}
             </div>
 
