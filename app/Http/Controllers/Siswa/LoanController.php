@@ -304,7 +304,9 @@ class LoanController extends Controller
             'request_date' => $validated['request_date'],
             'purpose' => $validated['purpose'],
             'notes' => $validated['notes'] ?? null,
-            'borrow_scope' => $loan->isAlat() ? ($validated['borrow_scope'] ?? 'lab') : null,
+            'borrow_scope' => $loan->isAlat()
+                ? ($validated['borrow_scope'] ?? 'lab')
+                : ($loan->borrow_scope ?? 'lab'),
             'borrow_reason' => $loan->isAlat() && ($validated['borrow_scope'] ?? 'lab') === 'lab'
                 ? ($validated['borrow_reason'] ?? 'reguler')
                 : null,
