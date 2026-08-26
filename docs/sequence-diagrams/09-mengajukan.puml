@@ -1,0 +1,78 @@
+@startuml
+title Sequence Diagram Mengajukan Peminjaman & Permintaan Bahan
+
+skinparam defaultFontName "Garamond"
+skinparam defaultFontSize 12
+skinparam TitleFontSize 14
+skinparam SequenceMessageFontSize 11
+skinparam SequenceParticipantFontSize 12
+skinparam ActorFontSize 12
+
+actor "Siswa" as User
+boundary "View\n(Siswa/Loan/Create)" as View
+control "Controller\n(Siswa/LoanController)" as Controller
+control "Request\n(StoreStudentLoanRequest /\nStoreStudentPackageLoanRequest)" as FormRequest
+control "Service\n(LoanQueueService /\nLoanWorkflowService)" as Service
+entity "Model\n(Submission / Loan /\nLoanItem / Equipment)" as Model
+database "Database" as DB
+
+User -> View : Membuka menu Ajukan Alat / Bahan
+activate View
+View -> Controller : GET siswa/loans/create
+activate Controller
+Controller -> Model : Ambil katalog & opsi form
+activate Model
+Model -> DB : SELECT equipment / schedules
+activate DB
+DB --> Model : Data form
+deactivate DB
+deactivate Model
+Controller -> View : Render form pengajuan
+View -> User : Menampilkan form peminjaman / permintaan
+deactivate Controller
+
+User -> View : Memilih jenis, barang, jumlah & data pendukung
+View -> Controller : POST siswa/loans atau siswa/loans/package
+activate Controller
+Controller -> FormRequest : Validasi input
+activate FormRequest
+
+alt Data lengkap & valid
+    FormRequest --> Controller : Data tervalidasi
+    deactivate FormRequest
+    Controller -> Service : validateItemsForSubmit() + resolveInitialStatus()
+    activate Service
+    Service -> Model : Cek ketersediaan stok
+    activate Model
+    Model -> DB : SELECT available
+    activate DB
+    DB --> Model : Stok terkini
+    deactivate DB
+    deactivate Model
+
+    alt Stok mencukupi
+        Service --> Controller : Status awal: diminta
+    else Stok tidak mencukupi
+        Service --> Controller : Status awal: antrian
+    end
+    deactivate Service
+
+    Controller -> Model : Submission::create + Loan::create + items
+    activate Model
+    Model -> DB : INSERT submissions, loans, loan_items
+    activate DB
+    DB --> Model : OK
+    deactivate DB
+    deactivate Model
+    Controller -> View : Redirect ke daftar aktif + pesan sukses
+    View -> User : Menampilkan status Menunggu / Antrian
+else Data belum lengkap
+    FormRequest --> Controller : ValidationException
+    deactivate FormRequest
+    Controller -> View : Pesan error validasi
+    View -> User : Melengkapi isian yang kurang
+end
+
+deactivate Controller
+deactivate View
+@enduml

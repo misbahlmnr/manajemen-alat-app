@@ -1,0 +1,58 @@
+@startuml
+title Sequence Diagram Monitoring Peminjaman & Permintaan Siswa
+
+skinparam defaultFontName "Garamond"
+skinparam defaultFontSize 12
+skinparam TitleFontSize 14
+skinparam SequenceMessageFontSize 11
+skinparam SequenceParticipantFontSize 12
+skinparam ActorFontSize 12
+
+actor "Guru" as User
+boundary "View\n(Guru/Loan)" as View
+control "Controller\n(Guru/LoanController)" as Controller
+control "Service\n(LoanListGrouper /\nSubmissionPresenter)" as Service
+entity "Model\n(Loan / Submission /\nPracticumSchedule)" as Model
+database "Database" as DB
+
+User -> View : Membuka menu Peminjaman Siswa
+activate View
+View -> Controller : GET guru/loans
+activate Controller
+Controller -> Model : Query peminjaman & permintaan terkait guru
+activate Model
+Model -> DB : SELECT loans / submissions
+activate DB
+DB --> Model : Daftar data
+deactivate DB
+deactivate Model
+
+alt Ada data
+    Controller -> Service : Group / format daftar
+    activate Service
+    Service --> Controller : Daftar aktif / riwayat
+    deactivate Service
+    Controller -> View : Render Guru/Loan/Index
+    View -> User : Menampilkan daftar peminjaman & permintaan
+
+    User -> View : Membuka aktif / riwayat & pilih detail
+    View -> Controller : GET guru/loans/{id} atau pengajuan/{submission}
+    activate Controller
+    Controller -> Model : Load detail + jadwal praktikum
+    activate Model
+    Model -> DB : SELECT detail
+    activate DB
+    DB --> Model : Detail lengkap
+    deactivate DB
+    deactivate Model
+    Controller -> View : Render Show / Submission
+    View -> User : Menampilkan detail & jadwal terkait
+    deactivate Controller
+else Belum ada data
+    Controller -> View : Render daftar kosong
+    View -> User : Menampilkan pesan data belum tersedia
+end
+
+deactivate Controller
+deactivate View
+@enduml

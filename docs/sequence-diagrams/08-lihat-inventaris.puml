@@ -1,0 +1,57 @@
+@startuml
+title Sequence Diagram Lihat Inventaris
+
+skinparam defaultFontName "Garamond"
+skinparam defaultFontSize 12
+skinparam TitleFontSize 14
+skinparam SequenceMessageFontSize 11
+skinparam SequenceParticipantFontSize 12
+skinparam ActorFontSize 12
+
+actor "Pengguna\n(Guru / Siswa)" as User
+boundary "View\n(Inventaris / Equipment /\nSupply)" as View
+control "Controller\n(Guru/InventarisController /\nSiswa/EquipmentController /\nSiswa/SupplyController)" as Controller
+entity "Model\n(Equipment / Supply)" as Model
+database "Database" as DB
+
+User -> View : Membuka menu Alat Lab / Bahan Lab
+activate View
+View -> Controller : GET inventaris / equipment / supplies
+activate Controller
+Controller -> Model : Query katalog alat / bahan
+activate Model
+Model -> DB : SELECT equipment
+activate DB
+DB --> Model : Daftar barang + stok
+deactivate DB
+deactivate Model
+Controller -> View : Render katalog
+View -> User : Menampilkan daftar inventaris
+deactivate Controller
+
+User -> View : Memilih salah satu barang
+View -> Controller : GET show/{id}
+activate Controller
+Controller -> Model : find(id)
+activate Model
+Model -> DB : SELECT detail
+activate DB
+DB --> Model : Data barang
+
+alt Barang ditemukan
+    Model --> Controller : Detail barang
+    deactivate Model
+    deactivate DB
+    Controller -> View : Render halaman detail
+    View -> User : Menampilkan status, kondisi, atau stok
+else Barang tidak ditemukan
+    Model --> Controller : Not found
+    deactivate Model
+    deactivate DB
+    Controller -> View : Pesan error
+    View -> User : Data tidak tersedia
+end
+
+deactivate Controller
+deactivate View
+@enduml

@@ -1,0 +1,86 @@
+@startuml
+title Sequence Diagram Pengembalian Alat
+
+skinparam defaultFontName "Garamond"
+skinparam defaultFontSize 12
+skinparam TitleFontSize 14
+skinparam SequenceMessageFontSize 11
+skinparam SequenceParticipantFontSize 12
+skinparam ActorFontSize 12
+
+actor "Siswa" as Siswa
+actor "Admin" as Admin
+boundary "View\n(Siswa/Loan &\nAdmin/Collateral)" as View
+control "Controller\n(Siswa/LoanController &\nAdmin/LoanCollateralController)" as Controller
+control "Request\n(InspectReturnRequest /\nReturnLoanRequest)" as FormRequest
+control "Service\n(CollateralWorkflowService /\nLoanWorkflowService)" as Service
+entity "Model\n(Loan / LoanReturnInspection /\nLoanCollateral / Equipment)" as Model
+database "Database" as DB
+
+Siswa -> View : Mengajukan pengembalian alat
+activate View
+View -> Controller : POST siswa/loans/{id}/request-return
+activate Controller
+Controller -> Service : requestReturnInspection(loan, note, siswa)
+activate Service
+Service -> Model : Update status menunggu_inspeksi
+activate Model
+Model -> DB : UPDATE loans + INSERT status_logs
+activate DB
+DB --> Model : OK
+deactivate DB
+deactivate Model
+Service --> Controller : Berhasil
+deactivate Service
+Controller -> View : Redirect + pesan sukses
+View -> Siswa : Menunggu inspeksi admin
+deactivate Controller
+
+Admin -> View : Membuka pengajuan pengembalian
+View -> Controller : POST admin/loans/{id}/inspect
+activate Controller
+Controller -> FormRequest : Validasi hasil inspeksi
+activate FormRequest
+FormRequest --> Controller : Data inspeksi valid
+deactivate FormRequest
+Controller -> Service : inspectReturn(loan, data, admin)
+activate Service
+
+alt Alat baik & lengkap
+    Service -> Model : Simpan inspeksi + kembalikan stok
+    activate Model
+    Model -> DB : INSERT inspections / UPDATE equipment / UPDATE loans
+    activate DB
+    DB --> Model : OK
+    deactivate DB
+    deactivate Model
+    opt Ada jaminan kartu
+        Service -> Model : Kembalikan kartu jaminan
+        activate Model
+        Model -> DB : UPDATE loan_collaterals
+        activate DB
+        DB --> Model : OK
+        deactivate DB
+        deactivate Model
+    end
+    Service --> Controller : Status Dikembalikan
+    deactivate Service
+    Controller -> View : Redirect + pesan sukses
+    View -> Admin : Pengembalian selesai
+else Alat rusak / hilang
+    Service -> Model : Simpan inspeksi + tandai kompensasi
+    activate Model
+    Model -> DB : INSERT inspections / compensations
+    activate DB
+    DB --> Model : OK
+    deactivate DB
+    deactivate Model
+    Service --> Controller : Menunggu kompensasi
+    deactivate Service
+    Controller -> View : Redirect + peringatan kompensasi
+    View -> Admin : Perlu kompensasi sebelum kartu dikembalikan
+end
+
+deactivate Controller
+deactivate View
+@enduml

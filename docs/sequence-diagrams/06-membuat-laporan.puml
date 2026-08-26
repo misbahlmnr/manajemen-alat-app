@@ -1,0 +1,64 @@
+@startuml
+title Sequence Diagram Membuat Laporan
+
+skinparam defaultFontName "Garamond"
+skinparam defaultFontSize 12
+skinparam TitleFontSize 14
+skinparam SequenceMessageFontSize 11
+skinparam SequenceParticipantFontSize 12
+skinparam ActorFontSize 12
+
+actor "Pengguna\n(Admin / Guru)" as User
+boundary "View\n(Admin/Report /\nGuru/Report)" as View
+control "Controller\n(Admin/ReportController /\nGuru/ReportController)" as Controller
+control "Service\n(AdminReportDataService /\nGuruReportDataService)" as Service
+entity "Model\n(Loan / Equipment /\nSubmission)" as Model
+database "Database" as DB
+
+User -> View : Membuka menu Laporan
+activate View
+View -> Controller : GET reports
+activate Controller
+Controller -> Service : forRequest(filters)
+activate Service
+Service -> Model : Query rekap peminjaman & inventaris
+activate Model
+Model -> DB : SELECT agregasi data
+activate DB
+DB --> Model : Rows laporan
+deactivate DB
+deactivate Model
+Service --> Controller : Payload laporan
+deactivate Service
+Controller -> View : Render halaman Laporan
+View -> User : Menampilkan ringkasan laporan
+deactivate Controller
+
+User -> View : Memilih jenis laporan & rentang tanggal
+View -> Controller : GET reports?filter=...
+activate Controller
+Controller -> Service : forRequest(filters)
+activate Service
+Service -> Model : Query sesuai filter
+activate Model
+Model -> DB : SELECT
+activate DB
+DB --> Model : Data terfilter
+deactivate DB
+deactivate Model
+
+alt Ada data
+    Service --> Controller : Data laporan
+    deactivate Service
+    Controller -> View : Render + opsi unduh/cetak
+    View -> User : Mengunduh / mencetak laporan
+else Tidak ada data
+    Service --> Controller : Dataset kosong
+    deactivate Service
+    Controller -> View : Render laporan kosong
+    View -> User : Menampilkan laporan kosong
+end
+
+deactivate Controller
+deactivate View
+@enduml

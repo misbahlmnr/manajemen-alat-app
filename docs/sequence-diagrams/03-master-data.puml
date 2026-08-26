@@ -1,0 +1,67 @@
+@startuml
+title Sequence Diagram Mengelola Master Data
+
+skinparam defaultFontName "Garamond"
+skinparam defaultFontSize 12
+skinparam TitleFontSize 14
+skinparam SequenceMessageFontSize 11
+skinparam SequenceParticipantFontSize 12
+skinparam ActorFontSize 12
+
+actor "Admin" as User
+boundary "View\n(Admin Alat / Bahan /\nPengguna / Jadwal / Jaminan)" as View
+control "Controller\n(EquipmentController /\nSupplyController /\nUserController /\nPracticumScheduleController /\nLoanCollateralController)" as Controller
+control "Request\n(Store* / Update* Request)" as FormRequest
+control "Service\n(EquipmentImageService /\nUserImportService)" as Service
+entity "Model\n(Equipment / Supply /\nUser / PracticumSchedule /\nLoanCollateral)" as Model
+database "Database" as DB
+
+User -> View : Membuka menu master data
+activate View
+View -> Controller : GET index (alat/bahan/pengguna/jadwal/jaminan)
+activate Controller
+Controller -> Model : Query daftar data
+activate Model
+Model -> DB : SELECT
+activate DB
+DB --> Model : Rows
+deactivate DB
+deactivate Model
+Controller -> View : Render halaman Index
+View -> User : Menampilkan daftar data
+deactivate Controller
+
+User -> View : Menambah / mengubah / menghapus data
+View -> Controller : POST / PUT / DELETE
+activate Controller
+Controller -> FormRequest : Validasi input
+activate FormRequest
+
+alt Data valid
+    FormRequest --> Controller : Data tervalidasi
+    deactivate FormRequest
+    opt Upload gambar / import user
+        Controller -> Service : Proses file pendukung
+        activate Service
+        Service --> Controller : Path / hasil import
+        deactivate Service
+    end
+    Controller -> Model : create() / update() / delete()
+    activate Model
+    Model -> DB : INSERT / UPDATE / DELETE
+    activate DB
+    DB --> Model : OK
+    deactivate DB
+    deactivate Model
+    Controller -> View : Redirect + pesan sukses
+    View -> User : Menampilkan data terbaru
+else Data tidak valid
+    FormRequest --> Controller : ValidationException
+    deactivate FormRequest
+    Controller -> View : Pesan error validasi
+    View -> User : Menampilkan pesan kesalahan
+end
+
+deactivate Controller
+deactivate View
+@enduml

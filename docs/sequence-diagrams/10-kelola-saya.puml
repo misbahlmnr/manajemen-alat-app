@@ -1,0 +1,95 @@
+@startuml
+title Sequence Diagram Kelola Peminjaman & Permintaan Saya
+
+skinparam defaultFontName "Garamond"
+skinparam defaultFontSize 12
+skinparam TitleFontSize 14
+skinparam SequenceMessageFontSize 11
+skinparam SequenceParticipantFontSize 12
+skinparam ActorFontSize 12
+
+actor "Siswa" as User
+boundary "View\n(Siswa/Loan)" as View
+control "Controller\n(Siswa/LoanController)" as Controller
+control "Request\n(UpdateStudentLoanRequest)" as FormRequest
+control "Service\n(LoanWorkflowService /\nCollateralWorkflowService)" as Service
+entity "Model\n(Loan / Submission /\nLoanStatusLog)" as Model
+database "Database" as DB
+
+User -> View : Membuka menu Alat & Bahan Saya
+activate View
+View -> Controller : GET siswa/loans?scope=active|history
+activate Controller
+Controller -> Model : Query pengajuan milik siswa
+activate Model
+Model -> DB : SELECT loans / submissions
+activate DB
+DB --> Model : Daftar aktif / riwayat
+deactivate DB
+deactivate Model
+Controller -> View : Render Siswa/Loan/Index
+View -> User : Menampilkan daftar pengajuan
+deactivate Controller
+
+User -> View : Memilih salah satu data
+View -> Controller : GET siswa/loans/{id}
+activate Controller
+Controller -> Model : Load detail pengajuan
+activate Model
+Model -> DB : SELECT detail
+activate DB
+DB --> Model : Detail
+deactivate DB
+deactivate Model
+Controller -> View : Render detail
+View -> User : Menampilkan detail pengajuan
+deactivate Controller
+
+alt Status Menunggu
+    User -> View : Mengubah / membatalkan pengajuan
+    View -> Controller : PUT update / POST cancel
+    activate Controller
+    opt Ubah data
+        Controller -> FormRequest : Validasi perubahan
+        activate FormRequest
+        FormRequest --> Controller : Data valid
+        deactivate FormRequest
+    end
+    Controller -> Service : update / cancel(loan, siswa)
+    activate Service
+    Service -> Model : Simpan perubahan status
+    activate Model
+    Model -> DB : UPDATE loans (+ status_logs)
+    activate DB
+    DB --> Model : OK
+    deactivate DB
+    deactivate Model
+    Service --> Controller : Berhasil
+    deactivate Service
+    Controller -> View : Redirect + pesan sukses
+    View -> User : Status diperbarui
+    deactivate Controller
+else Status Dipinjam (alat)
+    User -> View : Mengajukan pengembalian alat
+    View -> Controller : POST request-return
+    activate Controller
+    Controller -> Service : requestReturnInspection(...)
+    activate Service
+    Service -> Model : Update menunggu_inspeksi
+    activate Model
+    Model -> DB : UPDATE loans
+    activate DB
+    DB --> Model : OK
+    deactivate DB
+    deactivate Model
+    Service --> Controller : Berhasil
+    deactivate Service
+    Controller -> View : Redirect + pesan sukses
+    View -> User : Menunggu inspeksi admin
+    deactivate Controller
+else Riwayat / lainnya
+    View -> User : Selesai melihat detail (tanpa aksi)
+end
+
+deactivate View
+@enduml

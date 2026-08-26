@@ -1,0 +1,30 @@
+@startuml
+title Sequence Diagram Logout
+
+skinparam defaultFontName "Garamond"
+skinparam defaultFontSize 12
+skinparam TitleFontSize 14
+skinparam SequenceMessageFontSize 11
+skinparam SequenceParticipantFontSize 12
+skinparam ActorFontSize 12
+
+actor "Pengguna\n(Admin / Guru / Siswa)" as User
+boundary "View\n(Layout / Navigasi)" as View
+control "Controller\n(AuthenticatedSessionController)" as Controller
+database "Database" as DB
+
+User -> View : Menekan menu keluar
+activate View
+View -> Controller : POST /logout
+activate Controller
+Controller -> Controller : Auth::logout()
+Controller -> Controller : Invalidate & regenerate session
+Controller -> DB : Hapus sesi aktif (opsional)
+activate DB
+DB --> Controller : OK
+deactivate DB
+Controller -> View : Redirect ke /login
+View -> User : Menampilkan halaman login
+deactivate Controller
+deactivate View
+@enduml

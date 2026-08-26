@@ -1,0 +1,56 @@
+@startuml
+title Sequence Diagram Login
+
+skinparam defaultFontName "Garamond"
+skinparam defaultFontSize 12
+skinparam TitleFontSize 14
+skinparam SequenceMessageFontSize 11
+skinparam SequenceParticipantFontSize 12
+skinparam ActorFontSize 12
+
+actor "Pengguna\n(Admin / Guru / Siswa)" as User
+boundary "View\n(Auth/Login)" as View
+control "Controller\n(AuthenticatedSessionController)" as Controller
+control "Request\n(LoginRequest)" as FormRequest
+entity "Model\n(User)" as Model
+database "Database" as DB
+
+User -> View : Membuka halaman login
+activate View
+View -> Controller : GET /login
+activate Controller
+Controller -> View : Render Auth/Login
+View -> User : Menampilkan form login
+deactivate Controller
+
+User -> View : Mengisi email & kata sandi, lalu masuk
+View -> Controller : POST /login
+activate Controller
+Controller -> FormRequest : Validasi input
+activate FormRequest
+FormRequest --> Controller : Data tervalidasi
+deactivate FormRequest
+
+Controller -> Model : Auth::attempt(credentials)
+activate Model
+Model -> DB : SELECT users WHERE email
+activate DB
+DB --> Model : Data user
+deactivate DB
+
+alt Kredensial valid
+    Model --> Controller : Autentikasi berhasil
+    deactivate Model
+    Controller -> Controller : Regenerasi session
+    Controller -> View : Redirect ke /dashboard (sesuai peran)
+    View -> User : Menampilkan beranda sesuai peran
+else Kredensial tidak valid
+    Model --> Controller : Autentikasi gagal
+    deactivate Model
+    Controller -> View : Redirect + pesan error
+    View -> User : Menampilkan pesan gagal masuk
+end
+
+deactivate Controller
+deactivate View
+@enduml

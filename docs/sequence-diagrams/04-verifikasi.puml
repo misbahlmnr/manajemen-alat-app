@@ -1,0 +1,92 @@
+@startuml
+title Sequence Diagram Verifikasi Peminjaman & Permintaan Bahan
+
+skinparam defaultFontName "Garamond"
+skinparam defaultFontSize 12
+skinparam TitleFontSize 14
+skinparam SequenceMessageFontSize 11
+skinparam SequenceParticipantFontSize 12
+skinparam ActorFontSize 12
+
+actor "Admin" as User
+boundary "View\n(Admin/Loan)" as View
+control "Controller\n(Admin/LoanController)" as Controller
+control "Request\n(RejectLoanRequest /\nSetQueuePriorityRequest)" as FormRequest
+control "Service\n(LoanWorkflowService /\nLoanQueueService)" as Service
+entity "Model\n(Loan / Submission /\nLoanStatusLog)" as Model
+database "Database" as DB
+
+User -> View : Membuka menu Peminjaman
+activate View
+View -> Controller : GET admin/loans
+activate Controller
+Controller -> Model : Query pengajuan menunggu / antrian
+activate Model
+Model -> DB : SELECT loans, submissions
+activate DB
+DB --> Model : Daftar pengajuan
+deactivate DB
+deactivate Model
+Controller -> View : Render Admin/Loan/Index
+View -> User : Menampilkan daftar peminjaman & permintaan
+deactivate Controller
+
+User -> View : Memeriksa detail & memilih aksi
+View -> Controller : POST approve / reject / queue-priority
+activate Controller
+
+alt Menyetujui pengajuan
+    Controller -> Service : approve(loan, admin)
+    activate Service
+    Service -> Model : Cek stok & update status disetujui
+    activate Model
+    Model -> DB : UPDATE loans + INSERT status_logs
+    activate DB
+    DB --> Model : OK
+    deactivate DB
+    deactivate Model
+    Service --> Controller : Berhasil
+    deactivate Service
+    Controller -> View : Redirect + notifikasi sukses
+    View -> User : Status menjadi Disetujui
+else Menolak pengajuan
+    Controller -> FormRequest : Validasi alasan penolakan
+    activate FormRequest
+    FormRequest --> Controller : Alasan valid
+    deactivate FormRequest
+    Controller -> Service : reject(loan, reason, admin)
+    activate Service
+    Service -> Model : Update status ditolak
+    activate Model
+    Model -> DB : UPDATE loans
+    activate DB
+    DB --> Model : OK
+    deactivate DB
+    deactivate Model
+    Service --> Controller : Berhasil
+    deactivate Service
+    Controller -> View : Redirect + pesan ditolak
+    View -> User : Status menjadi Ditolak
+else Mengatur prioritas antrian
+    Controller -> FormRequest : Validasi prioritas
+    activate FormRequest
+    FormRequest --> Controller : Prioritas valid
+    deactivate FormRequest
+    Controller -> Service : setQueuePriority(...)
+    activate Service
+    Service -> Model : Update queue_priority
+    activate Model
+    Model -> DB : UPDATE loans
+    activate DB
+    DB --> Model : OK
+    deactivate DB
+    deactivate Model
+    Service --> Controller : Berhasil
+    deactivate Service
+    Controller -> View : Redirect + pesan sukses
+    View -> User : Prioritas antrian diperbarui
+end
+
+deactivate Controller
+deactivate View
+@enduml
