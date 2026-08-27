@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { Head, Link, useForm } from "@inertiajs/react";
 import { motion } from "framer-motion";
-import { Camera, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import BrandLogo from "@/Components/BrandLogo";
 import InputError from "@/Components/InputError";
 
 export default function Login({ status, canResetPassword }) {
@@ -47,9 +48,11 @@ export default function Login({ status, canResetPassword }) {
                         animate={{ opacity: 1, y: 0 }}
                         className="flex items-center gap-4 mb-12"
                     >
-                        <div className="w-16 h-16 rounded-2xl bg-accent flex items-center justify-center shadow-lg">
-                            <Camera className="w-8 h-8 text-accent-foreground" />
-                        </div>
+                        <BrandLogo
+                            size={64}
+                            variant="onDark"
+                            className="shadow-[var(--shadow-md)]"
+                        />
                         <div>
                             <h1 className="text-2xl font-display font-bold text-white tracking-tight">
                                 Lab Audio Video
@@ -69,7 +72,7 @@ export default function Login({ status, canResetPassword }) {
                     >
                         Sistem Peminjaman
                         <br />
-                        <span className="text-accent">Peralatan Praktik</span>
+                        <span className="text-primary">Peralatan Praktik</span>
                     </motion.h2>
 
                     <motion.p
@@ -100,7 +103,7 @@ export default function Login({ status, canResetPassword }) {
                                 key={feature}
                                 className="flex items-center gap-3 text-white/80"
                             >
-                                <div className="w-2 h-2 rounded-full bg-accent" />
+                                <div className="w-2 h-2 rounded-full bg-primary" />
                                 <span className="text-sm font-medium">
                                     {feature}
                                 </span>
@@ -124,9 +127,10 @@ export default function Login({ status, canResetPassword }) {
                 >
                     {/* Mobile Logo */}
                     <div className="flex items-center gap-3 mb-10 lg:hidden">
-                        <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center">
-                            <Camera className="w-6 h-6 text-primary-foreground" />
-                        </div>
+                        <BrandLogo
+                            size={48}
+                            className="rounded-[8px] bg-card p-1 shadow-sm ring-1 ring-border"
+                        />
                         <div>
                             <h1 className="text-lg font-display font-bold text-foreground leading-tight">
                                 Lab Audio Video
@@ -147,7 +151,7 @@ export default function Login({ status, canResetPassword }) {
                     </div>
 
                     {status && (
-                        <div className="mb-6 p-4 bg-success/10 border border-success/20 rounded-xl text-success text-sm font-medium">
+                        <div className="mb-6 p-4 bg-success/10 border border-success/20 rounded-[8px] text-success text-sm font-medium">
                             {status}
                         </div>
                     )}
@@ -279,7 +283,7 @@ export default function Login({ status, canResetPassword }) {
                         <button
                             type="submit"
                             disabled={processing}
-                            className="btn-primary w-full shadow-lg shadow-primary/20"
+                            className="btn-primary w-full"
                         >
                             {processing ? (
                                 <>

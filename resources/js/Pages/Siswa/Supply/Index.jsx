@@ -1,6 +1,7 @@
 import AppLayout from "@/Layouts/AppLayout";
 import PageHeader from "@/Components/PageHeader";
 import EmptyState from "@/Components/EmptyState";
+import FilterToolbar from "@/Components/FilterToolbar";
 import { paginatorTotal } from "@/lib/paginator";
 import { Button } from "@/Components/ui/button";
 import { Input } from "@/Components/ui/input";
@@ -47,55 +48,63 @@ export default function Index({ supplies, filters, categories }) {
             <div className="animate-fade-in w-full min-w-0">
                 <PageHeader
                     title="Bahan Lab"
-                    subtitle={`${total} bahan praktikum`}
+                    subtitle="Jelajahi bahan praktikum yang bisa diajukan"
                 />
 
-                <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    <div className="relative sm:col-span-2 lg:col-span-2">
-                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                        <Input
-                            value={data.search}
-                            onChange={(e) => setData("search", e.target.value)}
-                            placeholder="Cari nama, kode, kategori, lokasi..."
-                            className="rounded-xl border-border/60 bg-card pl-10 shadow-sm"
-                        />
-                    </div>
-                    <Select
-                        value={data.category}
-                        onChange={(e) => setData("category", e.target.value)}
-                        className="rounded-xl border-border/60 bg-card shadow-sm"
-                    >
-                        <option value="all">Semua kategori</option>
-                        {categories.map((cat) => (
-                            <option key={cat} value={cat}>
-                                {cat}
+                <FilterToolbar
+                    title="Cari & filter"
+                    description={`${total} bahan sesuai filter aktif`}
+                >
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        <div className="relative sm:col-span-2">
+                            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                                value={data.search}
+                                onChange={(e) =>
+                                    setData("search", e.target.value)
+                                }
+                                placeholder="Cari nama, kode, kategori, lokasi..."
+                                className="pl-10"
+                            />
+                        </div>
+                        <Select
+                            value={data.category}
+                            onChange={(e) =>
+                                setData("category", e.target.value)
+                            }
+                        >
+                            <option value="all">Semua kategori</option>
+                            {categories.map((cat) => (
+                                <option key={cat} value={cat}>
+                                    {cat}
+                                </option>
+                            ))}
+                        </Select>
+                        <Select
+                            value={data.stock_status}
+                            onChange={(e) =>
+                                setData("stock_status", e.target.value)
+                            }
+                        >
+                            <option value="all">Semua ketersediaan</option>
+                            <option value="tersedia">Tersedia</option>
+                            <option value="diambil">Sebagian Diambil</option>
+                            <option value="menipis">Stok Menipis</option>
+                            <option value="habis">
+                                Stok kosong · antrean dibuka
                             </option>
-                        ))}
-                    </Select>
-                    <Select
-                        value={data.stock_status}
-                        onChange={(e) =>
-                            setData("stock_status", e.target.value)
-                        }
-                        className="rounded-xl border-border/60 bg-card shadow-sm"
-                    >
-                        <option value="all">Semua ketersediaan</option>
-                        <option value="tersedia">Tersedia</option>
-                        <option value="diambil">Sebagian Diambil</option>
-                        <option value="menipis">Stok Menipis</option>
-                        <option value="habis">Stok kosong · antrean dibuka</option>
-                        <option value="tidak_tersedia">Tidak Tersedia</option>
-                    </Select>
-                    <Select
-                        value={data.status}
-                        onChange={(e) => setData("status", e.target.value)}
-                        className="rounded-xl border-border/60 bg-card shadow-sm"
-                    >
-                        <option value="all">Semua status</option>
-                        <option value="tersedia">Tersedia</option>
-                        <option value="tidak_tersedia">Tidak Tersedia</option>
-                    </Select>
-                </div>
+                            <option value="tidak_tersedia">Tidak Tersedia</option>
+                        </Select>
+                        <Select
+                            value={data.status}
+                            onChange={(e) => setData("status", e.target.value)}
+                        >
+                            <option value="all">Semua status</option>
+                            <option value="tersedia">Tersedia</option>
+                            <option value="tidak_tersedia">Tidak Tersedia</option>
+                        </Select>
+                    </div>
+                </FilterToolbar>
 
                 {total > 0 ? (
                     <SupplyCatalogTable

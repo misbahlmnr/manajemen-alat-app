@@ -27,7 +27,7 @@ export default function Create({ categoryOptions, unitOptions }) {
         <AppLayout>
             <Head title="Tambah Bahan" />
 
-            <div className="animate-fade-in">
+            <div className="animate-fade-in mx-auto max-w-3xl">
                 <PageHeader
                     title="Tambah Bahan"
                     subtitle="Daftarkan bahan habis pakai ke inventaris laboratorium."
@@ -43,7 +43,7 @@ export default function Create({ categoryOptions, unitOptions }) {
                         unitOptions={unitOptions}
                     />
 
-                    <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-6">
+                    <div className="sticky bottom-0 z-10 flex flex-wrap justify-end gap-2 rounded-[10px] border border-border bg-card/95 px-4 py-4 shadow-[var(--shadow-card)] backdrop-blur">
                         <Button variant="outline" asChild disabled={processing}>
                             <Link href={route("admin.supplies.index")}>
                                 Batal

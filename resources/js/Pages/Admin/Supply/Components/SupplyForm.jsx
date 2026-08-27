@@ -38,7 +38,7 @@ export default function SupplyForm({
 
     return (
         <div className="grid gap-6">
-            <Card className="rounded-2xl border-border/60 shadow-card">
+            <Card className="rounded-[10px] border-border/60 shadow-card">
                 <CardHeader>
                     <CardTitle>Informasi Bahan</CardTitle>
                     <CardDescription>
@@ -131,7 +131,7 @@ export default function SupplyForm({
                                 imageUrl={previewUrl ?? existingImageUrl}
                                 name={data.name || "Bahan"}
                                 itemType="bahan"
-                                className="h-28 w-28 shrink-0 rounded-xl border border-border/60"
+                                className="h-28 w-28 shrink-0 rounded-[8px] border border-border/60"
                             />
                             <input
                                 id="image"
@@ -141,7 +141,7 @@ export default function SupplyForm({
                                 onChange={(e) =>
                                     setData("image", e.target.files[0] ?? null)
                                 }
-                                className="block w-full cursor-pointer rounded-xl border border-border/60 bg-card px-3 py-2 text-sm file:mr-4 file:rounded-lg file:border-0 file:bg-primary file:px-4 file:py-2 file:text-sm file:font-medium file:text-primary-foreground"
+                                className="block w-full cursor-pointer rounded-[8px] border border-border/60 bg-card px-3 py-2 text-sm file:mr-4 file:rounded-lg file:border-0 file:bg-primary file:px-4 file:py-2 file:text-sm file:font-medium file:text-primary-foreground"
                             />
                         </div>
                         <InputError message={errors.image} />
@@ -157,7 +157,7 @@ export default function SupplyForm({
                                 setData("description", e.target.value)
                             }
                             disabled={processing}
-                            className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
+                            className="flex w-full rounded-[8px] border border-[#E5E7EB] bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
                             placeholder="Spesifikasi atau catatan tambahan"
                         />
                         <InputError message={errors.description} />
@@ -165,7 +165,7 @@ export default function SupplyForm({
                 </CardContent>
             </Card>
 
-            <Card className="rounded-2xl border-border/60 shadow-card">
+            <Card className="rounded-[10px] border-border/60 shadow-card">
                 <CardHeader>
                     <CardTitle>Stok Bahan</CardTitle>
                     <CardDescription>

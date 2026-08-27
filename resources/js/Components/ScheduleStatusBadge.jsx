@@ -3,33 +3,33 @@ import { cn } from "@/lib/utils";
 const config = {
     draft: {
         label: "Draft",
-        dot: "bg-slate-500",
-        className: "border-slate-500/20 bg-slate-500/10 text-slate-700",
+        dot: "bg-slate-400",
+        className: "border-slate-200 bg-slate-50 text-slate-600",
     },
     terjadwal: {
         label: "Terjadwal",
-        dot: "bg-blue-500",
-        className: "border-blue-500/20 bg-blue-500/10 text-blue-700",
+        dot: "bg-slate-500",
+        className: "border-slate-200 bg-slate-100 text-slate-700",
     },
     berlangsung: {
         label: "Berlangsung",
-        dot: "bg-emerald-500",
-        className: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700",
+        dot: "bg-slate-600",
+        className: "border-slate-200 bg-slate-100 text-slate-700",
     },
     aktif: {
         label: "Aktif",
-        dot: "bg-emerald-500",
-        className: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700",
+        dot: "bg-slate-600",
+        className: "border-slate-200 bg-slate-100 text-slate-700",
     },
     selesai: {
         label: "Selesai",
         dot: "bg-slate-400",
-        className: "border-slate-400/20 bg-slate-500/10 text-slate-600",
+        className: "border-slate-200 bg-slate-50 text-slate-600",
     },
     dibatalkan: {
         label: "Dibatalkan",
-        dot: "bg-red-500",
-        className: "border-red-500/20 bg-red-500/10 text-red-700",
+        dot: "bg-red-600/70",
+        className: "border-red-200/70 bg-red-50 text-red-800/80",
     },
 };
 

@@ -35,33 +35,33 @@ export function MonitoringEquipmentTable({
             <div className="-mx-1 overflow-x-auto px-1 sm:mx-0 sm:px-0">
                 <table className="w-full min-w-[720px]">
                     <thead>
-                        <tr className="bg-secondary/50">
-                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        <tr className="border-b border-border bg-slate-50">
+                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                                 Kode
                             </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                                 Nama Alat
                             </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                                 Kategori
                             </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                                 Stok
                             </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                                 Dipinjam
                             </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                                 Kondisi
                             </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                                 Ketersediaan
                             </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                                 Lokasi
                             </th>
                             {showDetailLink && (
-                                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
                                     Aksi
                                 </th>
                             )}
@@ -71,7 +71,7 @@ export function MonitoringEquipmentTable({
                         {pagedItems.map((item) => (
                             <tr
                                 key={item.id}
-                                className="transition-colors hover:bg-secondary/30"
+                                className="transition-colors hover:bg-muted/40"
                             >
                                 <td className="px-4 py-4">
                                     <span className="font-mono text-xs text-muted-foreground">

@@ -1,6 +1,7 @@
 import AppLayout from "@/Layouts/AppLayout";
 import PageHeader from "@/Components/PageHeader";
 import EmptyState from "@/Components/EmptyState";
+import FilterToolbar from "@/Components/FilterToolbar";
 import { paginatorTotal } from "@/lib/paginator";
 import { Button } from "@/Components/ui/button";
 import { Input } from "@/Components/ui/input";
@@ -104,7 +105,7 @@ export default function Index({
             <div className="animate-fade-in">
                 <PageHeader
                     title="Jaminan Kartu"
-                    subtitle={`${total} jaminan terdaftar`}
+                    subtitle="Pipeline kartu pelajar untuk peminjaman bawa pulang"
                 >
                     <Button asChild>
                         <Link href={route("admin.collaterals.create")}>
@@ -114,70 +115,73 @@ export default function Index({
                     </Button>
                 </PageHeader>
 
-                <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    <div className="relative sm:col-span-2">
-                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <FilterToolbar
+                    title="Filter jaminan"
+                    description="Cari submission/siswa atau filter kelas dan tanggal"
+                >
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        <div className="relative sm:col-span-2">
+                            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                                value={data.search}
+                                onChange={(e) =>
+                                    setData("search", e.target.value)
+                                }
+                                placeholder="Cari submission, siswa, kartu..."
+                                className="pl-10"
+                            />
+                        </div>
+                        <Select
+                            value={data.status}
+                            onChange={(e) => setData("status", e.target.value)}
+                        >
+                            <option value="all">Semua status</option>
+                            {Object.entries(statusOptions).map(
+                                ([value, label]) => (
+                                    <option key={value} value={value}>
+                                        {label}
+                                    </option>
+                                ),
+                            )}
+                        </Select>
+                        <Select
+                            value={data.kelas}
+                            onChange={(e) => setData("kelas", e.target.value)}
+                        >
+                            <option value="all">Semua kelas</option>
+                            {kelasOptions.map((k) => (
+                                <option key={k} value={k}>
+                                    {k}
+                                </option>
+                            ))}
+                        </Select>
+                        <Select
+                            value={data.student_id}
+                            onChange={(e) =>
+                                setData("student_id", e.target.value)
+                            }
+                        >
+                            <option value="all">Semua siswa</option>
+                            {studentOptions.map((s) => (
+                                <option key={s.id} value={s.id}>
+                                    {s.label}
+                                </option>
+                            ))}
+                        </Select>
                         <Input
-                            value={data.search}
-                            onChange={(e) => setData("search", e.target.value)}
-                            placeholder="Cari submission, siswa, kartu..."
-                            className="rounded-xl border-border/60 bg-card pl-10 shadow-sm"
+                            type="date"
+                            value={data.date_from}
+                            onChange={(e) =>
+                                setData("date_from", e.target.value)
+                            }
+                        />
+                        <Input
+                            type="date"
+                            value={data.date_to}
+                            onChange={(e) => setData("date_to", e.target.value)}
                         />
                     </div>
-                    <Select
-                        value={data.status}
-                        onChange={(e) => setData("status", e.target.value)}
-                        className="rounded-xl border-border/60 bg-card shadow-sm"
-                    >
-                        <option value="all">Semua status</option>
-                        {Object.entries(statusOptions).map(([value, label]) => (
-                            <option key={value} value={value}>
-                                {label}
-                            </option>
-                        ))}
-                    </Select>
-                    <Select
-                        value={data.kelas}
-                        onChange={(e) => setData("kelas", e.target.value)}
-                        className="rounded-xl border-border/60 bg-card shadow-sm"
-                    >
-                        <option value="all">Semua kelas</option>
-                        {kelasOptions.map((k) => (
-                            <option key={k} value={k}>
-                                {k}
-                            </option>
-                        ))}
-                    </Select>
-                </div>
-
-                <div className="mb-6 grid gap-3 sm:grid-cols-3">
-                    <Select
-                        value={data.student_id}
-                        onChange={(e) =>
-                            setData("student_id", e.target.value)
-                        }
-                        className="rounded-xl border-border/60 bg-card shadow-sm"
-                    >
-                        <option value="all">Semua siswa</option>
-                        {studentOptions.map((s) => (
-                            <option key={s.id} value={s.id}>
-                                {s.label}
-                            </option>
-                        ))}
-                    </Select>
-                    <Input
-                        type="date"
-                        value={data.date_from}
-                        onChange={(e) => setData("date_from", e.target.value)}
-                        className="rounded-xl border-border/60 bg-card shadow-sm"
-                    />
-                    <Input
-                        type="date"
-                        value={data.date_to}
-                        onChange={(e) => setData("date_to", e.target.value)}
-                        className="rounded-xl border-border/60 bg-card shadow-sm"
-                    />
-                </div>
+                </FilterToolbar>
 
                 {total > 0 ? (
                     <CollateralTable

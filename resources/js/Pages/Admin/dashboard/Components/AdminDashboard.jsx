@@ -2,6 +2,10 @@ import { StatCard } from "@/Components/Dashboard/StatCard";
 import { RecentLoansTable } from "@/Components/Dashboard/RecentLoansTable";
 import { DashboardSection } from "@/Components/Dashboard/DashboardSection";
 import { EmptyState } from "@/Components/Dashboard/EmptyState";
+import {
+    PopularEquipmentChart,
+    StatusDistributionChart,
+} from "@/Components/Dashboard/DashboardCharts";
 import LowStockList from "./LowStockList";
 import {
     AlertTriangle,
@@ -30,10 +34,30 @@ export default function AdminDashboard({ loans, equipment, stats }) {
         const remaining = e.stockRemaining ?? e.available ?? 0;
         return e.minStock != null && remaining <= e.minStock;
     });
+    const alatLoans = loans.filter((l) => l.itemType === "alat");
+
+    const todayLabel = new Date().toLocaleDateString("id-ID", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+    });
 
     return (
         <>
-            <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+            <div className="mb-6 rounded-[10px] border border-border bg-muted/40 px-5 py-4 sm:px-6">
+                <p className="text-sm font-medium text-foreground">
+                    Ringkasan hari ini · {todayLabel}
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                    {stats.pendingAlat || 0} menunggu verifikasi ·{" "}
+                    {stats.alatDipinjam || 0} alat dipinjam ·{" "}
+                    {stats.overdue || 0} keterlambatan ·{" "}
+                    {stats.lowStockBahan || 0} stok menipis
+                </p>
+            </div>
+
+            <div className="mb-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
                 <StatCard
                     title="Permintaan Pending"
                     value={stats.pendingAlat}
@@ -60,7 +84,7 @@ export default function AdminDashboard({ loans, equipment, stats }) {
                 />
             </div>
 
-            <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-3">
+            <div className="mb-8 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
                 <StatCard
                     title="Alat Dipinjam"
                     value={stats.alatDipinjam}
@@ -79,6 +103,23 @@ export default function AdminDashboard({ loans, equipment, stats }) {
                     icon={PackageMinus}
                     variant={stats.lowStockBahan > 0 ? "warning" : "default"}
                 />
+            </div>
+
+            <div className="mb-8 grid gap-6 lg:grid-cols-2">
+                <DashboardSection
+                    title="Grafik peminjaman"
+                    description="Distribusi status pengajuan & peminjaman"
+                    className="mb-0"
+                >
+                    <StatusDistributionChart loans={loans} />
+                </DashboardSection>
+                <DashboardSection
+                    title="Alat terpopuler"
+                    description="Berdasarkan frekuensi peminjaman"
+                    className="mb-0"
+                >
+                    <PopularEquipmentChart loans={alatLoans} />
+                </DashboardSection>
             </div>
 
             <DashboardSection
@@ -129,7 +170,7 @@ export default function AdminDashboard({ loans, equipment, stats }) {
 
             {lowStock.length > 0 && (
                 <DashboardSection
-                    title="Status Bahan — Stok Menipis"
+                    title="Bahan yang hampir habis"
                     description="Perlu restock segera"
                     badge={lowStock.length}
                     className="mt-8"

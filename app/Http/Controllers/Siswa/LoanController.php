@@ -40,17 +40,11 @@ class LoanController extends Controller
         $user = $request->user();
         $search = $request->string('search')->trim();
         $status = $request->string('status')->toString() ?: 'all';
-        $itemType = $request->string('item_type')->toString() ?: 'all';
         $scope = $request->string('scope')->toString() ?: 'active';
         $dateFrom = $request->string('date_from')->toString();
         $dateTo = $request->string('date_to')->toString();
 
         $baseQuery = Submission::query()->where('borrower_id', $user->id);
-
-        $scopedCountQuery = (clone $baseQuery)->whereHas(
-            'loans',
-            fn ($q) => $this->applyStudentLoanScope($q, $scope),
-        );
 
         $listQuery = (clone $baseQuery)
             ->with([
@@ -71,9 +65,6 @@ class LoanController extends Controller
                 });
             })
             ->when($status !== 'all', fn ($q) => $q->whereAggregateStatus($status))
-            ->when($itemType !== 'all', function ($q) use ($itemType) {
-                $q->whereHas('loans', fn ($l) => $l->where('item_type', $itemType));
-            })
             ->when($dateFrom !== '', fn ($q) => $q->whereDate('request_date', '>=', $dateFrom))
             ->when($dateTo !== '', fn ($q) => $q->whereDate('request_date', '<=', $dateTo))
             ->latest();
@@ -89,15 +80,9 @@ class LoanController extends Controller
 
         return Inertia::render('Siswa/Loan/Index', [
             'loans' => $loans,
-            'tabCounts' => [
-                'all' => (clone $scopedCountQuery)->count(),
-                'alat' => (clone $scopedCountQuery)->whereHas('loans', fn ($q) => $q->where('item_type', 'alat'))->count(),
-                'bahan' => (clone $scopedCountQuery)->whereHas('loans', fn ($q) => $q->where('item_type', 'bahan'))->count(),
-            ],
             'filters' => [
                 'search' => $search->toString(),
                 'status' => $status,
-                'item_type' => $itemType,
                 'scope' => $scope,
                 'date_from' => $dateFrom,
                 'date_to' => $dateTo,

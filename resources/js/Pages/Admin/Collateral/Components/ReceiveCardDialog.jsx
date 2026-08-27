@@ -45,7 +45,7 @@ export default function ReceiveCardDialog({
             />
             <div
                 className={cn(
-                    "relative z-10 w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-floating animate-fade-in",
+                    "relative z-10 w-full max-w-md rounded-[12px] border border-[#E5E7EB] bg-card p-6 shadow-[var(--shadow-md)] animate-fade-in",
                 )}
             >
                 <h2 className="text-lg font-semibold text-foreground">
@@ -87,7 +87,7 @@ export default function ReceiveCardDialog({
                             onChange={(e) => setNotes(e.target.value)}
                             placeholder="................"
                             disabled={loading}
-                            className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                            className="flex min-h-[80px] w-full rounded-[8px] border border-[#E5E7EB] bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                         />
                     </div>
                 </div>

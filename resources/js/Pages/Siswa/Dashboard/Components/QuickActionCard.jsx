@@ -28,13 +28,13 @@ export default function QuickActionCard({
         <Link
             href={href}
             className={cn(
-                "group flex w-full flex-col rounded-2xl border border-border bg-card p-4 transition-all hover:shadow-md sm:p-6",
+                "group flex w-full flex-col rounded-[10px] border border-border bg-card p-4 transition-all hover:shadow-md sm:p-6",
                 style.border,
             )}
         >
             <div
                 className={cn(
-                    "mb-4 flex h-12 w-12 items-center justify-center rounded-xl transition-colors",
+                    "mb-4 flex h-12 w-12 items-center justify-center rounded-[8px] transition-colors",
                     style.icon,
                 )}
             >

@@ -10,7 +10,7 @@ export function UpcomingSchedules({ schedules }) {
     if (!schedules?.length) return null;
 
     return (
-        <div className="mt-6 rounded-2xl border border-border bg-card p-6">
+        <div className="mt-6 rounded-[10px] border border-border bg-card p-6">
             <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
                 <CalendarDays className="h-5 w-5 text-primary" />
                 Jadwal Hari Ini

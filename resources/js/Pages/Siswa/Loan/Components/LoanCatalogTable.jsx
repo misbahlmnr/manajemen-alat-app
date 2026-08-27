@@ -47,7 +47,7 @@ function CatalogMobileCard({ item, isBahan, cart, onAdd, maxQty }) {
     const ctaLabel = "Tambah";
 
     return (
-        <div className="rounded-xl border border-border/60 bg-card p-4 shadow-sm">
+        <div className="rounded-[8px] border border-border/60 bg-card p-4 shadow-sm">
             <div className="mb-3 flex items-start gap-3">
                 <EquipmentImage
                     imageUrl={item.image_url}
@@ -198,7 +198,7 @@ export default function LoanCatalogTable({
 
     if (!items?.length) {
         return (
-            <p className="rounded-xl border border-dashed border-border py-10 text-center text-sm text-muted-foreground">
+            <p className="rounded-[8px] border border-dashed border-border py-10 text-center text-sm text-muted-foreground">
                 {isBahan
                     ? "Tidak ada bahan tersedia"
                     : "Tidak ada alat tersedia"}

@@ -88,7 +88,7 @@ export default function Index({
                             value={data.search}
                             onChange={(e) => setData("search", e.target.value)}
                             placeholder="Cari judul, kode, mata pelajaran..."
-                            className="rounded-xl border-border/60 bg-card pl-10 shadow-sm"
+                            className="rounded-[8px] border-border/60 bg-card pl-10 shadow-sm"
                         />
                     </div>
                     <Select
@@ -96,7 +96,7 @@ export default function Index({
                         onChange={(e) =>
                             setData("mata_kuliah", e.target.value)
                         }
-                        className="rounded-xl border-border/60 bg-card shadow-sm"
+                        className="rounded-[8px] border-border/60 bg-card shadow-sm"
                     >
                         <option value="all">Semua mapel</option>
                         {subjectOptions.map((subject) => (
@@ -108,7 +108,7 @@ export default function Index({
                     <Select
                         value={data.kelas}
                         onChange={(e) => setData("kelas", e.target.value)}
-                        className="rounded-xl border-border/60 bg-card shadow-sm"
+                        className="rounded-[8px] border-border/60 bg-card shadow-sm"
                     >
                         <option value="all">Semua kelas</option>
                         {kelasOptions.map((kelas) => (
@@ -123,7 +123,7 @@ export default function Index({
                     <Select
                         value={data.type}
                         onChange={(e) => setData("type", e.target.value)}
-                        className="rounded-xl border-border/60 bg-card shadow-sm"
+                        className="rounded-[8px] border-border/60 bg-card shadow-sm"
                     >
                         <option value="all">Semua jenis</option>
                         {Object.entries(typeOptions).map(([value, label]) => (
@@ -135,7 +135,7 @@ export default function Index({
                     <Select
                         value={data.hari}
                         onChange={(e) => setData("hari", e.target.value)}
-                        className="rounded-xl border-border/60 bg-card shadow-sm"
+                        className="rounded-[8px] border-border/60 bg-card shadow-sm"
                     >
                         <option value="all">Semua hari</option>
                         {Object.entries(dayOptions).map(([value, label]) => (

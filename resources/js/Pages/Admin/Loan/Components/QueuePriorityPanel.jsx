@@ -59,7 +59,7 @@ export default function QueuePriorityPanel({ loan }) {
             : "";
 
     return (
-        <Card className="mb-6 rounded-2xl border-warning/30 bg-warning/5 shadow-card">
+        <Card className="mb-6 rounded-[10px] border-warning/30 bg-warning/5 shadow-card">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                     <ArrowUp className="h-4 w-4 text-warning" />
@@ -107,7 +107,7 @@ export default function QueuePriorityPanel({ loan }) {
                     />
                 </div>
 
-                <div className="rounded-xl border border-border/60 bg-card p-4 space-y-4">
+                <div className="rounded-[8px] border border-border/60 bg-card p-4 space-y-4">
                     <div className="space-y-2">
                         <Label>Prioritas Admin</Label>
                         <div className="grid grid-cols-2 gap-2">
@@ -178,7 +178,7 @@ function PriorityOption({ selected, disabled, onClick, title, description }) {
             disabled={disabled}
             onClick={onClick}
             className={cn(
-                "rounded-xl border px-3 py-3 text-left transition-colors",
+                "rounded-[8px] border px-3 py-3 text-left transition-colors",
                 selected
                     ? "border-primary bg-primary/5 text-foreground"
                     : "border-border/60 bg-background text-muted-foreground hover:border-border",

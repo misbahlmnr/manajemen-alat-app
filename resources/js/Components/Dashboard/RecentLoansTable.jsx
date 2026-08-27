@@ -38,34 +38,37 @@ export function RecentLoansTable({
     <div className="data-table overflow-hidden">
       <div className="-mx-1 overflow-x-auto px-1 sm:mx-0 sm:px-0">
         <table className="w-full min-w-[640px]">
-          <thead>
-            <tr className="bg-secondary/50">
-              <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:px-4 sm:py-3">
+          <thead className="sticky top-0 z-10 border-b border-border bg-slate-100">
+            <tr>
+              <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 sm:px-4">
                 Peminjam
               </th>
-              <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:px-4 sm:py-3">
+              <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 sm:px-4">
                 Peralatan
               </th>
-              <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:px-4 sm:py-3">
+              <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 sm:px-4">
                 Tanggal Pinjam
               </th>
-              <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:px-4 sm:py-3">
+              <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 sm:px-4">
                 Jatuh Tempo
               </th>
-              <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:px-4 sm:py-3">
+              <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 sm:px-4">
                 Status
               </th>
               {showActions && (
-                <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:px-4 sm:py-3">
+                <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 sm:px-4">
                   Aksi
                 </th>
               )}
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {pagedLoans.map((loan) => (
-              <tr key={loan.id} className="hover:bg-secondary/30 transition-colors">
-                <td className="px-3 py-3 sm:px-4 sm:py-4">
+            {pagedLoans.map((loan, index) => (
+              <tr
+                key={loan.id}
+                className={`transition-colors hover:bg-primary/5 ${index % 2 === 1 ? "bg-muted/20" : ""}`}
+              >
+                <td className="px-3 py-3.5 sm:px-4 sm:py-4">
                   <div>
                     <p className="text-sm font-medium text-foreground">{loan.borrowerName}</p>
                     <p className="text-xs text-muted-foreground">{loan.borrowerClass}</p>
@@ -94,13 +97,13 @@ export function RecentLoansTable({
                     <div className="flex gap-2">
                       <button
                         onClick={() => onApprove?.(loan.id)}
-                        className="px-3 py-1 text-xs font-medium bg-success/10 text-success rounded-lg hover:bg-success/20 transition-colors"
+                        className="rounded-[8px] px-3 py-1 text-xs font-semibold bg-success/10 text-success hover:bg-success/20 transition-colors"
                       >
                         Setujui
                       </button>
                       <button
                         onClick={() => onReject?.(loan.id)}
-                        className="px-3 py-1 text-xs font-medium bg-destructive/10 text-destructive rounded-lg hover:bg-destructive/20 transition-colors"
+                        className="rounded-[8px] px-3 py-1 text-xs font-semibold bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
                       >
                         Tolak
                       </button>

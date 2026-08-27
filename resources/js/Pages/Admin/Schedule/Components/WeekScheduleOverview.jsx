@@ -61,7 +61,7 @@ export default function WeekScheduleOverview({
     });
 
     return (
-        <Card className="mb-6 rounded-2xl border-border/60 shadow-card">
+        <Card className="mb-6 rounded-[10px] border-border/60 shadow-card">
             <CardHeader className="pb-3">
                 <div className="flex items-center gap-2">
                     <CalendarDays className="h-5 w-5 text-primary" />
@@ -82,7 +82,7 @@ export default function WeekScheduleOverview({
                         return (
                             <div
                                 key={day.key}
-                                className="min-h-[100px] rounded-xl border border-border/50 bg-muted/20 p-2"
+                                className="min-h-[100px] rounded-[8px] border border-border/50 bg-muted/20 p-2"
                             >
                                 <p className="text-center text-xs font-medium text-muted-foreground">
                                     {day.label}

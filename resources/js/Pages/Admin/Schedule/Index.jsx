@@ -1,6 +1,7 @@
 import AppLayout from "@/Layouts/AppLayout";
 import PageHeader from "@/Components/PageHeader";
 import EmptyState from "@/Components/EmptyState";
+import FilterToolbar from "@/Components/FilterToolbar";
 import { paginatorTotal } from "@/lib/paginator";
 import { Button } from "@/Components/ui/button";
 import { Input } from "@/Components/ui/input";
@@ -81,7 +82,7 @@ export default function Index({
             <div className="animate-fade-in">
                 <PageHeader
                     title="Jadwal Praktikum"
-                    subtitle={`${total} jadwal terdaftar`}
+                    subtitle="Kalender mingguan dan daftar lengkap jadwal lab"
                 >
                     <Button asChild>
                         <Link href={route("admin.schedules.create")}>
@@ -91,84 +92,105 @@ export default function Index({
                     </Button>
                 </PageHeader>
 
-                <WeekScheduleOverview schedules={weekSchedules ?? []} />
+                <div className="mb-8">
+                    <p className="mb-3 text-sm font-semibold text-foreground">
+                        Minggu ini
+                    </p>
+                    <WeekScheduleOverview schedules={weekSchedules ?? []} />
+                </div>
 
-                <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    <div className="relative sm:col-span-2 lg:col-span-2">
-                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                        <Input
-                            value={data.search}
-                            onChange={(e) => setData("search", e.target.value)}
-                            placeholder="Cari judul, kode, mata pelajaran, guru..."
-                            className="rounded-xl border-border/60 bg-card pl-10 shadow-sm"
-                        />
+                <div className="mb-4 flex items-end justify-between gap-3">
+                    <div>
+                        <h2 className="font-display text-base font-semibold text-foreground">
+                            Semua jadwal
+                        </h2>
+                        <p className="text-sm text-muted-foreground">
+                            {total} jadwal sesuai filter
+                        </p>
                     </div>
-                    <Select
-                        value={data.mata_kuliah}
-                        onChange={(e) =>
-                            setData("mata_kuliah", e.target.value)
-                        }
-                        className="rounded-xl border-border/60 bg-card shadow-sm"
-                    >
-                        <option value="all">Semua mapel</option>
-                        {subjectOptions.map((subject) => (
-                            <option key={subject} value={subject}>
-                                {subject}
-                            </option>
-                        ))}
-                    </Select>
-                    <Select
-                        value={data.kelas}
-                        onChange={(e) => setData("kelas", e.target.value)}
-                        className="rounded-xl border-border/60 bg-card shadow-sm"
-                    >
-                        <option value="all">Semua kelas</option>
-                        {kelasOptions.map((kelas) => (
-                            <option key={kelas} value={kelas}>
-                                {kelas}
-                            </option>
-                        ))}
-                    </Select>
                 </div>
 
-                <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    <Select
-                        value={data.guru_id}
-                        onChange={(e) => setData("guru_id", e.target.value)}
-                        className="rounded-xl border-border/60 bg-card shadow-sm"
-                    >
-                        <option value="all">Semua guru</option>
-                        {guruOptions.map((guru) => (
-                            <option key={guru.id} value={guru.id}>
-                                {guru.name}
-                            </option>
-                        ))}
-                    </Select>
-                    <Select
-                        value={data.type}
-                        onChange={(e) => setData("type", e.target.value)}
-                        className="rounded-xl border-border/60 bg-card shadow-sm"
-                    >
-                        <option value="all">Semua jenis</option>
-                        {Object.entries(typeOptions).map(([value, label]) => (
-                            <option key={value} value={value}>
-                                {label}
-                            </option>
-                        ))}
-                    </Select>
-                    <Select
-                        value={data.hari}
-                        onChange={(e) => setData("hari", e.target.value)}
-                        className="rounded-xl border-border/60 bg-card shadow-sm"
-                    >
-                        <option value="all">Semua hari</option>
-                        {Object.entries(dayOptions).map(([value, label]) => (
-                            <option key={value} value={value}>
-                                {label}
-                            </option>
-                        ))}
-                    </Select>
-                </div>
+                <FilterToolbar
+                    title="Filter jadwal"
+                    description="Cari judul/mapel atau sempitkan berdasarkan guru dan hari"
+                >
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        <div className="relative sm:col-span-2">
+                            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                                value={data.search}
+                                onChange={(e) =>
+                                    setData("search", e.target.value)
+                                }
+                                placeholder="Cari judul, kode, mata pelajaran, guru..."
+                                className="pl-10"
+                            />
+                        </div>
+                        <Select
+                            value={data.mata_kuliah}
+                            onChange={(e) =>
+                                setData("mata_kuliah", e.target.value)
+                            }
+                        >
+                            <option value="all">Semua mapel</option>
+                            {subjectOptions.map((subject) => (
+                                <option key={subject} value={subject}>
+                                    {subject}
+                                </option>
+                            ))}
+                        </Select>
+                        <Select
+                            value={data.kelas}
+                            onChange={(e) => setData("kelas", e.target.value)}
+                        >
+                            <option value="all">Semua kelas</option>
+                            {kelasOptions.map((kelas) => (
+                                <option key={kelas} value={kelas}>
+                                    {kelas}
+                                </option>
+                            ))}
+                        </Select>
+                        <Select
+                            value={data.guru_id}
+                            onChange={(e) =>
+                                setData("guru_id", e.target.value)
+                            }
+                        >
+                            <option value="all">Semua guru</option>
+                            {guruOptions.map((guru) => (
+                                <option key={guru.id} value={guru.id}>
+                                    {guru.name}
+                                </option>
+                            ))}
+                        </Select>
+                        <Select
+                            value={data.type}
+                            onChange={(e) => setData("type", e.target.value)}
+                        >
+                            <option value="all">Semua jenis</option>
+                            {Object.entries(typeOptions).map(
+                                ([value, label]) => (
+                                    <option key={value} value={value}>
+                                        {label}
+                                    </option>
+                                ),
+                            )}
+                        </Select>
+                        <Select
+                            value={data.hari}
+                            onChange={(e) => setData("hari", e.target.value)}
+                        >
+                            <option value="all">Semua hari</option>
+                            {Object.entries(dayOptions).map(
+                                ([value, label]) => (
+                                    <option key={value} value={value}>
+                                        {label}
+                                    </option>
+                                ),
+                            )}
+                        </Select>
+                    </div>
+                </FilterToolbar>
 
                 {total > 0 ? (
                     <ScheduleTable

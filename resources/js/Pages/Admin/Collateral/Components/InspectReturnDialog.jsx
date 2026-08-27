@@ -49,7 +49,7 @@ export default function InspectReturnDialog({
             />
             <div
                 className={cn(
-                    "relative z-10 max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-floating animate-fade-in",
+                    "relative z-10 max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-[12px] border border-[#E5E7EB] bg-card p-6 shadow-[var(--shadow-md)] animate-fade-in",
                 )}
             >
                 <h2 className="text-lg font-semibold text-foreground">
@@ -115,7 +115,7 @@ export default function InspectReturnDialog({
                                     }
                                     disabled={loading}
                                     placeholder="Contoh: Layar kamera retak, tombol power tidak berfungsi."
-                                    className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                    className="flex w-full rounded-[8px] border border-[#E5E7EB] bg-background px-3 py-2 text-sm"
                                 />
                             </div>
                             <div className="space-y-2">
@@ -128,7 +128,7 @@ export default function InspectReturnDialog({
                                     }
                                     disabled={loading}
                                     placeholder="Contoh: Segera datang ke kantor lab besok pagi jam 07.00."
-                                    className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                    className="flex w-full rounded-[8px] border border-[#E5E7EB] bg-background px-3 py-2 text-sm"
                                 />
                             </div>
                         </>
@@ -146,7 +146,7 @@ export default function InspectReturnDialog({
                                     }
                                     disabled={loading}
                                     placeholder="Sebutkan item yang tidak dikembalikan."
-                                    className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                    className="flex w-full rounded-[8px] border border-[#E5E7EB] bg-background px-3 py-2 text-sm"
                                 />
                             </div>
                             <div className="space-y-2">
@@ -159,7 +159,7 @@ export default function InspectReturnDialog({
                                     }
                                     disabled={loading}
                                     placeholder="Contoh: Datang ke kantor lab untuk penyelesaian."
-                                    className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                    className="flex w-full rounded-[8px] border border-[#E5E7EB] bg-background px-3 py-2 text-sm"
                                 />
                             </div>
                         </>

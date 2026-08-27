@@ -1,15 +1,15 @@
 import { cn } from '@/lib/utils';
 
 const statusConfig = {
-  diminta: { label: 'Menunggu Persetujuan', className: 'status-requested' },
-  antrian: { label: 'Antrian', className: 'bg-warning/10 text-warning' },
-  disetujui: { label: 'Disetujui', className: 'status-approved' },
-  ditolak: { label: 'Ditolak', className: 'bg-destructive/10 text-destructive' },
-  dipinjam: { label: 'Dipinjam', className: 'status-borrowed' },
-  terlambat: { label: 'Terlambat', className: 'status-overdue' },
-  menunggu_inspeksi: { label: 'Menunggu Inspeksi', className: 'bg-warning/10 text-warning' },
-  dikembalikan: { label: 'Dikembalikan', className: 'status-returned' },
-  dibatalkan: { label: 'Dibatalkan', className: 'bg-muted text-muted-foreground' },
+  diminta: { label: 'Menunggu Persetujuan', className: 'border border-slate-200 bg-slate-100 text-slate-700' },
+  antrian: { label: 'Antrian', className: 'border border-amber-200/80 bg-amber-50 text-amber-900/80' },
+  disetujui: { label: 'Disetujui', className: 'border border-slate-200 bg-slate-100 text-slate-700' },
+  ditolak: { label: 'Ditolak', className: 'border border-red-200/70 bg-red-50 text-red-800/80' },
+  dipinjam: { label: 'Dipinjam', className: 'border border-amber-200/60 bg-amber-50/80 text-amber-950/70' },
+  terlambat: { label: 'Terlambat', className: 'border border-red-200/70 bg-red-50 text-red-800/80' },
+  menunggu_inspeksi: { label: 'Menunggu Inspeksi', className: 'border border-amber-200/80 bg-amber-50 text-amber-900/80' },
+  dikembalikan: { label: 'Dikembalikan', className: 'border border-slate-200 bg-slate-50 text-slate-600' },
+  dibatalkan: { label: 'Dibatalkan', className: 'border border-slate-200 bg-slate-50 text-slate-600' },
 };
 
 export function StatusBadge({ status, className }) {

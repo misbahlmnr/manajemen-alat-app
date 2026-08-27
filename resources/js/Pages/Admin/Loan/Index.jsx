@@ -1,6 +1,7 @@
 import AppLayout from "@/Layouts/AppLayout";
 import PageHeader from "@/Components/PageHeader";
 import EmptyState from "@/Components/EmptyState";
+import FilterToolbar from "@/Components/FilterToolbar";
 import { paginatorTotal } from "@/lib/paginator";
 import { Input } from "@/Components/ui/input";
 import { Select } from "@/Components/ui/select";
@@ -64,100 +65,103 @@ export default function Index({
             <div className="animate-fade-in">
                 <PageHeader
                     title="Peminjaman"
-                    subtitle={`${total} pengajuan dari siswa`}
+                    subtitle="Verifikasi dan pantau pengajuan alat & bahan siswa"
                 />
 
-                <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    <div className="relative sm:col-span-2">
-                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                        <Input
-                            value={data.search}
-                            onChange={(e) => setData("search", e.target.value)}
-                            placeholder="Cari SUB-0004, peminjam, barang..."
-                            className="rounded-xl border-border/60 bg-card pl-10 shadow-sm"
-                        />
-                    </div>
-                    <Select
-                        value={data.status}
-                        onChange={(e) => setData("status", e.target.value)}
-                        className="rounded-xl border-border/60 bg-card shadow-sm"
-                    >
-                        <option value="all">Semua status</option>
-                        {Object.entries(statusOptions).map(([value, label]) => (
-                            <option key={value} value={value}>
-                                {label}
-                            </option>
-                        ))}
-                    </Select>
-                    <Select
-                        value={data.item_type}
-                        onChange={(e) => setData("item_type", e.target.value)}
-                        className="rounded-xl border-border/60 bg-card shadow-sm"
-                    >
-                        <option value="all">Semua jenis</option>
-                        <option value="alat">Alat</option>
-                        <option value="bahan">Bahan</option>
-                    </Select>
-                </div>
-
-                <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    <Select
-                        value={data.borrower_id}
-                        onChange={(e) =>
-                            setData("borrower_id", e.target.value)
-                        }
-                        className="rounded-xl border-border/60 bg-card shadow-sm"
-                    >
-                        <option value="all">Semua peminjam</option>
-                        {borrowerOptions.map((b) => (
-                            <option key={b.id} value={b.id}>
-                                {b.label}
-                            </option>
-                        ))}
-                    </Select>
-                    <Select
-                        value={data.supervisor_id}
-                        onChange={(e) =>
-                            setData("supervisor_id", e.target.value)
-                        }
-                        className="rounded-xl border-border/60 bg-card shadow-sm"
-                    >
-                        <option value="all">Semua guru</option>
-                        {supervisorOptions.map((g) => (
-                            <option key={g.id} value={g.id}>
-                                {g.name}
-                            </option>
-                        ))}
-                    </Select>
-                    <Select
-                        value={data.kelas}
-                        onChange={(e) => setData("kelas", e.target.value)}
-                        className="rounded-xl border-border/60 bg-card shadow-sm"
-                    >
-                        <option value="all">Semua kelas</option>
-                        {kelasOptions.map((k) => (
-                            <option key={k} value={k}>
-                                {k}
-                            </option>
-                        ))}
-                    </Select>
-                    <div className="grid grid-cols-2 gap-2">
-                        <Input
-                            type="date"
-                            value={data.date_from}
+                <FilterToolbar
+                    title="Filter pengajuan"
+                    description="Cari kode, peminjam, atau sempitkan berdasarkan guru dan tanggal"
+                >
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        <div className="relative sm:col-span-2">
+                            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                                value={data.search}
+                                onChange={(e) =>
+                                    setData("search", e.target.value)
+                                }
+                                placeholder="Cari SUB-0004, peminjam, barang..."
+                                className="pl-10"
+                            />
+                        </div>
+                        <Select
+                            value={data.status}
+                            onChange={(e) => setData("status", e.target.value)}
+                        >
+                            <option value="all">Semua status</option>
+                            {Object.entries(statusOptions).map(
+                                ([value, label]) => (
+                                    <option key={value} value={value}>
+                                        {label}
+                                    </option>
+                                ),
+                            )}
+                        </Select>
+                        <Select
+                            value={data.item_type}
                             onChange={(e) =>
-                                setData("date_from", e.target.value)
+                                setData("item_type", e.target.value)
                             }
-                            className="rounded-xl border-border/60 bg-card shadow-sm"
-                        />
-                        <Input
-                            type="date"
-                            value={data.date_to}
-                            onChange={(e) => setData("date_to", e.target.value)}
-                            className="rounded-xl border-border/60 bg-card shadow-sm"
-                        />
+                        >
+                            <option value="all">Semua jenis</option>
+                            <option value="alat">Alat</option>
+                            <option value="bahan">Bahan</option>
+                        </Select>
+                        <Select
+                            value={data.borrower_id}
+                            onChange={(e) =>
+                                setData("borrower_id", e.target.value)
+                            }
+                        >
+                            <option value="all">Semua peminjam</option>
+                            {borrowerOptions.map((b) => (
+                                <option key={b.id} value={b.id}>
+                                    {b.label}
+                                </option>
+                            ))}
+                        </Select>
+                        <Select
+                            value={data.supervisor_id}
+                            onChange={(e) =>
+                                setData("supervisor_id", e.target.value)
+                            }
+                        >
+                            <option value="all">Semua guru</option>
+                            {supervisorOptions.map((g) => (
+                                <option key={g.id} value={g.id}>
+                                    {g.name}
+                                </option>
+                            ))}
+                        </Select>
+                        <Select
+                            value={data.kelas}
+                            onChange={(e) => setData("kelas", e.target.value)}
+                        >
+                            <option value="all">Semua kelas</option>
+                            {kelasOptions.map((k) => (
+                                <option key={k} value={k}>
+                                    {k}
+                                </option>
+                            ))}
+                        </Select>
+                        <div className="grid grid-cols-2 gap-2">
+                            <Input
+                                type="date"
+                                value={data.date_from}
+                                onChange={(e) =>
+                                    setData("date_from", e.target.value)
+                                }
+                            />
+                            <Input
+                                type="date"
+                                value={data.date_to}
+                                onChange={(e) =>
+                                    setData("date_to", e.target.value)
+                                }
+                            />
+                        </div>
                     </div>
-                </div>
+                </FilterToolbar>
 
                 {total > 0 ? (
                     <LoanTable items={list} pagination={loans} />

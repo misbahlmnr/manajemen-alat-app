@@ -61,7 +61,7 @@ export default function GuruLoanCard({ loan, isHistory = false }) {
     return (
         <article
             className={cn(
-                "overflow-hidden rounded-2xl border bg-card shadow-card transition-shadow hover:shadow-md",
+                "overflow-hidden rounded-[10px] border bg-card shadow-card transition-shadow hover:shadow-md",
                 isTerlambat
                     ? "border-destructive/30 ring-1 ring-destructive/10"
                     : "border-border/60",
@@ -71,7 +71,7 @@ export default function GuruLoanCard({ loan, isHistory = false }) {
                 <div className="flex min-w-0 flex-1 items-start gap-3">
                     <div
                         className={cn(
-                            "flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl",
+                            "flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-[8px]",
                             isBahan ? "bg-warning/15" : "bg-primary/15",
                         )}
                     >

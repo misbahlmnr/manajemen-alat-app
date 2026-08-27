@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,108 +6,69 @@
 
 @layer base {
     :root {
-        /* Navy Blue Theme - Technical & Formal */
-        --background: 210 20% 98%;
-        --foreground: 215 25% 15%;
+        /* Lab Audio Video — enterprise muted TAV palette */
+        --background: 210 25% 97%;
+        --foreground: 215 28% 17%;
 
         --card: 0 0% 100%;
-        --card-foreground: 215 25% 15%;
+        --card-foreground: 215 28% 17%;
 
         --popover: 0 0% 100%;
-        --popover-foreground: 215 25% 15%;
+        --popover-foreground: 215 28% 17%;
 
-        /* Navy Blue Primary */
-        --primary: 213 56% 24%;
-        --primary-foreground: 0 0% 100%;
+        --primary: 44 72% 52%;
+        --primary-foreground: 215 28% 14%;
 
-        /* Light Gray Secondary */
-        --secondary: 210 20% 96%;
-        --secondary-foreground: 215 25% 15%;
+        --secondary: 215 14% 92%;
+        --secondary-foreground: 215 28% 20%;
 
-        /* Muted */
-        --muted: 210 20% 96%;
-        --muted-foreground: 215 16% 47%;
+        --muted: 210 20% 95%;
+        --muted-foreground: 215 12% 46%;
 
-        /* Yellow Gold Accent */
-        --accent: 45 93% 47%;
-        --accent-foreground: 215 25% 15%;
+        --accent: 42 40% 94%;
+        --accent-foreground: 215 28% 17%;
 
-        --destructive: 0 84% 60%;
+        --destructive: 0 55% 48%;
         --destructive-foreground: 0 0% 100%;
 
-        /* Status Colors */
-        --success: 142 71% 45%;
+        --success: 152 40% 34%;
         --success-foreground: 0 0% 100%;
-        --warning: 38 92% 50%;
-        --warning-foreground: 215 25% 15%;
-        --info: 199 89% 48%;
+        --warning: 36 55% 44%;
+        --warning-foreground: 215 28% 14%;
+        --info: 215 18% 42%;
         --info-foreground: 0 0% 100%;
 
-        --border: 214 32% 91%;
-        --input: 214 32% 91%;
-        --ring: 213 56% 24%;
+        --border: 220 13% 90%;              /* #E5E7EB-ish */
+        --input: 220 13% 90%;
+        --ring: 44 55% 48%;
 
-        --radius: 0.625rem;
+        /* Base radius 10px (card) — lg/md/sm derive from this */
+        --radius: 0.625rem;                 /* 10px */
+        --radius-sm: 0.5rem;                /* 8px — inputs, buttons */
+        --radius-md: 0.625rem;              /* 10px — cards, tables */
+        --radius-lg: 0.75rem;               /* 12px — modals */
 
-        /* Sidebar */
-        --sidebar-background: 213 56% 20%;
+        --sidebar-background: 215 28% 14%;
         --sidebar-foreground: 210 20% 96%;
-        --sidebar-primary: 45 93% 47%;
-        --sidebar-primary-foreground: 215 25% 15%;
-        --sidebar-accent: 213 56% 28%;
-        --sidebar-accent-foreground: 0 0% 100%;
-        --sidebar-border: 213 56% 28%;
-        --sidebar-ring: 45 93% 47%;
+        --sidebar-primary: 44 72% 52%;
+        --sidebar-primary-foreground: 215 28% 14%;
+        --sidebar-accent: 215 22% 20%;
+        --sidebar-accent-foreground: 210 20% 96%;
+        --sidebar-border: 215 20% 22%;
+        --sidebar-ring: 44 55% 48%;
 
-        /* Custom Gradients */
-        --gradient-primary: linear-gradient(135deg, hsl(213 56% 24%) 0%, hsl(213 56% 32%) 100%);
-        --gradient-accent: linear-gradient(135deg, hsl(45 93% 47%) 0%, hsl(38 92% 50%) 100%);
-        --gradient-hero: linear-gradient(180deg, hsl(213 56% 20%) 0%, hsl(213 56% 28%) 100%);
+        --gradient-hero: linear-gradient(180deg, hsl(215 28% 12%) 0%, hsl(215 26% 16%) 100%);
 
-        /* Shadows */
-        --shadow-sm: 0 1px 2px 0 rgba(30, 58, 95, 0.05);
-        --shadow-md: 0 4px 6px -1px rgba(30, 58, 95, 0.1), 0 2px 4px -2px rgba(30, 58, 95, 0.1);
-        --shadow-lg: 0 10px 15px -3px rgba(30, 58, 95, 0.1), 0 4px 6px -4px rgba(30, 58, 95, 0.1);
-        --shadow-card: 0 1px 3px 0 rgba(30, 58, 95, 0.1), 0 1px 2px -1px rgba(30, 58, 95, 0.1);
-    }
+        --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.03);
+        --shadow-md: 0 2px 8px -2px rgba(15, 23, 42, 0.06);
+        --shadow-lg: 0 8px 16px -4px rgba(15, 23, 42, 0.08);
+        --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04);
 
-    .dark {
-        --background: 215 25% 10%;
-        --foreground: 210 20% 96%;
-
-        --card: 215 25% 13%;
-        --card-foreground: 210 20% 96%;
-
-        --popover: 215 25% 13%;
-        --popover-foreground: 210 20% 96%;
-
-        --primary: 45 93% 47%;
-        --primary-foreground: 215 25% 10%;
-
-        --secondary: 215 25% 18%;
-        --secondary-foreground: 210 20% 96%;
-
-        --muted: 215 25% 18%;
-        --muted-foreground: 215 16% 60%;
-
-        --accent: 45 93% 47%;
-        --accent-foreground: 215 25% 10%;
-
-        --destructive: 0 62% 50%;
-        --destructive-foreground: 0 0% 100%;
-
-        --border: 215 25% 22%;
-        --input: 215 25% 22%;
-        --ring: 45 93% 47%;
-
-        --sidebar-background: 215 25% 8%;
-        --sidebar-foreground: 210 20% 96%;
-        --sidebar-primary: 45 93% 47%;
-        --sidebar-primary-foreground: 215 25% 10%;
-        --sidebar-accent: 215 25% 15%;
-        --sidebar-accent-foreground: 0 0% 100%;
-        --sidebar-border: 215 25% 18%;
-        --sidebar-ring: 45 93% 47%;
+        --chart-1: 44 55% 52%;
+        --chart-2: 215 16% 48%;
+        --chart-3: 215 12% 62%;
+        --chart-4: 36 45% 50%;
+        --chart-5: 215 22% 30%;
     }
 }
 
@@ -115,82 +76,96 @@
     * {
         @apply border-border;
     }
+
     body {
         @apply bg-background text-foreground font-sans antialiased;
         font-family: 'Inter', system-ui, sans-serif;
+        font-size: 15px;
+        line-height: 1.55;
     }
+
     h1, h2, h3, h4, h5, h6 {
-        font-family: 'Poppins', system-ui, sans-serif;
+        font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+        letter-spacing: -0.02em;
+    }
+
+    :focus-visible {
+        @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
     }
 }
 
 @layer components {
     .nav-link {
-        @apply flex items-center gap-3 px-4 py-3 rounded-lg text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-all duration-200;
+        @apply flex min-h-10 items-center gap-3 rounded-[8px] px-3 py-2 text-sm font-medium
+            text-sidebar-foreground/70 transition-colors duration-150
+            hover:bg-white/5 hover:text-sidebar-foreground;
     }
 
     .nav-link-active {
-        @apply bg-sidebar-accent text-sidebar-foreground border-l-4 border-sidebar-primary;
+        @apply bg-primary/20 text-sidebar-foreground shadow-none
+            hover:bg-primary/25 hover:text-sidebar-foreground;
     }
 
     .form-input {
-        @apply w-full max-w-full min-w-0 px-4 py-2.5 rounded-lg border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all duration-200;
+        @apply w-full max-w-full min-w-0 rounded-[8px] border border-input bg-card px-3.5 py-2.5
+            text-sm text-foreground placeholder:text-muted-foreground
+            transition-colors duration-150
+            focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ring;
     }
 
     .btn-primary {
-        @apply inline-flex items-center justify-center px-6 py-2.5 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 transition-all duration-200;
+        @apply inline-flex min-h-10 items-center justify-center rounded-[8px] bg-foreground px-4 py-2
+            text-sm font-semibold text-background
+            transition-colors duration-150 hover:bg-foreground/90
+            focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2;
     }
 
     .btn-outline {
-        @apply inline-flex items-center justify-center px-6 py-2.5 rounded-lg border border-border bg-background text-foreground font-medium hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 transition-all duration-200;
+        @apply inline-flex min-h-10 items-center justify-center rounded-[8px] border border-border
+            bg-card px-4 py-2 text-sm font-semibold text-foreground
+            transition-colors duration-150 hover:bg-muted
+            focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2;
     }
 
     .btn-accent {
-        @apply inline-flex items-center justify-center px-6 py-2.5 rounded-lg bg-accent text-accent-foreground font-medium hover:bg-accent/90 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 transition-all duration-200;
+        @apply inline-flex min-h-10 items-center justify-center rounded-[8px] bg-muted px-4 py-2
+            text-sm font-semibold text-foreground
+            transition-colors duration-150 hover:bg-muted/80
+            focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2;
     }
 
     .stat-card {
-        @apply rounded-xl border border-border/50 bg-card p-4 shadow-[var(--shadow-card)] transition-shadow duration-200 hover:shadow-[var(--shadow-md)] sm:p-6;
+        @apply rounded-[10px] border border-border bg-card p-5 shadow-[var(--shadow-card)] sm:p-6;
     }
 
     .data-table {
-        @apply w-full bg-card rounded-xl shadow-[var(--shadow-card)] border border-border/50 overflow-hidden;
+        @apply w-full overflow-hidden rounded-[10px] border border-border bg-card shadow-[var(--shadow-card)];
     }
 
     .status-badge {
-        @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium;
-    }
-
-    .status-requested {
-        @apply bg-info/10 text-info;
-    }
-
-    .status-approved {
-        @apply bg-success/10 text-success;
-    }
-
-    .status-borrowed {
-        @apply bg-primary/10 text-primary;
-    }
-
-    .status-overdue {
-        @apply bg-destructive/10 text-destructive;
-    }
-
-    .status-returned {
-        @apply bg-muted text-muted-foreground;
+        @apply inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium;
     }
 
     .equipment-card {
-        @apply bg-card rounded-xl p-4 shadow-[var(--shadow-card)] border border-border/50 hover:shadow-[var(--shadow-md)] hover:border-primary/30 transition-all duration-200;
+        @apply rounded-[10px] border border-border bg-card p-4 shadow-[var(--shadow-card)]
+            transition-colors duration-150 hover:border-border;
     }
 
     .page-header {
-        @apply mb-6 flex flex-col gap-4 border-b border-border pb-6 sm:flex-row sm:items-center sm:justify-between;
+        @apply mb-6 flex flex-col gap-4 border-b border-border pb-5
+            sm:flex-row sm:items-center sm:justify-between;
     }
 
     .section-title {
         @apply text-xl font-bold text-foreground sm:text-2xl;
+    }
+
+    .surface-card {
+        @apply rounded-[10px] border border-border bg-card p-5 shadow-[var(--shadow-card)] sm:p-6;
+    }
+
+    .skeleton {
+        @apply animate-pulse rounded-[8px] bg-muted;
     }
 }
 
@@ -198,37 +173,31 @@
     .gradient-hero {
         background: var(--gradient-hero);
     }
+
     .animate-fade-in {
-        animation: fadeIn 0.3s ease-in-out;
+        animation: fadeIn 0.25s ease-in-out;
     }
+
     .animate-scale-in {
-        animation: scaleIn 0.25s ease-out;
+        animation: scaleIn 0.2s ease-out;
     }
-    @keyframes scaleIn {
-        from {
-            opacity: 0;
-            transform: scale(0.95);
-        }
-        to {
-            opacity: 1;
-            transform: scale(1);
-        }
-    }
+
     .animate-slide-up {
-        animation: slideUp 0.4s ease-out;
+        animation: slideUp 0.3s ease-out;
     }
+
+    @keyframes scaleIn {
+        from { opacity: 0; transform: scale(0.98); }
+        to { opacity: 1; transform: scale(1); }
+    }
+
     @keyframes fadeIn {
         from { opacity: 0; }
         to { opacity: 1; }
     }
+
     @keyframes slideUp {
-        from { 
-            opacity: 0;
-            transform: translateY(20px);
-        }
-        to { 
-            opacity: 1;
-            transform: translateY(0);
-        }
+        from { opacity: 0; transform: translateY(8px); }
+        to { opacity: 1; transform: translateY(0); }
     }
 }

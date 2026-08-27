@@ -39,7 +39,7 @@ export default function LoanDetailModal({ loan, borrower, onClose, footer }) {
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-foreground/50 p-4">
-            <div className="my-8 w-full max-w-lg animate-scale-in rounded-2xl bg-card p-6">
+            <div className="my-8 w-full max-w-lg animate-scale-in rounded-[12px] border border-[#E5E7EB] bg-card p-6 shadow-[var(--shadow-md)]">
                 <div className="mb-5 flex items-center justify-between">
                     <h3 className="text-lg font-bold text-foreground">
                         Detail{" "}
@@ -50,7 +50,7 @@ export default function LoanDetailModal({ loan, borrower, onClose, footer }) {
                     <button
                         type="button"
                         onClick={onClose}
-                        className="rounded-lg p-1 hover:bg-secondary"
+                        className="rounded-[8px] p-1 hover:bg-secondary"
                     >
                         <X className="h-5 w-5 text-muted-foreground" />
                     </button>

@@ -9,23 +9,23 @@ export function DashboardSection({
     badge,
     actionLabel,
     actionHref = "#",
-    actionVariant = "default",
+    actionVariant = "outline",
     children,
     className,
 }) {
     return (
         <section
             className={cn(
-                "rounded-2xl border border-border bg-card p-4 sm:p-6",
+                "rounded-[10px] border border-[#E5E7EB] bg-card p-5 shadow-[var(--shadow-card)] sm:p-6",
                 className,
             )}
         >
-            <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-                <div>
-                    <h2 className="flex items-center gap-2 text-lg font-semibold text-foreground">
+            <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0">
+                    <h2 className="flex flex-wrap items-center gap-2 font-display text-base font-semibold text-foreground sm:text-lg">
                         {title}
                         {badge != null && badge > 0 && (
-                            <span className="rounded-full bg-warning px-2 py-0.5 text-xs font-bold text-warning-foreground">
+                            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-700">
                                 {badge}
                             </span>
                         )}
@@ -37,10 +37,10 @@ export function DashboardSection({
                     )}
                 </div>
                 {actionLabel && (
-                    <Button asChild variant={actionVariant}>
+                    <Button asChild variant={actionVariant} size="sm">
                         <Link href={actionHref}>
                             {actionLabel}
-                            <ArrowRight className="ml-2 h-4 w-4" />
+                            <ArrowRight className="h-4 w-4" />
                         </Link>
                     </Button>
                 )}

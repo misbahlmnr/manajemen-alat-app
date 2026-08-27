@@ -3,18 +3,18 @@ import { cn } from "@/lib/utils";
 const config = {
     normal: {
         label: "Normal",
-        dot: "bg-slate-500",
-        className: "border-slate-500/20 bg-slate-500/10 text-slate-700",
+        dot: "bg-slate-400",
+        className: "border-slate-200 bg-slate-50 text-slate-600",
     },
     tinggi: {
         label: "Tinggi",
-        dot: "bg-amber-500",
-        className: "border-amber-500/20 bg-amber-500/10 text-amber-800",
+        dot: "bg-amber-600/80",
+        className: "border-amber-200/80 bg-amber-50 text-amber-900/80",
     },
     lomba: {
         label: "Lomba",
-        dot: "bg-red-500",
-        className: "border-red-500/20 bg-red-500/10 text-red-700",
+        dot: "bg-red-600/70",
+        className: "border-red-200/70 bg-red-50 text-red-800/80",
     },
 };
 

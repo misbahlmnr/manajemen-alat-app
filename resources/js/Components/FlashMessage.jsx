@@ -14,5 +14,25 @@ export default function FlashMessage() {
         }
     }, [flash]);
 
-    return <Toaster position="top-right" />;
+    return (
+        <Toaster
+            position="top-right"
+            toastOptions={{
+                className:
+                    "!rounded-[8px] !border !border-border !bg-card !text-foreground !shadow-md",
+                success: {
+                    iconTheme: {
+                        primary: "hsl(var(--success))",
+                        secondary: "#fff",
+                    },
+                },
+                error: {
+                    iconTheme: {
+                        primary: "hsl(var(--destructive))",
+                        secondary: "#fff",
+                    },
+                },
+            }}
+        />
+    );
 }

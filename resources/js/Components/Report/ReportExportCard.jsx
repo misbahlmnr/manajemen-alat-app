@@ -3,7 +3,7 @@ import { FileSpreadsheet, FileText } from "lucide-react";
 
 export default function ReportExportCard({ onExportPdf, onExportExcel }) {
     return (
-        <div className="rounded-2xl border border-border/60 bg-card p-6 shadow-sm">
+        <div className="rounded-[10px] border border-border/60 bg-card p-6 shadow-sm">
             <h3 className="text-base font-semibold text-foreground">
                 Export Laporan
             </h3>

@@ -12,7 +12,7 @@ function RankingList({ items, emptyLabel }) {
             {items.map((item, index) => (
                 <li
                     key={`${item.name}-${index}`}
-                    className="flex items-center justify-between gap-3 rounded-xl bg-muted/40 px-3 py-2.5"
+                    className="flex items-center justify-between gap-3 rounded-[8px] bg-muted/40 px-3 py-2.5"
                 >
                     <div className="flex min-w-0 items-center gap-3">
                         <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-background text-xs font-semibold text-muted-foreground">
@@ -47,7 +47,7 @@ export default function ReportInsights({ insights = {} }) {
                 </p>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
-                <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
+                <div className="rounded-[10px] border border-border/60 bg-card p-5 shadow-sm">
                     <h4 className="mb-3 text-sm font-semibold text-foreground">
                         Top Alat
                     </h4>
@@ -56,7 +56,7 @@ export default function ReportInsights({ insights = {} }) {
                         emptyLabel="Belum ada data peminjaman alat."
                     />
                 </div>
-                <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
+                <div className="rounded-[10px] border border-border/60 bg-card p-5 shadow-sm">
                     <h4 className="mb-3 text-sm font-semibold text-foreground">
                         Top Bahan
                     </h4>

@@ -15,7 +15,7 @@ export default {
     	extend: {
     		fontFamily: {
     			sans: ['Inter', 'Figtree', ...defaultTheme.fontFamily.sans],
-                display: ['Poppins', 'Inter', ...defaultTheme.fontFamily.sans],
+                display: ['Plus Jakarta Sans', 'Inter', ...defaultTheme.fontFamily.sans],
     		},
     		boxShadow: {
     			card: 'var(--shadow-card)',
@@ -23,9 +23,9 @@ export default {
     			floating: 'var(--shadow-lg)',
     		},
     		borderRadius: {
-    			lg: 'var(--radius)',
-    			md: 'calc(var(--radius) - 2px)',
-    			sm: 'calc(var(--radius) - 4px)'
+    			lg: 'var(--radius-lg)',
+    			md: 'var(--radius)',
+    			sm: 'var(--radius-sm)'
     		},
     		colors: {
     			background: 'hsl(var(--background))',

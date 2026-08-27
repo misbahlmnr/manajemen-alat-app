@@ -8,7 +8,7 @@ function SubmissionCard({ loan, isHistory }) {
     const members = loan.package_members || [];
 
     return (
-        <div className="overflow-hidden rounded-2xl border border-indigo-500/30 bg-card shadow-card">
+        <div className="overflow-hidden rounded-[10px] border border-indigo-500/30 bg-card shadow-card">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-indigo-500/20 bg-indigo-500/5 px-4 py-2">
                 <div>
                     <Link
@@ -40,7 +40,7 @@ function SubmissionCard({ loan, isHistory }) {
                 {members.map((member) => (
                     <div
                         key={member.id}
-                        className="rounded-xl border border-border/60"
+                        className="rounded-[8px] border border-border/60"
                     >
                         <GuruLoanCard loan={member} isHistory={isHistory} />
                     </div>
@@ -74,7 +74,7 @@ export default function GuruLoanCardList({
                     />
                 ),
             )}
-            <div className="rounded-2xl border border-border/60 bg-card shadow-card">
+            <div className="rounded-[10px] border border-border/60 bg-card shadow-card">
                 <DataPagination paginator={pagination} />
             </div>
         </div>
