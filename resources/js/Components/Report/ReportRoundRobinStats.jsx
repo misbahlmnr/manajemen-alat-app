@@ -1,6 +1,6 @@
 function Metric({ label, value }) {
     return (
-        <div className="rounded-xl bg-muted/40 px-4 py-3">
+        <div className="rounded-[8px] bg-muted/40 px-4 py-3">
             <p className="text-xs text-muted-foreground">{label}</p>
             <p className="mt-1 text-lg font-semibold tabular-nums text-foreground">
                 {value ?? "—"}
@@ -34,7 +34,7 @@ export default function ReportRoundRobinStats({ roundRobin = {} }) {
                     Ringkasan antrian stok berdasarkan prioritas admin dan FIFO.
                 </p>
             </div>
-            <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
+            <div className="rounded-[10px] border border-border/60 bg-card p-5 shadow-sm">
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
                     <Metric
                         label="Total masuk antrian"

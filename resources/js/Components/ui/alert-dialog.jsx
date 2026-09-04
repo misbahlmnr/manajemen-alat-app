@@ -25,7 +25,7 @@ export function AlertDialog({
             <div
                 role="alertdialog"
                 className={cn(
-                    "relative z-10 w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-floating",
+                    "relative z-10 w-full max-w-md rounded-[12px] border border-[#E5E7EB] bg-card p-6 shadow-[var(--shadow-md)]",
                     "animate-fade-in",
                 )}
             >

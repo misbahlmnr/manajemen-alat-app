@@ -47,7 +47,7 @@ export default function ScheduleForm({
 
     return (
         <div className="grid gap-6">
-            <Card className="rounded-2xl border-border/60 shadow-card">
+            <Card className="rounded-[10px] border-border/60 shadow-card">
                 <CardHeader>
                     <CardTitle>Informasi Jadwal</CardTitle>
                     <CardDescription>
@@ -196,7 +196,7 @@ export default function ScheduleForm({
                             value={data.notes ?? ""}
                             onChange={(e) => setData("notes", e.target.value)}
                             disabled={processing}
-                            className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
+                            className="flex w-full rounded-[8px] border border-[#E5E7EB] bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
                             placeholder="Catatan untuk guru atau admin"
                         />
                         <InputError message={errors.notes} />
@@ -204,7 +204,7 @@ export default function ScheduleForm({
                 </CardContent>
             </Card>
 
-            <Card className="rounded-2xl border-border/60 shadow-card">
+            <Card className="rounded-[10px] border-border/60 shadow-card">
                 <CardHeader>
                     <CardTitle>Waktu Pelaksanaan</CardTitle>
                     <CardDescription>

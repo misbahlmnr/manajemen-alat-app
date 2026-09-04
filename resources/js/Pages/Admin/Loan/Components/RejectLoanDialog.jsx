@@ -37,7 +37,7 @@ export default function RejectLoanDialog({
             <div
                 role="alertdialog"
                 className={cn(
-                    "relative z-10 w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-floating animate-fade-in",
+                    "relative z-10 w-full max-w-md rounded-[12px] border border-[#E5E7EB] bg-card p-6 shadow-[var(--shadow-md)] animate-fade-in",
                 )}
             >
                 <h2 className="text-lg font-semibold text-foreground">
@@ -55,7 +55,7 @@ export default function RejectLoanDialog({
                         value={reason}
                         onChange={(e) => setReason(e.target.value)}
                         disabled={loading}
-                        className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
+                        className="flex w-full rounded-[8px] border border-[#E5E7EB] bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
                         placeholder="Contoh: Stok tidak mencukupi"
                     />
                 </div>

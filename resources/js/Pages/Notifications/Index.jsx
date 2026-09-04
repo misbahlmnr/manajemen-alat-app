@@ -60,7 +60,7 @@ export default function Index({ notificationFeed, unreadCount = 0 }) {
 
                 <div className="space-y-3">
                     {items.length === 0 ? (
-                        <div className="rounded-2xl border border-border/60 bg-card px-6 py-16 text-center shadow-card">
+                        <div className="rounded-[10px] border border-border/60 bg-card px-6 py-16 text-center shadow-card">
                             <Bell className="mx-auto mb-3 h-10 w-10 text-muted-foreground/50" />
                             <p className="font-medium">Belum ada notifikasi</p>
                             <p className="mt-1 text-sm text-muted-foreground">
@@ -73,7 +73,7 @@ export default function Index({ notificationFeed, unreadCount = 0 }) {
                             <div
                                 key={item.id}
                                 className={cn(
-                                    "rounded-2xl border p-5 shadow-sm transition-colors",
+                                    "rounded-[10px] border p-5 shadow-sm transition-colors",
                                     severityStyles[item.type] ?? severityStyles.info,
                                     !item.read && "ring-1 ring-primary/20",
                                 )}

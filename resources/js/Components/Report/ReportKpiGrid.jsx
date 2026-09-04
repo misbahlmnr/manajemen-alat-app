@@ -11,7 +11,7 @@ import {
 
 function KpiCard({ label, value, subtitle, icon: Icon, accent }) {
     return (
-        <div className="flex min-h-[132px] flex-col justify-between rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
+        <div className="flex min-h-[132px] flex-col justify-between rounded-[10px] border border-border/60 bg-card p-5 shadow-sm">
             <div className="flex items-start justify-between gap-3">
                 <div>
                     <p className="text-sm font-medium text-muted-foreground">
@@ -26,7 +26,7 @@ function KpiCard({ label, value, subtitle, icon: Icon, accent }) {
                         {value ?? 0}
                     </p>
                 </div>
-                <div className="rounded-xl bg-muted/80 p-2.5 text-muted-foreground">
+                <div className="rounded-[8px] bg-muted/80 p-2.5 text-muted-foreground">
                     <Icon className="h-5 w-5" />
                 </div>
             </div>

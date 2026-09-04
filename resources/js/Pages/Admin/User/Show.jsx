@@ -95,7 +95,7 @@ export default function Show({ user }) {
                 </PageHeader>
 
                 <div className="grid gap-6 lg:grid-cols-3">
-                    <Card className="rounded-2xl border-border/60 shadow-card lg:col-span-1">
+                    <Card className="rounded-[10px] border-border/60 shadow-card lg:col-span-1">
                         <CardContent className="flex flex-col items-center pt-8 text-center">
                             <AvatarInitials name={user.name} size="xl" />
                             <h2 className="mt-4 font-display text-xl font-bold">
@@ -111,7 +111,7 @@ export default function Show({ user }) {
                         </CardContent>
                     </Card>
 
-                    <Card className="rounded-2xl border-border/60 shadow-card lg:col-span-2">
+                    <Card className="rounded-[10px] border-border/60 shadow-card lg:col-span-2">
                         <CardHeader>
                             <CardTitle>Informasi Akun</CardTitle>
                             <CardDescription>
@@ -160,7 +160,7 @@ export default function Show({ user }) {
                         className="absolute inset-0 bg-foreground/40 backdrop-blur-sm"
                         onClick={() => !resetting && setResetOpen(false)}
                     />
-                    <div className="relative z-10 w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-floating">
+                    <div className="relative z-10 w-full max-w-md rounded-[12px] border border-[#E5E7EB] bg-card p-6 shadow-[var(--shadow-md)]">
                         <h3 className="text-lg font-semibold">
                             Reset kata sandi
                         </h3>
@@ -241,7 +241,7 @@ export default function Show({ user }) {
 
 function InfoItem({ icon: Icon, label, value }) {
     return (
-        <div className="rounded-xl border border-border/50 bg-muted/20 p-4">
+        <div className="rounded-[8px] border border-border/50 bg-muted/20 p-4">
             <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 {Icon && <Icon className="h-3.5 w-3.5" />}
                 {label}

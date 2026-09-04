@@ -86,7 +86,7 @@ export default function NotificationDropdown({
                 <button
                     type="button"
                     className={cn(
-                        "relative rounded-lg p-2 hover:bg-secondary",
+                        "relative flex h-10 w-10 items-center justify-center rounded-[8px] hover:bg-muted transition-colors",
                         className,
                     )}
                     aria-label="Notifikasi"

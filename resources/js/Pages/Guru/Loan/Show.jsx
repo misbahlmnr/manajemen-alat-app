@@ -2,6 +2,7 @@ import AppLayout from "@/Layouts/AppLayout";
 import PageHeader from "@/Components/PageHeader";
 import LoanStatusBadge from "@/Components/LoanStatusBadge";
 import CollateralStatusBadge from "@/Components/CollateralStatusBadge";
+import StatusTimeline from "@/Components/StatusTimeline";
 import { Button } from "@/Components/ui/button";
 import {
     Card,
@@ -10,13 +11,19 @@ import {
     CardHeader,
     CardTitle,
 } from "@/Components/ui/card";
+import { buildLoanProgressSteps } from "@/lib/loanTimeline";
 import { Head, Link } from "@inertiajs/react";
 import { ArrowLeft } from "lucide-react";
+import { useMemo } from "react";
 
 export default function Show({ loan }) {
     const timeline = loan.timeline ?? [];
     const items = loan.items ?? [];
     const isBahan = loan.item_type === "bahan";
+    const progressSteps = useMemo(
+        () => buildLoanProgressSteps(loan),
+        [loan],
+    );
     const backRoute =
         loan.status &&
         ["dikembalikan", "ditolak", "dibatalkan"].includes(loan.status)
@@ -33,6 +40,11 @@ export default function Show({ loan }) {
                 <PageHeader
                     title={isBahan ? "Detail Bahan" : "Detail Alat"}
                     subtitle={`${loan.submission_code || loan.code} · ${loan.item_type_label}`}
+                    breadcrumbs={[
+                        { label: "Dashboard", href: route("dashboard") },
+                        { label: "Pengajuan", href: backRoute },
+                        { label: loan.code },
+                    ]}
                 >
                     <Button variant="outline" asChild>
                         <Link
@@ -52,61 +64,75 @@ export default function Show({ loan }) {
                 </PageHeader>
 
                 {loan.is_overdue && (
-                    <div className="mb-6 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+                    <div className="mb-6 rounded-[8px] border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
                         Peminjaman ini terlambat. Koordinasikan dengan siswa
                         untuk pengembalian alat.
                     </div>
                 )}
 
                 <div className="grid gap-6 lg:grid-cols-3">
-                    <Card className="rounded-2xl border-border/60 shadow-card lg:col-span-1">
-                        <CardContent className="p-6">
-                            <p className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
-                                {loan.code}
-                            </p>
-                            <h2 className="mt-2 font-display text-xl font-bold text-foreground">
-                                {loan.item_type_label}
-                            </h2>
-                            <p className="text-sm text-muted-foreground">
-                                {loan.purpose}
-                            </p>
-                            <div className="mt-6 space-y-4 border-t border-border pt-6">
-                                <MetaRow label="Status">
-                                    <LoanStatusBadge
-                                        status={loan.status}
-                                        itemType={loan.item_type}
-                                    />
-                                </MetaRow>
-                                {loan.is_catch_up && (
-                                    <MetaRow label="Jenis">
-                                        <span className="rounded-full bg-amber-500/15 px-2.5 py-0.5 text-xs font-medium text-amber-800 dark:text-amber-200">
-                                            Lanjutan praktikum
-                                        </span>
-                                    </MetaRow>
-                                )}
-                                <MetaRow label="Siswa">
-                                    <span className="text-sm font-medium">
-                                        {loan.borrower_name}
-                                        {loan.borrower_class && (
-                                            <span className="text-muted-foreground">
-                                                {" "}
-                                                · {loan.borrower_class}
-                                            </span>
-                                        )}
-                                    </span>
-                                </MetaRow>
-                            </div>
-                            {loan.rejection_reason && (
-                                <p className="mt-4 rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-xs text-destructive">
-                                    <strong>Alasan ditolak:</strong>{" "}
-                                    {loan.rejection_reason}
+                    <div className="space-y-6 lg:col-span-1">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Peminjam</CardTitle>
+                                <CardDescription>{loan.code}</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <h2 className="font-display text-xl font-bold text-foreground">
+                                    {loan.borrower_name}
+                                </h2>
+                                <p className="mt-1 text-sm text-muted-foreground">
+                                    {loan.borrower_class
+                                        ? `${loan.borrower_class} · `
+                                        : ""}
+                                    {loan.item_type_label}
                                 </p>
-                            )}
-                        </CardContent>
-                    </Card>
+                                <div className="mt-6 space-y-4 border-t border-border pt-6">
+                                    <MetaRow label="Status">
+                                        <LoanStatusBadge
+                                            status={loan.status}
+                                            itemType={loan.item_type}
+                                        />
+                                    </MetaRow>
+                                    {loan.is_catch_up && (
+                                        <MetaRow label="Jenis">
+                                            <span className="rounded-full bg-amber-500/15 px-2.5 py-0.5 text-xs font-medium text-amber-800">
+                                                Lanjutan praktikum
+                                            </span>
+                                        </MetaRow>
+                                    )}
+                                    {loan.purpose && (
+                                        <MetaRow label="Tujuan">
+                                            <span className="max-w-[10rem] truncate text-sm font-medium">
+                                                {loan.purpose}
+                                            </span>
+                                        </MetaRow>
+                                    )}
+                                </div>
+                                {loan.rejection_reason && (
+                                    <p className="mt-4 rounded-[8px] border border-destructive/20 bg-destructive/5 p-3 text-xs text-destructive">
+                                        <strong>Alasan ditolak:</strong>{" "}
+                                        {loan.rejection_reason}
+                                    </p>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Timeline</CardTitle>
+                                <CardDescription>
+                                    Progress hingga selesai
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <StatusTimeline steps={progressSteps} />
+                            </CardContent>
+                        </Card>
+                    </div>
 
                     <div className="space-y-6 lg:col-span-2">
-                        <Card className="rounded-2xl border-border/60 shadow-card">
+                        <Card>
                             <CardHeader>
                                 <CardTitle>Informasi Pengajuan</CardTitle>
                             </CardHeader>
@@ -157,12 +183,12 @@ export default function Show({ loan }) {
                             </CardContent>
                         </Card>
 
-                        <Card className="rounded-2xl border-border/60 shadow-card">
+                        <Card>
                             <CardHeader>
-                                <CardTitle>Item</CardTitle>
+                                <CardTitle>Barang</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <ul className="divide-y divide-border rounded-xl border border-border/50">
+                                <ul className="divide-y divide-border rounded-[8px] border border-border/50">
                                     {items.map((item) => (
                                         <li
                                             key={item.id}
@@ -187,7 +213,7 @@ export default function Show({ loan }) {
                         </Card>
 
                         {loan.requires_collateral && (
-                            <Card className="rounded-2xl border-border/60 shadow-card">
+                            <Card>
                                 <CardHeader>
                                     <CardTitle>Jaminan Kartu</CardTitle>
                                 </CardHeader>
@@ -202,7 +228,7 @@ export default function Show({ loan }) {
                         )}
 
                         {loan.compensation?.required && (
-                            <Card className="rounded-2xl border-destructive/30 bg-destructive/5 shadow-card">
+                            <Card className="border-destructive/30 bg-destructive/5">
                                 <CardHeader>
                                     <CardTitle className="text-destructive">
                                         Kompensasi
@@ -221,9 +247,9 @@ export default function Show({ loan }) {
                         )}
 
                         {timeline.length > 0 && (
-                            <Card className="rounded-2xl border-border/60 shadow-card">
+                            <Card>
                                 <CardHeader>
-                                    <CardTitle>Riwayat Status</CardTitle>
+                                    <CardTitle>Riwayat</CardTitle>
                                 </CardHeader>
                                 <CardContent>
                                     <ol className="relative space-y-4 border-l border-border pl-6">
@@ -265,7 +291,7 @@ function MetaRow({ label, children }) {
 
 function Info({ label, value }) {
     return (
-        <div className="rounded-xl border border-border/50 bg-muted/20 p-4">
+        <div className="rounded-[8px] border border-border/50 bg-muted/20 p-4">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 {label}
             </p>

@@ -49,13 +49,13 @@ export default function DataTable({
         <div className="space-y-3">
             <div
                 className={cn(
-                    "overflow-hidden rounded-2xl border border-border/60 bg-card shadow-card",
+                    "overflow-hidden rounded-[10px] border border-[#E5E7EB] bg-card shadow-[var(--shadow-card)]",
                     containerClassName,
                 )}
             >
                 <div className="overflow-x-auto">
                     <table className={cn("w-full text-sm", tableClassName)}>
-                        <thead className="sticky top-0 z-10 border-b border-border bg-muted/50 backdrop-blur">
+                        <thead className="sticky top-0 z-10 border-b border-border bg-slate-100">
                             {table.getHeaderGroups().map((headerGroup) => (
                                 <tr key={headerGroup.id}>
                                     {headerGroup.headers.map((header) => {
@@ -65,7 +65,7 @@ export default function DataTable({
                                             <th
                                                 key={header.id}
                                                 className={cn(
-                                                    "px-4 py-3 font-medium text-muted-foreground",
+                                                    "px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600",
                                                     header.column.columnDef.meta
                                                         ?.align === "right"
                                                         ? "text-right"
@@ -112,16 +112,19 @@ export default function DataTable({
                         </thead>
                         <tbody className="divide-y divide-border">
                             {rows.length > 0 ? (
-                                rows.map((row) => (
+                                rows.map((row, rowIndex) => (
                                     <tr
                                         key={row.id}
-                                        className="transition-colors hover:bg-muted/30"
+                                        className={cn(
+                                            "transition-colors hover:bg-slate-50",
+                                            rowIndex % 2 === 1 && "bg-slate-50/50",
+                                        )}
                                     >
                                         {row.getVisibleCells().map((cell) => (
                                             <td
                                                 key={cell.id}
                                                 className={cn(
-                                                    "px-4 py-3",
+                                                    "px-4 py-2.5",
                                                     cell.column.columnDef.meta
                                                         ?.cellClassName,
                                                 )}

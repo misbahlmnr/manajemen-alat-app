@@ -28,7 +28,7 @@ export default function Show({ schedule }) {
                 </PageHeader>
 
                 <div className="grid gap-6 lg:grid-cols-3">
-                    <Card className="rounded-2xl border-border/60 shadow-card lg:col-span-1">
+                    <Card className="rounded-[10px] border-border/60 shadow-card lg:col-span-1">
                         <CardContent className="p-6">
                             <p className="font-mono text-xs font-medium uppercase tracking-wider text-muted-foreground">
                                 {schedule.code}
@@ -56,7 +56,7 @@ export default function Show({ schedule }) {
                     </Card>
 
                     <div className="space-y-6 lg:col-span-2">
-                        <Card className="rounded-2xl border-border/60 shadow-card">
+                        <Card className="rounded-[10px] border-border/60 shadow-card">
                             <CardHeader>
                                 <CardTitle>Informasi Jadwal</CardTitle>
                                 <CardDescription>
@@ -113,7 +113,7 @@ function MetaRow({ label, children }) {
 
 function Info({ label, value }) {
     return (
-        <div className="rounded-xl border border-border/50 bg-muted/20 p-4">
+        <div className="rounded-[8px] border border-border/50 bg-muted/20 p-4">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 {label}
             </p>

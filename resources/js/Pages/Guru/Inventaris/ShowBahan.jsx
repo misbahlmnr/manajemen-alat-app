@@ -34,13 +34,13 @@ export default function ShowBahan({ supply }) {
                 </PageHeader>
 
                 <div className="grid gap-6 lg:grid-cols-3">
-                    <Card className="rounded-2xl border-border/60 shadow-card lg:col-span-1">
+                    <Card className="rounded-[10px] border-border/60 shadow-card lg:col-span-1">
                         <CardContent className="p-6">
                             <EquipmentImage
                                 imageUrl={supply.image_url}
                                 name={supply.name}
                                 itemType="bahan"
-                                className="mb-4 aspect-square w-full rounded-xl border border-border/60"
+                                className="mb-4 aspect-square w-full rounded-[8px] border border-border/60"
                                 iconClassName="h-12 w-12"
                             />
                             <p className="font-mono text-xs font-medium uppercase tracking-wider text-muted-foreground">
@@ -75,7 +75,7 @@ export default function ShowBahan({ supply }) {
                     </Card>
 
                     <div className="space-y-6 lg:col-span-2">
-                        <Card className="rounded-2xl border-border/60 shadow-card">
+                        <Card className="rounded-[10px] border-border/60 shadow-card">
                             <CardHeader>
                                 <CardTitle>Informasi Bahan</CardTitle>
                                 <CardDescription>
@@ -104,7 +104,7 @@ export default function ShowBahan({ supply }) {
                             </CardContent>
                         </Card>
 
-                        <Card className="rounded-2xl border-border/60 shadow-card">
+                        <Card className="rounded-[10px] border-border/60 shadow-card">
                             <CardHeader>
                                 <CardTitle>Stok</CardTitle>
                             </CardHeader>
@@ -133,7 +133,7 @@ export default function ShowBahan({ supply }) {
                         </Card>
 
                         {supply.created_at_formatted && (
-                            <Card className="rounded-2xl border-border/60 shadow-card">
+                            <Card className="rounded-[10px] border-border/60 shadow-card">
                                 <CardHeader>
                                     <CardTitle>Informasi Tambahan</CardTitle>
                                 </CardHeader>
@@ -169,7 +169,7 @@ function MetaRow({ label, children }) {
 
 function Info({ label, value, mono = false }) {
     return (
-        <div className="rounded-xl border border-border/50 bg-muted/20 p-4">
+        <div className="rounded-[8px] border border-border/50 bg-muted/20 p-4">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 {label}
             </p>
@@ -185,7 +185,7 @@ function Info({ label, value, mono = false }) {
 function StockStat({ label, value, unit, highlight = false }) {
     return (
         <div
-            className={`rounded-xl border p-4 text-center ${
+            className={`rounded-[8px] border p-4 text-center ${
                 highlight
                     ? "border-primary/20 bg-primary/5"
                     : "border-border/50 bg-muted/20"

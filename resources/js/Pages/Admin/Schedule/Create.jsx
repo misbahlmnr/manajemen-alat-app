@@ -36,7 +36,7 @@ export default function Create({
         <AppLayout>
             <Head title="Tambah Jadwal Praktikum" />
 
-            <div className="animate-fade-in">
+            <div className="animate-fade-in mx-auto max-w-3xl">
                 <PageHeader
                     title="Tambah Jadwal"
                     subtitle="Buat jadwal mingguan atau acara khusus untuk kelas TAV."
@@ -56,7 +56,7 @@ export default function Create({
                         labRoomOptions={labRoomOptions}
                     />
 
-                    <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-6">
+                    <div className="sticky bottom-0 z-10 flex flex-wrap justify-end gap-2 rounded-[10px] border border-border bg-card/95 px-4 py-4 shadow-[var(--shadow-card)] backdrop-blur">
                         <Button variant="outline" asChild disabled={processing}>
                             <Link href={route("admin.schedules.index")}>
                                 Batal

@@ -158,7 +158,7 @@ export default function ReportWorkspace({
         <div className="animate-fade-in space-y-6">
             <PageHeader title="Laporan & Export" subtitle={pageSubtitle} />
 
-            <div className="flex w-full flex-wrap items-center gap-2 rounded-xl border border-border/60 bg-card p-1 shadow-sm">
+            <div className="flex w-full flex-wrap items-center gap-2 rounded-[8px] border border-border/60 bg-card p-1 shadow-sm">
                 {reportTabs.map(({ key, label, icon: Icon }) => (
                     <button
                         key={key}
@@ -177,7 +177,7 @@ export default function ReportWorkspace({
                 ))}
             </div>
 
-            <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
+            <div className="rounded-[10px] border border-border/60 bg-card p-5 shadow-sm">
                 <div className="mb-4 flex items-center gap-2 text-sm font-medium">
                     <Filter className="h-4 w-4 text-muted-foreground" />
                     Filter Laporan
@@ -201,7 +201,7 @@ export default function ReportWorkspace({
                             onChange={(e) =>
                                 setData("item_type", e.target.value)
                             }
-                            className="rounded-xl border-border/60 bg-card shadow-sm"
+                            className="rounded-[8px] border-border/60 bg-card shadow-sm"
                         >
                             <option value="all">Semua (Alat & Bahan)</option>
                             <option value="alat">Alat</option>
@@ -218,14 +218,14 @@ export default function ReportWorkspace({
                             onChange={(e) =>
                                 setData("date_from", e.target.value)
                             }
-                            className="rounded-xl border-border/60 bg-card shadow-sm"
+                            className="rounded-[8px] border-border/60 bg-card shadow-sm"
                             title="Dari tanggal"
                         />
                         <Input
                             type="date"
                             value={data.date_to}
                             onChange={(e) => setData("date_to", e.target.value)}
-                            className="rounded-xl border-border/60 bg-card shadow-sm"
+                            className="rounded-[8px] border-border/60 bg-card shadow-sm"
                             title="Sampai tanggal"
                         />
                         {data.type === "peminjaman" && (
@@ -235,7 +235,7 @@ export default function ReportWorkspace({
                                     onChange={(e) =>
                                         setData("item_type", e.target.value)
                                     }
-                                    className="rounded-xl border-border/60 bg-card shadow-sm"
+                                    className="rounded-[8px] border-border/60 bg-card shadow-sm"
                                 >
                                     <option value="all">Semua jenis</option>
                                     <option value="alat">Alat</option>
@@ -246,7 +246,7 @@ export default function ReportWorkspace({
                                     onChange={(e) =>
                                         setData("status", e.target.value)
                                     }
-                                    className="rounded-xl border-border/60 bg-card shadow-sm"
+                                    className="rounded-[8px] border-border/60 bg-card shadow-sm"
                                 >
                                     <option value="all">Semua status</option>
                                     {Object.entries(statusOptions).map(
@@ -270,7 +270,7 @@ export default function ReportWorkspace({
                         <Select
                             value={data.role}
                             onChange={(e) => setData("role", e.target.value)}
-                            className="rounded-xl border-border/60 bg-card shadow-sm"
+                            className="rounded-[8px] border-border/60 bg-card shadow-sm"
                         >
                             <option value="all">Semua (Siswa & Guru)</option>
                             <option value="siswa">Siswa</option>
@@ -318,7 +318,7 @@ export default function ReportWorkspace({
 
 function StatBox({ label, value, accent }) {
     return (
-        <div className="rounded-xl border border-border/60 bg-card p-4 shadow-sm">
+        <div className="rounded-[8px] border border-border/60 bg-card p-4 shadow-sm">
             <p className="text-sm text-muted-foreground">{label}</p>
             <p
                 className={cn(
@@ -387,7 +387,7 @@ function TabStats({ type, stats }) {
 
 function DataPreview({ type, rows, totalRows }) {
     return (
-        <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
+        <div className="overflow-hidden rounded-[10px] border border-border/60 bg-card shadow-sm">
             <div className="border-b border-border/60 bg-muted/30 px-5 py-4">
                 <h3 className="flex items-center gap-2 font-semibold">
                     <FileText className="h-4 w-4" />
@@ -494,12 +494,12 @@ function PreviewTable({ headers, rows }) {
 
     return (
         <table className="w-full min-w-[640px]">
-            <thead className="bg-secondary/50">
+            <thead className="border-b border-border bg-slate-50">
                 <tr>
                     {headers.map((header) => (
                         <th
                             key={header}
-                            className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+                            className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500"
                         >
                             {header}
                         </th>
@@ -510,7 +510,7 @@ function PreviewTable({ headers, rows }) {
                 {rows.map((cells, rowIndex) => (
                     <tr
                         key={rowIndex}
-                        className="transition-colors hover:bg-secondary/30"
+                        className="transition-colors hover:bg-muted/40"
                     >
                         {cells.map((cell, cellIndex) => (
                             <td

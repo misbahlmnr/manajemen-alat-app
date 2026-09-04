@@ -39,7 +39,7 @@ export default function LoanForm({
 
     return (
         <div className="grid gap-6">
-            <Card className="rounded-2xl border-border/60 shadow-card">
+            <Card className="rounded-[10px] border-border/60 shadow-card">
                 <CardHeader>
                     <CardTitle>Data Peminjaman</CardTitle>
                     <CardDescription>
@@ -195,14 +195,14 @@ export default function LoanForm({
                             value={data.notes ?? ""}
                             onChange={(e) => setData("notes", e.target.value)}
                             disabled={processing}
-                            className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
+                            className="flex w-full rounded-[8px] border border-[#E5E7EB] bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
                         />
                         <InputError message={errors.notes} />
                     </div>
                 </CardContent>
             </Card>
 
-            <Card className="rounded-2xl border-border/60 shadow-card">
+            <Card className="rounded-[10px] border-border/60 shadow-card">
                 <CardHeader>
                     <CardTitle>Item {isAlat ? "Alat" : "Bahan"}</CardTitle>
                     <CardDescription>
@@ -215,7 +215,7 @@ export default function LoanForm({
                     {items.map((row, index) => (
                         <div
                             key={index}
-                            className="grid gap-3 rounded-xl border border-border/50 bg-muted/20 p-3 sm:grid-cols-[1fr_120px_40px]"
+                            className="grid gap-3 rounded-[8px] border border-border/50 bg-muted/20 p-3 sm:grid-cols-[1fr_120px_40px]"
                         >
                             <div className="space-y-2">
                                 <Label>Barang</Label>

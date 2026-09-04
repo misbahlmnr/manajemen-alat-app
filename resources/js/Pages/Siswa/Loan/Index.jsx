@@ -8,7 +8,6 @@ import { Select } from "@/Components/ui/select";
 import CancelLoanDialog from "./Components/CancelLoanDialog";
 import RequestReturnDialog from "./Components/RequestReturnDialog";
 import StudentLoanCardList from "./Components/StudentLoanCardList";
-import LoanTypeTabPills from "./Components/LoanTypeTabPills";
 import { Head, Link, router, useForm } from "@inertiajs/react";
 import { ClipboardList, History, Plus, Search } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -16,14 +15,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 const HISTORY_STATUSES = ["selesai", "dibatalkan"];
 const ACTIVE_STATUSES = ["diminta", "antrian", "diproses"];
 
-export default function Index({ loans, filters, tabCounts, statusOptions }) {
+export default function Index({ loans, filters, statusOptions }) {
     const isHistory = filters.scope === "history";
     const isFirstRender = useRef(true);
 
     const { data, setData } = useForm({
         search: filters.search ?? "",
         status: filters.status ?? "all",
-        item_type: filters.item_type ?? "all",
         date_from: filters.date_from ?? "",
         date_to: filters.date_to ?? "",
     });
@@ -32,11 +30,6 @@ export default function Index({ loans, filters, tabCounts, statusOptions }) {
     const [returnTarget, setReturnTarget] = useState(null);
     const [cancelling, setCancelling] = useState(false);
     const [returning, setReturning] = useState(false);
-
-    const tabValue =
-        data.item_type === "alat" || data.item_type === "bahan"
-            ? data.item_type
-            : "all";
 
     const filteredStatusOptions = useMemo(() => {
         const entries = Object.entries(statusOptions ?? {});
@@ -75,7 +68,6 @@ export default function Index({ loans, filters, tabCounts, statusOptions }) {
     }, [
         data.search,
         data.status,
-        data.item_type,
         data.date_from,
         data.date_to,
         filters.scope,
@@ -83,6 +75,12 @@ export default function Index({ loans, filters, tabCounts, statusOptions }) {
 
     const list = loans.data ?? [];
     const total = paginatorTotal(loans);
+
+    const hasActiveFilters =
+        data.search !== "" ||
+        data.status !== "all" ||
+        data.date_from ||
+        data.date_to;
 
     const handleCancel = () => {
         if (!cancelTarget) return;
@@ -116,7 +114,6 @@ export default function Index({ loans, filters, tabCounts, statusOptions }) {
         setData({
             search: "",
             status: "all",
-            item_type: "all",
             date_from: "",
             date_to: "",
         });
@@ -155,14 +152,6 @@ export default function Index({ loans, filters, tabCounts, statusOptions }) {
                     )}
                 </PageHeader>
 
-                <LoanTypeTabPills
-                    value={tabValue}
-                    onChange={(tab) =>
-                        setData("item_type", tab === "all" ? "all" : tab)
-                    }
-                    counts={tabCounts}
-                />
-
                 <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                     <div className="relative sm:col-span-2">
                         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -170,13 +159,13 @@ export default function Index({ loans, filters, tabCounts, statusOptions }) {
                             value={data.search}
                             onChange={(e) => setData("search", e.target.value)}
                             placeholder="Cari kode, barang, keperluan..."
-                            className="rounded-xl border-border/60 bg-card pl-10 shadow-sm"
+                            className="rounded-[8px] border-border/60 bg-card pl-10 shadow-sm"
                         />
                     </div>
                     <Select
                         value={data.status}
                         onChange={(e) => setData("status", e.target.value)}
-                        className="rounded-xl border-border/60 bg-card shadow-sm"
+                        className="rounded-[8px] border-border/60 bg-card shadow-sm"
                     >
                         <option value="all">Semua status</option>
                         {Object.entries(filteredStatusOptions).map(
@@ -194,14 +183,14 @@ export default function Index({ loans, filters, tabCounts, statusOptions }) {
                             onChange={(e) =>
                                 setData("date_from", e.target.value)
                             }
-                            className="rounded-xl border-border/60 bg-card shadow-sm"
+                            className="rounded-[8px] border-border/60 bg-card shadow-sm"
                             title="Dari tanggal"
                         />
                         <Input
                             type="date"
                             value={data.date_to}
                             onChange={(e) => setData("date_to", e.target.value)}
-                            className="rounded-xl border-border/60 bg-card shadow-sm"
+                            className="rounded-[8px] border-border/60 bg-card shadow-sm"
                             title="Sampai tanggal"
                         />
                     </div>
@@ -239,11 +228,7 @@ export default function Index({ loans, filters, tabCounts, statusOptions }) {
                                             Ajukan Alat / Bahan
                                         </Link>
                                     </Button>
-                                    {(data.search !== "" ||
-                                        data.status !== "all" ||
-                                        data.item_type !== "all" ||
-                                        data.date_from ||
-                                        data.date_to) && (
+                                    {hasActiveFilters && (
                                         <Button
                                             variant="outline"
                                             onClick={resetFilters}
@@ -253,11 +238,7 @@ export default function Index({ loans, filters, tabCounts, statusOptions }) {
                                     )}
                                 </div>
                             ) : (
-                                (data.search !== "" ||
-                                    data.status !== "all" ||
-                                    data.item_type !== "all" ||
-                                    data.date_from ||
-                                    data.date_to) && (
+                                hasActiveFilters && (
                                     <Button
                                         variant="outline"
                                         onClick={resetFilters}

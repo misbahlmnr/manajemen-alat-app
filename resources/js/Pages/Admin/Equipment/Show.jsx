@@ -9,7 +9,7 @@ import {
     CardTitle,
 } from "@/Components/ui/card";
 import { Head, Link, router } from "@inertiajs/react";
-import { Pencil } from "lucide-react";
+import { ArrowLeft, Pencil } from "lucide-react";
 import { useState } from "react";
 import ConditionBreakdown from "@/Components/ConditionBreakdown";
 import InventoryStatusBadge from "@/Components/InventoryStatusBadge";
@@ -31,8 +31,14 @@ export default function Show({ equipment }) {
         <AppLayout>
             <Head title={equipment.name} />
 
-            <div className="animate-fade-in">
+            <div className="animate-fade-in mx-auto max-w-5xl">
                 <PageHeader title="Detail Alat" subtitle={equipment.code}>
+                    <Button variant="outline" asChild>
+                        <Link href={route("admin.equipment.index")}>
+                            <ArrowLeft className="mr-2 h-4 w-4" />
+                            Kembali
+                        </Link>
+                    </Button>
                     <Button variant="outline" asChild>
                         <Link
                             href={route("admin.equipment.edit", equipment.id)}
@@ -50,12 +56,16 @@ export default function Show({ equipment }) {
                 </PageHeader>
 
                 <div className="grid gap-6 lg:grid-cols-3">
-                    <Card className="rounded-2xl border-border/60 shadow-card lg:col-span-1">
-                        <CardContent className="p-6">
+                    <Card className="lg:col-span-1">
+                        <CardHeader>
+                            <CardTitle>Identitas</CardTitle>
+                            <CardDescription>Foto dan status alat</CardDescription>
+                        </CardHeader>
+                        <CardContent>
                             <EquipmentImage
                                 imageUrl={equipment.image_url}
                                 name={equipment.name}
-                                className="mb-4 aspect-square w-full rounded-xl border border-border/60"
+                                className="mb-4 aspect-square w-full rounded-[8px] border border-border/60"
                                 iconClassName="h-12 w-12"
                             />
                             <p className="font-mono text-xs font-medium uppercase tracking-wider text-muted-foreground">
@@ -87,7 +97,7 @@ export default function Show({ equipment }) {
                     </Card>
 
                     <div className="space-y-6 lg:col-span-2">
-                        <Card className="rounded-2xl border-border/60 shadow-card">
+                        <Card>
                             <CardHeader>
                                 <CardTitle>Informasi Alat</CardTitle>
                                 <CardDescription>
@@ -123,7 +133,7 @@ export default function Show({ equipment }) {
                             </CardContent>
                         </Card>
 
-                        <Card className="rounded-2xl border-border/60 shadow-card">
+                        <Card>
                             <CardHeader>
                                 <CardTitle>Stok</CardTitle>
                                 <CardDescription>
@@ -174,7 +184,7 @@ function MetaRow({ label, children }) {
 
 function Info({ label, value, mono = false }) {
     return (
-        <div className="rounded-xl border border-border/50 bg-muted/20 p-4">
+        <div className="rounded-[8px] border border-border/50 bg-muted/20 p-4">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 {label}
             </p>
@@ -190,7 +200,7 @@ function Info({ label, value, mono = false }) {
 function StockStat({ label, value, highlight = false }) {
     return (
         <div
-            className={`rounded-xl border p-4 text-center ${
+            className={`rounded-[8px] border p-4 text-center ${
                 highlight
                     ? "border-primary/20 bg-primary/5"
                     : "border-border/50 bg-muted/20"

@@ -25,11 +25,11 @@ export function EquipmentCard({ equipment, onBorrow, showBorrowButton = true }) 
           <EquipmentImage
             imageUrl={equipment.image_url}
             name={equipment.name}
-            className="h-14 w-14 shrink-0 rounded-xl border border-border/60"
+            className="h-14 w-14 shrink-0 rounded-[8px] border border-border/60"
             iconClassName="h-6 w-6"
           />
         ) : (
-        <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+        <div className="w-14 h-14 rounded-[8px] bg-primary/10 flex items-center justify-center flex-shrink-0">
           <Icon className="w-7 h-7 text-primary" />
         </div>
         )}

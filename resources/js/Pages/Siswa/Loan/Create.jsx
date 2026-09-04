@@ -568,7 +568,7 @@ export default function Create({
                 </div>
 
                 {overdueLoans.length > 0 && (hasAlat || catalogTab === "alat") && (
-                    <div className="mb-6 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+                    <div className="mb-6 rounded-[8px] border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
                         <p className="font-medium">
                             Anda memiliki {overdueLoans.length} peminjaman
                             terlambat.
@@ -662,7 +662,7 @@ export default function Create({
                 </div>
 
                 {formErrorList.length > 0 && (
-                    <div className="mb-6 rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+                    <div className="mb-6 rounded-[8px] border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
                         <p className="mb-2 font-medium">
                             {isEdit
                                 ? "Perubahan gagal disimpan."
@@ -710,7 +710,7 @@ export default function Create({
                                 maxQty={maxQty}
                             />
                         ) : (
-                            <p className="rounded-xl border border-dashed border-border py-10 text-center text-sm text-muted-foreground">
+                            <p className="rounded-[8px] border border-dashed border-border py-10 text-center text-sm text-muted-foreground">
                                 Tidak ada {catalogIsBahan ? "bahan" : "alat"}{" "}
                                 yang cocok dengan pencarian.
                             </p>
@@ -718,7 +718,7 @@ export default function Create({
                     </div>
 
                     <div className="min-w-0 lg:col-span-1">
-                        <div className="rounded-xl border border-border bg-card p-4 lg:sticky lg:top-20 lg:p-5">
+                        <div className="rounded-[8px] border border-border bg-card p-4 lg:sticky lg:top-20 lg:p-5">
                             <div className="mb-4 flex items-center gap-3">
                                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
                                     <ShoppingCart className="h-5 w-5 text-primary" />

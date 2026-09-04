@@ -38,10 +38,10 @@ export default function UserMenu({ user, align = "end" }) {
                 <button
                     type="button"
                     className={cn(
-                        "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
-                        "bg-primary text-primary-foreground text-xs font-semibold tracking-tight",
+                        "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
+                        "bg-muted text-foreground text-xs font-semibold tracking-tight",
                         "ring-2 ring-background ring-offset-2 ring-offset-card",
-                        "hover:bg-primary/90",
+                        "transition-transform hover:scale-[1.03] hover:bg-muted/80",
                         "focus-visible:outline-none focus-visible:ring-2",
                         "focus-visible:ring-ring focus-visible:ring-offset-2",
                     )}

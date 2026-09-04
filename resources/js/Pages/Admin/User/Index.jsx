@@ -1,17 +1,18 @@
 import AppLayout from "@/Layouts/AppLayout";
 import PageHeader from "@/Components/PageHeader";
 import EmptyState from "@/Components/EmptyState";
+import FilterToolbar from "@/Components/FilterToolbar";
 import { paginatorTotal } from "@/lib/paginator";
 import { Button } from "@/Components/ui/button";
 import { Input } from "@/Components/ui/input";
+import { Select } from "@/Components/ui/select";
 import { Head, Link, router, useForm } from "@inertiajs/react";
 import { Plus, Search, Upload, Users } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import UserTable from "./Components/UserTable";
-import RoleFilterTabs from "./Components/RoleFilterTabs";
 import DeleteUserDialog from "./Components/DeleteUserDialog";
 
-export default function Index({ users, filters, roleCounts }) {
+export default function Index({ users, filters }) {
     const { data, setData } = useForm({
         search: filters.search ?? "",
         role: filters.role ?? "all",
@@ -60,7 +61,7 @@ export default function Index({ users, filters, roleCounts }) {
             <div className="animate-fade-in mx-auto">
                 <PageHeader
                     title="Kelola Pengguna"
-                    subtitle={`${total} pengguna terdaftar`}
+                    subtitle="Direktori akun Admin Lab, Guru, dan Siswa"
                 >
                     <Button variant="outline" asChild>
                         <Link href={route("admin.users.import")}>
@@ -76,21 +77,33 @@ export default function Index({ users, filters, roleCounts }) {
                     </Button>
                 </PageHeader>
 
-                <RoleFilterTabs
-                    value={data.role}
-                    onChange={(role) => setData("role", role)}
-                    counts={roleCounts}
-                />
-
-                <div className="relative mb-6 mt-6 max-w-xl">
-                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                        value={data.search}
-                        onChange={(e) => setData("search", e.target.value)}
-                        placeholder="Cari nama, email, NISN, atau NIP..."
-                        className="rounded-xl border-border/60 bg-card pl-10 shadow-sm"
-                    />
-                </div>
+                <FilterToolbar
+                    title="Filter pengguna"
+                    description="Cari nama, email, NISN, atau NIP"
+                >
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        <div className="relative sm:col-span-2">
+                            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                                value={data.search}
+                                onChange={(e) =>
+                                    setData("search", e.target.value)
+                                }
+                                placeholder="Cari nama, email, NISN, atau NIP..."
+                                className="pl-10"
+                            />
+                        </div>
+                        <Select
+                            value={data.role}
+                            onChange={(e) => setData("role", e.target.value)}
+                        >
+                            <option value="all">Semua role</option>
+                            <option value="admin">Admin</option>
+                            <option value="guru">Guru</option>
+                            <option value="siswa">Siswa</option>
+                        </Select>
+                    </div>
+                </FilterToolbar>
 
                 {total > 0 ? (
                     <UserTable

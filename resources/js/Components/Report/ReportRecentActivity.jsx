@@ -11,7 +11,7 @@ export default function ReportRecentActivity({ items = [] }) {
                     5 pengajuan terakhir pada periode filter.
                 </p>
             </div>
-            <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
+            <div className="overflow-hidden rounded-[10px] border border-border/60 bg-card shadow-sm">
                 {items.length === 0 ? (
                     <p className="py-10 text-center text-sm text-muted-foreground">
                         Belum ada aktivitas pada periode ini.

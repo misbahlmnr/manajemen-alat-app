@@ -39,7 +39,7 @@ export default function StudentLoanForm({
 
     return (
         <div className="grid gap-6">
-            <Card className="rounded-2xl border-border/60 shadow-card">
+            <Card className="rounded-[10px] border-border/60 shadow-card">
                 <CardHeader>
                     <CardTitle>
                         {isAlat ? "Pengajuan Pinjam Alat" : "Pengajuan Ambil Bahan"}
@@ -127,7 +127,7 @@ export default function StudentLoanForm({
                                     </option>
                                 </Select>
                                 {data.borrow_scope === "bawa_pulang" && (
-                                    <div className="mt-3 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm text-amber-900">
+                                    <div className="mt-3 rounded-[8px] border border-amber-500/30 bg-amber-500/5 p-4 text-sm text-amber-900">
                                         <p>
                                             Anda wajib menyerahkan kartu pelajar
                                             sebagai jaminan. Kartu dikembalikan
@@ -196,13 +196,13 @@ export default function StudentLoanForm({
                             value={data.notes ?? ""}
                             onChange={(e) => setData("notes", e.target.value)}
                             disabled={processing}
-                            className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
+                            className="flex w-full rounded-[8px] border border-[#E5E7EB] bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
                         />
                     </div>
                 </CardContent>
             </Card>
 
-            <Card className="rounded-2xl border-border/60 shadow-card">
+            <Card className="rounded-[10px] border-border/60 shadow-card">
                 <CardHeader>
                     <CardTitle>Item {isAlat ? "Alat" : "Bahan"}</CardTitle>
                     <CardDescription>
@@ -213,7 +213,7 @@ export default function StudentLoanForm({
                     {items.map((row, index) => (
                         <div
                             key={index}
-                            className="grid gap-3 rounded-xl border border-border/50 bg-muted/20 p-3 sm:grid-cols-[1fr_120px_40px]"
+                            className="grid gap-3 rounded-[8px] border border-border/50 bg-muted/20 p-3 sm:grid-cols-[1fr_120px_40px]"
                         >
                             <div className="space-y-2">
                                 <Label>Barang</Label>

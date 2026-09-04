@@ -31,7 +31,7 @@ export default function Edit({ equipment, categoryOptions }) {
         <AppLayout>
             <Head title={`Edit ${equipment.name}`} />
 
-            <div className="animate-fade-in">
+            <div className="animate-fade-in mx-auto max-w-3xl">
                 <PageHeader title="Edit Alat" subtitle={equipment.code} />
 
                 <form onSubmit={submit} className="space-y-6">
@@ -44,7 +44,7 @@ export default function Edit({ equipment, categoryOptions }) {
                         existingImageUrl={equipment.image_url}
                     />
 
-                    <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-6">
+                    <div className="sticky bottom-0 z-10 flex flex-wrap justify-end gap-2 rounded-[10px] border border-border bg-card/95 px-4 py-4 shadow-[var(--shadow-card)] backdrop-blur">
                         <Button variant="outline" asChild disabled={processing}>
                             <Link
                                 href={route(

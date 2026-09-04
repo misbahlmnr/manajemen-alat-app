@@ -1,79 +1,51 @@
 import { cn } from "@/lib/utils";
 
-const loanConfig = {
-    diminta: {
-        label: "Menunggu Persetujuan",
-        dot: "bg-blue-500",
-        className: "border-blue-500/20 bg-blue-500/10 text-blue-700",
-    },
-    antrian: {
-        label: "Antrian",
-        dot: "bg-amber-500",
-        className: "border-amber-500/20 bg-amber-500/10 text-amber-800",
-    },
-    disetujui: {
-        label: "Disetujui",
-        dot: "bg-emerald-500",
-        className: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700",
-    },
-    ditolak: {
-        label: "Ditolak",
-        dot: "bg-red-500",
-        className: "border-red-500/20 bg-red-500/10 text-red-700",
-    },
-    dipinjam: {
-        label: "Dipinjam",
-        dot: "bg-violet-500",
-        className: "border-violet-500/20 bg-violet-500/10 text-violet-700",
-    },
-    terlambat: {
-        label: "Terlambat",
-        dot: "bg-red-600",
-        className: "border-red-600/20 bg-red-600/10 text-red-800",
-    },
-    menunggu_inspeksi: {
-        label: "Menunggu Inspeksi",
-        dot: "bg-amber-500",
-        className: "border-amber-500/20 bg-amber-500/10 text-amber-800",
-    },
-    dikembalikan: {
-        label: "Dikembalikan",
+/** Soft semantic badge styles — slate / gold / green / red only */
+const tone = {
+    neutral: {
         dot: "bg-slate-400",
-        className: "border-slate-400/20 bg-slate-500/10 text-slate-600",
+        className: "border-slate-200 bg-slate-50 text-slate-600",
     },
-    dibatalkan: {
-        label: "Dibatalkan",
+    pending: {
         dot: "bg-slate-500",
-        className: "border-slate-500/20 bg-slate-500/10 text-slate-600",
+        className: "border-slate-200 bg-slate-100 text-slate-700",
+    },
+    warning: {
+        dot: "bg-amber-600/80",
+        className: "border-amber-200/80 bg-amber-50 text-amber-900/80",
+    },
+    success: {
+        dot: "bg-slate-600",
+        className: "border-slate-200 bg-slate-100 text-slate-700",
+    },
+    active: {
+        dot: "bg-amber-600/70",
+        className: "border-amber-200/60 bg-amber-50/80 text-amber-950/70",
+    },
+    danger: {
+        dot: "bg-red-600/70",
+        className: "border-red-200/70 bg-red-50 text-red-800/80",
     },
 };
 
+const loanConfig = {
+    diminta: { label: "Menunggu Persetujuan", ...tone.pending },
+    antrian: { label: "Antrian", ...tone.warning },
+    disetujui: { label: "Disetujui", ...tone.success },
+    ditolak: { label: "Ditolak", ...tone.danger },
+    dipinjam: { label: "Dipinjam", ...tone.active },
+    terlambat: { label: "Terlambat", ...tone.danger },
+    menunggu_inspeksi: { label: "Menunggu Inspeksi", ...tone.warning },
+    dikembalikan: { label: "Dikembalikan", ...tone.neutral },
+    dibatalkan: { label: "Dibatalkan", ...tone.neutral },
+};
+
 const submissionConfig = {
-    diminta: {
-        label: "Menunggu Persetujuan",
-        dot: "bg-blue-500",
-        className: "border-blue-500/20 bg-blue-500/10 text-blue-700",
-    },
-    antrian: {
-        label: "Antrian",
-        dot: "bg-amber-500",
-        className: "border-amber-500/20 bg-amber-500/10 text-amber-800",
-    },
-    diproses: {
-        label: "Diproses",
-        dot: "bg-indigo-500",
-        className: "border-indigo-500/20 bg-indigo-500/10 text-indigo-700",
-    },
-    selesai: {
-        label: "Selesai",
-        dot: "bg-emerald-500",
-        className: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700",
-    },
-    dibatalkan: {
-        label: "Dibatalkan",
-        dot: "bg-slate-500",
-        className: "border-slate-500/20 bg-slate-500/10 text-slate-600",
-    },
+    diminta: { label: "Menunggu Persetujuan", ...tone.pending },
+    antrian: { label: "Antrian", ...tone.warning },
+    diproses: { label: "Diproses", ...tone.active },
+    selesai: { label: "Selesai", ...tone.success },
+    dibatalkan: { label: "Dibatalkan", ...tone.neutral },
 };
 
 const bahanStatusLabels = {
@@ -87,8 +59,7 @@ export default function LoanStatusBadge({ status, itemType }) {
 
     const item = config[status] ?? {
         label: status,
-        dot: "bg-muted-foreground",
-        className: "border-muted-foreground/20 bg-muted text-muted-foreground",
+        ...tone.neutral,
     };
 
     const label =
@@ -99,11 +70,11 @@ export default function LoanStatusBadge({ status, itemType }) {
     return (
         <span
             className={cn(
-                "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium",
+                "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium leading-none",
                 item.className,
             )}
         >
-            <span className={cn("mr-1.5 h-1.5 w-1.5 rounded-full", item.dot)} />
+            <span className={cn("mr-1.5 h-1.5 w-1.5 shrink-0 rounded-full", item.dot)} />
             {label}
         </span>
     );

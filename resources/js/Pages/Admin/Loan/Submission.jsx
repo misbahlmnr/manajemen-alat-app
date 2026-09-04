@@ -46,7 +46,7 @@ function TypeCard({ title, icon: Icon, loan, emptyLabel, manageHref, accent }) {
     const hasLoan = Boolean(loan);
 
     return (
-        <Card className={`rounded-2xl border-border/60 shadow-card ${accent}`}>
+        <Card className={`rounded-[10px] border-border/60 shadow-card ${accent}`}>
             <CardHeader className="pb-3">
                 <div className="flex items-start justify-between gap-3">
                     <div>
@@ -112,7 +112,7 @@ export default function Submission({ submission }) {
                     </Button>
                 </PageHeader>
 
-                <Card className="mb-6 rounded-2xl border-border/60 shadow-card">
+                <Card className="mb-6 rounded-[10px] border-border/60 shadow-card">
                     <CardContent className="grid gap-4 p-6 sm:grid-cols-2">
                         <div>
                             <p className="text-xs uppercase tracking-wide text-muted-foreground">

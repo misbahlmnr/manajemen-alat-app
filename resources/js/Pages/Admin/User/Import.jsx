@@ -53,7 +53,7 @@ export default function Import({
 
                 {importSummary && (
                     <div
-                        className={`mb-6 rounded-xl border px-4 py-3 text-sm ${
+                        className={`mb-6 rounded-[8px] border px-4 py-3 text-sm ${
                             importSummary.failed > 0
                                 ? "border-amber-200 bg-amber-50 text-amber-900"
                                 : "border-emerald-200 bg-emerald-50 text-emerald-900"
@@ -67,7 +67,7 @@ export default function Import({
                 )}
 
                 {errorEntries.length > 0 && (
-                    <Card className="mb-6 rounded-2xl border-destructive/30 shadow-card">
+                    <Card className="mb-6 rounded-[10px] border-destructive/30 shadow-card">
                         <CardHeader className="pb-3">
                             <CardTitle className="flex items-center gap-2 text-base text-destructive">
                                 <AlertCircle className="h-4 w-4" />
@@ -94,7 +94,7 @@ export default function Import({
                 )}
 
                 <div className="grid gap-6">
-                    <Card className="rounded-2xl border-border/60 shadow-card">
+                    <Card className="rounded-[10px] border-border/60 shadow-card">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <Download className="h-5 w-5 text-primary" />
@@ -114,7 +114,7 @@ export default function Import({
                         </CardContent>
                     </Card>
 
-                    <Card className="rounded-2xl border-border/60 shadow-card">
+                    <Card className="rounded-[10px] border-border/60 shadow-card">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <Upload className="h-5 w-5 text-primary" />
@@ -135,7 +135,7 @@ export default function Import({
                                         onChange={(e) =>
                                             setData("file", e.target.files[0] ?? null)
                                         }
-                                        className="block w-full cursor-pointer rounded-xl border border-border/60 bg-card px-3 py-2 text-sm file:mr-4 file:rounded-lg file:border-0 file:bg-primary file:px-4 file:py-2 file:text-sm file:font-medium file:text-primary-foreground hover:file:bg-primary/90"
+                                        className="block w-full cursor-pointer rounded-[8px] border border-border/60 bg-card px-3 py-2 text-sm file:mr-4 file:rounded-lg file:border-0 file:bg-primary file:px-4 file:py-2 file:text-sm file:font-medium file:text-primary-foreground hover:file:bg-primary/90"
                                     />
                                     <InputError message={errors.file} />
                                 </div>
@@ -147,12 +147,12 @@ export default function Import({
                         </CardContent>
                     </Card>
 
-                    <Card className="rounded-2xl border-border/60 shadow-card">
+                    <Card className="rounded-[10px] border-border/60 shadow-card">
                         <CardHeader>
                             <CardTitle>Petunjuk kolom</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4 text-sm text-muted-foreground">
-                            <div className="overflow-x-auto rounded-xl border border-border/60">
+                            <div className="overflow-x-auto rounded-[8px] border border-border/60">
                                 <table className="w-full min-w-[520px] text-left text-sm">
                                     <thead className="bg-muted/40 text-foreground">
                                         <tr>

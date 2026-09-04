@@ -67,7 +67,7 @@ export default function StudentLoanCard({
     return (
         <article
             className={cn(
-                "overflow-hidden rounded-2xl border bg-card shadow-card transition-shadow hover:shadow-md",
+                "overflow-hidden rounded-[10px] border bg-card shadow-card transition-shadow hover:shadow-md",
                 isTerlambat
                     ? "border-destructive/30 ring-1 ring-destructive/10"
                     : "border-border/60",
@@ -79,7 +79,7 @@ export default function StudentLoanCard({
                         imageUrl={previewItem?.image_url}
                         name={previewItem?.equipment_name ?? loan.code}
                         itemType={loan.item_type}
-                        className="h-11 w-11 shrink-0 rounded-xl border border-border/60"
+                        className="h-11 w-11 shrink-0 rounded-[8px] border border-border/60"
                         iconClassName="h-5 w-5"
                     />
                     <div className="min-w-0">

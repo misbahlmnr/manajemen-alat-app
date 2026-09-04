@@ -10,7 +10,7 @@ import {
     CardTitle,
 } from "@/Components/ui/card";
 import { Head, Link, router } from "@inertiajs/react";
-import { Pencil } from "lucide-react";
+import { ArrowLeft, Pencil } from "lucide-react";
 import { useState } from "react";
 import DeleteScheduleDialog from "./Components/DeleteScheduleDialog";
 
@@ -27,8 +27,14 @@ export default function Show({ schedule }) {
         <AppLayout>
             <Head title={schedule.title} />
 
-            <div className="animate-fade-in">
+            <div className="animate-fade-in mx-auto max-w-5xl">
                 <PageHeader title="Detail Jadwal" subtitle={schedule.code}>
+                    <Button variant="outline" asChild>
+                        <Link href={route("admin.schedules.index")}>
+                            <ArrowLeft className="mr-2 h-4 w-4" />
+                            Kembali
+                        </Link>
+                    </Button>
                     <Button variant="outline" asChild>
                         <Link href={route("admin.schedules.edit", schedule.id)}>
                             <Pencil className="mr-2 h-4 w-4" />
@@ -44,16 +50,17 @@ export default function Show({ schedule }) {
                 </PageHeader>
 
                 <div className="grid gap-6 lg:grid-cols-3">
-                    <Card className="rounded-2xl border-border/60 shadow-card lg:col-span-1">
-                        <CardContent className="p-6">
-                            <p className="font-mono text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                                {schedule.code}
-                            </p>
-                            <h2 className="mt-2 font-display text-xl font-bold leading-tight text-foreground">
+                    <Card className="lg:col-span-1">
+                        <CardHeader>
+                            <CardTitle>Ringkasan</CardTitle>
+                            <CardDescription>{schedule.code}</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <h2 className="font-display text-xl font-bold leading-tight text-foreground">
                                 {schedule.title}
                             </h2>
                             <p className="mt-1 text-sm text-muted-foreground">
-                                {schedule.mata_kuliah} • {schedule.kelas}
+                                {schedule.mata_kuliah} · {schedule.kelas}
                             </p>
 
                             <div className="mt-6 space-y-4 border-t border-border pt-6">
@@ -77,7 +84,7 @@ export default function Show({ schedule }) {
                     </Card>
 
                     <div className="space-y-6 lg:col-span-2">
-                        <Card className="rounded-2xl border-border/60 shadow-card">
+                        <Card className="rounded-[10px] border-border/60 shadow-card">
                             <CardHeader>
                                 <CardTitle>Informasi Jadwal</CardTitle>
                                 <CardDescription>
@@ -150,7 +157,7 @@ function MetaRow({ label, children }) {
 
 function Info({ label, value }) {
     return (
-        <div className="rounded-xl border border-border/50 bg-muted/20 p-4">
+        <div className="rounded-[8px] border border-border/50 bg-muted/20 p-4">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 {label}
             </p>

@@ -19,7 +19,7 @@ export default function UserForm({
 
     return (
         <div className="grid gap-6 lg:grid-cols-2">
-            <Card className="rounded-2xl border-border/60 shadow-card lg:col-span-2">
+            <Card className="rounded-[10px] border-border/60 shadow-card lg:col-span-2">
                 <CardHeader>
                     <CardTitle>Informasi Akun</CardTitle>
                     <CardDescription>
@@ -109,7 +109,7 @@ export default function UserForm({
             </Card>
 
             {data.role === "siswa" && (
-                <Card className="rounded-2xl border-border/60 shadow-card">
+                <Card className="rounded-[10px] border-border/60 shadow-card">
                     <CardHeader>
                         <CardTitle>Data Siswa</CardTitle>
                     </CardHeader>
@@ -147,7 +147,7 @@ export default function UserForm({
             )}
 
             {(data.role === "guru" || data.role === "admin") && (
-                <Card className="rounded-2xl border-border/60 shadow-card">
+                <Card className="rounded-[10px] border-border/60 shadow-card">
                     <CardHeader>
                         <CardTitle>
                             Data {data.role === "admin" ? "Admin" : "Guru"}
@@ -169,7 +169,7 @@ export default function UserForm({
                 </Card>
             )}
 
-            <Card className="rounded-2xl border-border/60 shadow-card lg:col-span-2">
+            <Card className="rounded-[10px] border-border/60 shadow-card lg:col-span-2">
                 <CardHeader>
                     <CardTitle>Kata Sandi</CardTitle>
                     <CardDescription>

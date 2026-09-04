@@ -1,6 +1,8 @@
 import AppLayout from "@/Layouts/AppLayout";
 import PageHeader from "@/Components/PageHeader";
 import EmptyState from "@/Components/EmptyState";
+import FilterToolbar from "@/Components/FilterToolbar";
+import CatalogCardGrid from "@/Components/CatalogCardGrid";
 import { paginatorTotal } from "@/lib/paginator";
 import { cn } from "@/lib/utils";
 import { Button } from "@/Components/ui/button";
@@ -9,7 +11,6 @@ import { Select } from "@/Components/ui/select";
 import { Head, router, useForm } from "@inertiajs/react";
 import { Box, Package, Search, Wrench } from "lucide-react";
 import { useEffect, useRef } from "react";
-import GuruEquipmentTable from "./Components/GuruEquipmentTable";
 import GuruSupplyTable from "./Components/GuruSupplyTable";
 
 const typeTabs = [
@@ -95,17 +96,17 @@ export default function Index({
             <div className="animate-fade-in w-full min-w-0">
                 <PageHeader
                     title="Inventaris Lab"
-                    subtitle={`${total} ${isBahan ? "bahan" : "alat"} laboratorium`}
+                    subtitle="Pantau ketersediaan alat dan bahan untuk praktikum"
                 />
 
-                <div className="mb-6 flex w-full flex-wrap items-center gap-2 rounded-xl border border-border/60 bg-card p-1 shadow-sm sm:w-fit">
+                <div className="mb-6 flex w-full flex-wrap items-center gap-2 rounded-[10px] border border-border bg-card p-1.5 shadow-[var(--shadow-card)] sm:w-fit">
                     {typeTabs.map(({ key, label, icon: Icon }) => (
                         <button
                             key={key}
                             type="button"
                             onClick={() => switchType(key)}
                             className={cn(
-                                "flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors sm:flex-none",
+                                "flex min-h-10 flex-1 items-center justify-center gap-2 rounded-[8px] px-4 py-2 text-sm font-medium transition-colors sm:flex-none",
                                 inventarisType === key
                                     ? "bg-primary text-primary-foreground shadow-sm"
                                     : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
@@ -117,99 +118,121 @@ export default function Index({
                     ))}
                 </div>
 
-                <div
-                    className={cn(
-                        "mb-6 grid gap-3",
-                        isBahan
-                            ? "sm:grid-cols-2 lg:grid-cols-4"
-                            : "sm:grid-cols-2 lg:grid-cols-5",
-                    )}
+                <FilterToolbar
+                    title={`Filter ${isBahan ? "bahan" : "alat"}`}
+                    description={`${total} item sesuai filter`}
                 >
-                    <div className="relative sm:col-span-2">
-                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                        <Input
-                            value={data.search}
-                            onChange={(e) => setData("search", e.target.value)}
-                            placeholder="Cari nama, kode, kategori, lokasi..."
-                            className="rounded-xl border-border/60 bg-card pl-10 shadow-sm"
-                        />
-                    </div>
-                    <Select
-                        value={data.category}
-                        onChange={(e) => setData("category", e.target.value)}
-                        className="rounded-xl border-border/60 bg-card shadow-sm"
+                    <div
+                        className={cn(
+                            "grid gap-3",
+                            isBahan
+                                ? "sm:grid-cols-2 lg:grid-cols-4"
+                                : "sm:grid-cols-2 lg:grid-cols-5",
+                        )}
                     >
-                        <option value="all">Semua kategori</option>
-                        {categories.map((cat) => (
-                            <option key={cat} value={cat}>
-                                {cat}
-                            </option>
-                        ))}
-                    </Select>
-                    {isBahan ? (
-                        <Select
-                            value={data.stock_status}
-                            onChange={(e) =>
-                                setData("stock_status", e.target.value)
-                            }
-                            className="rounded-xl border-border/60 bg-card shadow-sm"
-                        >
-                            <option value="all">Semua stok</option>
-                            <option value="aman">Stok aman</option>
-                            <option value="diambil">Sebagian diambil</option>
-                            <option value="menipis">Stok menipis</option>
-                            <option value="habis">Habis</option>
-                        </Select>
-                    ) : (
-                        <Select
-                            value={data.availability}
-                            onChange={(e) =>
-                                setData("availability", e.target.value)
-                            }
-                            className="rounded-xl border-border/60 bg-card shadow-sm"
-                        >
-                            <option value="all">Semua ketersediaan</option>
-                            <option value="tersedia">Tersedia</option>
-                            <option value="dipinjam">Sebagian Dipinjam</option>
-                            <option value="habis">Tidak Tersedia</option>
-                            <option value="rusak">Dalam Perbaikan</option>
-                            <option value="nonaktif">Nonaktif</option>
-                        </Select>
-                    )}
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                        <Select
-                            value={data.status}
-                            onChange={(e) => setData("status", e.target.value)}
-                            className="rounded-xl border-border/60 bg-card shadow-sm"
-                        >
-                            <option value="all">Semua status</option>
-                            <option value="tersedia">Tersedia</option>
-                            <option value="tidak_tersedia">Tidak Tersedia</option>
-                        </Select>
-                        {!isBahan && (
-                            <Select
-                                value={data.condition}
+                        <div className="relative sm:col-span-2">
+                            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                                value={data.search}
                                 onChange={(e) =>
-                                    setData("condition", e.target.value)
+                                    setData("search", e.target.value)
                                 }
-                                className="rounded-xl border-border/60 bg-card shadow-sm"
+                                placeholder="Cari nama, kode, kategori, lokasi..."
+                                className="pl-10"
+                            />
+                        </div>
+                        <Select
+                            value={data.category}
+                            onChange={(e) =>
+                                setData("category", e.target.value)
+                            }
+                        >
+                            <option value="all">Semua kategori</option>
+                            {categories.map((cat) => (
+                                <option key={cat} value={cat}>
+                                    {cat}
+                                </option>
+                            ))}
+                        </Select>
+                        {isBahan ? (
+                            <Select
+                                value={data.stock_status}
+                                onChange={(e) =>
+                                    setData("stock_status", e.target.value)
+                                }
                             >
-                                <option value="all">Semua kondisi</option>
-                                <option value="baik">Baik</option>
-                                <option value="rusak_ringan">Rusak Ringan</option>
-                                <option value="rusak_berat">Rusak Berat</option>
+                                <option value="all">Semua stok</option>
+                                <option value="aman">Stok aman</option>
+                                <option value="diambil">Sebagian diambil</option>
+                                <option value="menipis">Stok menipis</option>
+                                <option value="habis">Habis</option>
+                            </Select>
+                        ) : (
+                            <Select
+                                value={data.availability}
+                                onChange={(e) =>
+                                    setData("availability", e.target.value)
+                                }
+                            >
+                                <option value="all">Semua ketersediaan</option>
+                                <option value="tersedia">Tersedia</option>
+                                <option value="dipinjam">
+                                    Sebagian Dipinjam
+                                </option>
+                                <option value="habis">Tidak Tersedia</option>
+                                <option value="rusak">Dalam Perbaikan</option>
+                                <option value="nonaktif">Nonaktif</option>
                             </Select>
                         )}
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <Select
+                                value={data.status}
+                                onChange={(e) =>
+                                    setData("status", e.target.value)
+                                }
+                            >
+                                <option value="all">Semua status</option>
+                                <option value="tersedia">Tersedia</option>
+                                <option value="tidak_tersedia">
+                                    Tidak Tersedia
+                                </option>
+                            </Select>
+                            {!isBahan && (
+                                <Select
+                                    value={data.condition}
+                                    onChange={(e) =>
+                                        setData("condition", e.target.value)
+                                    }
+                                >
+                                    <option value="all">Semua kondisi</option>
+                                    <option value="baik">Baik</option>
+                                    <option value="rusak_ringan">
+                                        Rusak Ringan
+                                    </option>
+                                    <option value="rusak_berat">
+                                        Rusak Berat
+                                    </option>
+                                </Select>
+                            )}
+                        </div>
                     </div>
-                </div>
+                </FilterToolbar>
 
                 {total > 0 ? (
                     isBahan ? (
                         <GuruSupplyTable items={list} pagination={supplies} />
                     ) : (
-                        <GuruEquipmentTable
-                            items={list}
+                        <CatalogCardGrid
+                            items={list.map((item) => ({
+                                ...item,
+                                show_url: route(
+                                    "guru.inventaris.alat.show",
+                                    item.id,
+                                ),
+                            }))}
                             pagination={equipment}
+                            itemType="alat"
+                            showBorrowCta={false}
                         />
                     )
                 ) : (

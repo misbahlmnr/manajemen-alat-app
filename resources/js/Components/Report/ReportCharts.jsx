@@ -24,7 +24,7 @@ const STATUS_COLORS = [
 
 function ChartCard({ title, description, children, empty }) {
     return (
-        <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
+        <div className="rounded-[10px] border border-border/60 bg-card p-5 shadow-sm">
             <div className="mb-4">
                 <h3 className="text-sm font-semibold text-foreground">{title}</h3>
                 {description ? (
