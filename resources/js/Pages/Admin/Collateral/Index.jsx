@@ -74,12 +74,16 @@ export default function Index({
     const handleInspect = (payload) => {
         if (!inspectTarget) return;
         setInspecting(true);
-        router.post(route("admin.loans.inspect", inspectTarget.loan_id), payload, {
-            onFinish: () => {
-                setInspecting(false);
-                setInspectTarget(null);
+        router.post(
+            route("admin.loans.inspect", inspectTarget.loan_id),
+            payload,
+            {
+                onFinish: () => {
+                    setInspecting(false);
+                    setInspectTarget(null);
+                },
             },
-        });
+        );
     };
 
     const handleHold = (payload) => {
@@ -106,12 +110,12 @@ export default function Index({
                     title="Jaminan Kartu"
                     subtitle={`${total} jaminan terdaftar`}
                 >
-                    <Button asChild>
+                    {/* <Button asChild>
                         <Link href={route("admin.collaterals.create")}>
                             <Plus className="mr-2 h-4 w-4" />
                             Tambah Jaminan
                         </Link>
-                    </Button>
+                    </Button> */}
                 </PageHeader>
 
                 <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -153,9 +157,7 @@ export default function Index({
                 <div className="mb-6 grid gap-3 sm:grid-cols-3">
                     <Select
                         value={data.student_id}
-                        onChange={(e) =>
-                            setData("student_id", e.target.value)
-                        }
+                        onChange={(e) => setData("student_id", e.target.value)}
                         className="rounded-xl border-border/60 bg-card shadow-sm"
                     >
                         <option value="all">Semua siswa</option>
