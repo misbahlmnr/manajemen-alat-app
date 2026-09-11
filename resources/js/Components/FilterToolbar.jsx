@@ -12,7 +12,7 @@ export default function FilterToolbar({
     return (
         <div
             className={cn(
-                "mb-6 rounded-[10px] border border-[#E5E7EB] bg-card p-5 shadow-[var(--shadow-card)]",
+                "mb-6 rounded-xl border bg-card p-6 shadow-sm",
                 className,
             )}
         >

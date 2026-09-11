@@ -494,12 +494,12 @@ function PreviewTable({ headers, rows }) {
 
     return (
         <table className="w-full min-w-[640px]">
-            <thead className="border-b border-border bg-slate-50">
+            <thead className="border-b bg-muted/50">
                 <tr>
                     {headers.map((header) => (
                         <th
                             key={header}
-                            className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500"
+                            className="h-12 px-4 text-left align-middle text-xs font-medium text-muted-foreground"
                         >
                             {header}
                         </th>

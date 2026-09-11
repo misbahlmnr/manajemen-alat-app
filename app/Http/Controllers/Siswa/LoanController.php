@@ -300,10 +300,8 @@ class LoanController extends Controller
             ...$statusUpdate,
         ]);
 
-        if ($loan->isAlat() && $loan->due_at) {
-            $loan->update([
-                'due_at' => $this->queueService->clampDueAtToTimeSlice($loan->fresh()),
-            ]);
+        if ($loan->isAlat()) {
+            $this->queueService->applyDueAtForLoan($loan->fresh());
         }
 
         $this->syncItems($loan, $items);
@@ -504,7 +502,8 @@ class LoanController extends Controller
         $search = $request->string('catalog_search')->trim();
 
         $query = Equipment::query()
-            ->where('status', 'tersedia')
+            ->when($itemType === 'alat', fn ($q) => $q->alat()->where('status', 'tersedia'))
+            ->when($itemType === 'bahan', fn ($q) => $q->bahan()->where('stock', '>', 0))
             ->when($search->isNotEmpty(), function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
@@ -513,12 +512,6 @@ class LoanController extends Controller
                 });
             })
             ->orderBy('name');
-
-        if ($itemType === 'alat') {
-            $query->alat();
-        } else {
-            $query->bahan();
-        }
 
         return $query
             ->paginate(10)
@@ -534,13 +527,8 @@ class LoanController extends Controller
 
         $query = Equipment::query()
             ->where('id', $id)
-            ->where('status', 'tersedia');
-
-        if ($itemType === 'alat') {
-            $query->alat();
-        } else {
-            $query->bahan();
-        }
+            ->when($itemType === 'alat', fn ($q) => $q->alat()->where('status', 'tersedia'))
+            ->when($itemType === 'bahan', fn ($q) => $q->bahan()->where('stock', '>', 0));
 
         $item = $query->first();
 
@@ -766,11 +754,8 @@ class LoanController extends Controller
 
         $this->syncItems($loan, $items);
 
-        if ($loan->isAlat() && $loan->due_at) {
-            $loan->load('schedule');
-            $loan->update([
-                'due_at' => $this->queueService->clampDueAtToTimeSlice($loan),
-            ]);
+        if ($loan->isAlat()) {
+            $this->queueService->applyDueAtForLoan($loan);
         }
 
         if ($initialStatus === 'antrian') {

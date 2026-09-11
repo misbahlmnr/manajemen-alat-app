@@ -166,55 +166,58 @@ export default function Index({
                                 <option value="diambil">Sebagian diambil</option>
                                 <option value="menipis">Stok menipis</option>
                                 <option value="habis">Habis</option>
+                                <option value="tidak_tersedia">
+                                    Tidak tersedia
+                                </option>
                             </Select>
                         ) : (
-                            <Select
-                                value={data.availability}
-                                onChange={(e) =>
-                                    setData("availability", e.target.value)
-                                }
-                            >
-                                <option value="all">Semua ketersediaan</option>
-                                <option value="tersedia">Tersedia</option>
-                                <option value="dipinjam">
-                                    Sebagian Dipinjam
-                                </option>
-                                <option value="habis">Tidak Tersedia</option>
-                                <option value="rusak">Dalam Perbaikan</option>
-                                <option value="nonaktif">Nonaktif</option>
-                            </Select>
-                        )}
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                            <Select
-                                value={data.status}
-                                onChange={(e) =>
-                                    setData("status", e.target.value)
-                                }
-                            >
-                                <option value="all">Semua status</option>
-                                <option value="tersedia">Tersedia</option>
-                                <option value="tidak_tersedia">
-                                    Tidak Tersedia
-                                </option>
-                            </Select>
-                            {!isBahan && (
+                            <>
                                 <Select
-                                    value={data.condition}
+                                    value={data.availability}
                                     onChange={(e) =>
-                                        setData("condition", e.target.value)
+                                        setData("availability", e.target.value)
                                     }
                                 >
-                                    <option value="all">Semua kondisi</option>
-                                    <option value="baik">Baik</option>
-                                    <option value="rusak_ringan">
-                                        Rusak Ringan
+                                    <option value="all">Semua ketersediaan</option>
+                                    <option value="tersedia">Tersedia</option>
+                                    <option value="dipinjam">
+                                        Sebagian Dipinjam
                                     </option>
-                                    <option value="rusak_berat">
-                                        Rusak Berat
-                                    </option>
+                                    <option value="habis">Tidak Tersedia</option>
+                                    <option value="rusak">Dalam Perbaikan</option>
+                                    <option value="nonaktif">Nonaktif</option>
                                 </Select>
-                            )}
-                        </div>
+                                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:col-span-2">
+                                    <Select
+                                        value={data.status}
+                                        onChange={(e) =>
+                                            setData("status", e.target.value)
+                                        }
+                                    >
+                                        <option value="all">Semua status</option>
+                                        <option value="tersedia">Tersedia</option>
+                                        <option value="tidak_tersedia">
+                                            Tidak Tersedia
+                                        </option>
+                                    </Select>
+                                    <Select
+                                        value={data.condition}
+                                        onChange={(e) =>
+                                            setData("condition", e.target.value)
+                                        }
+                                    >
+                                        <option value="all">Semua kondisi</option>
+                                        <option value="baik">Baik</option>
+                                        <option value="rusak_ringan">
+                                            Rusak Ringan
+                                        </option>
+                                        <option value="rusak_berat">
+                                            Rusak Berat
+                                        </option>
+                                    </Select>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </FilterToolbar>
 

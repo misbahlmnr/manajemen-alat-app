@@ -1,6 +1,5 @@
 import DataTable from "@/Components/DataTable";
 import SupplyStockBadge from "@/Components/SupplyStockBadge";
-import InventoryStatusBadge from "@/Components/InventoryStatusBadge";
 import EquipmentImage from "@/Components/Equipment/EquipmentImage";
 import { Button } from "@/Components/ui/button";
 import { cn } from "@/lib/utils";
@@ -79,13 +78,6 @@ export default function GuruSupplyTable({ items, pagination }) {
             enableSorting: false,
             cell: ({ row }) => (
                 <SupplyStockBadge label={row.original.stock_label} />
-            ),
-        },
-        {
-            accessorKey: "status",
-            header: "Status",
-            cell: ({ getValue }) => (
-                <InventoryStatusBadge status={getValue()} />
             ),
         },
         {

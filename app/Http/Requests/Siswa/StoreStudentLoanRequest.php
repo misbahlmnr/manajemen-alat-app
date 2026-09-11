@@ -241,6 +241,18 @@ class StoreStudentLoanRequest extends FormRequest
                 }
 
                 if (
+                    ! $bawaPulang
+                    && $borrowReason === 'reguler'
+                    && $schedule
+                    && ! $schedule->isActive()
+                ) {
+                    $validator->errors()->add(
+                        'practicum_schedule_id',
+                        'Jadwal mata pelajaran ini sudah selesai. Pilih jadwal yang masih berlangsung, atau gunakan tipe Pribadi.',
+                    );
+                }
+
+                if (
                     $schedule
                     && $this->filled('supervisor_id')
                     && $schedule->guru_id
@@ -268,9 +280,12 @@ class StoreStudentLoanRequest extends FormRequest
                 }
             }
 
+            $isPakaiDiLab = ! $bawaPulang && $borrowReason !== 'lanjutan';
+
             if (
                 $this->isMethod('post')
                 && $this->filled('due_at')
+                && ! $isPakaiDiLab
                 && Carbon::parse($this->input('due_at'))->lte(now())
             ) {
                 $validator->errors()->add(
@@ -279,7 +294,7 @@ class StoreStudentLoanRequest extends FormRequest
                 );
             }
 
-            if ($this->filled('due_at')) {
+            if ($this->filled('due_at') && ! $isPakaiDiLab) {
                 $loan = new Loan([
                     'borrow_scope' => $this->input('borrow_scope', 'lab'),
                     'borrow_reason' => $this->input('borrow_reason'),

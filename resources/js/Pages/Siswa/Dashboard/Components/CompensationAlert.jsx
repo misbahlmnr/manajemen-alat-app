@@ -4,8 +4,10 @@ import { AlertTriangle } from "lucide-react";
 
 export default function CompensationAlert({ href, compensation = null }) {
     return (
-        <div className="mt-6 flex flex-col gap-3 rounded-[8px] border border-destructive/20 bg-destructive/10 p-4 sm:flex-row sm:items-start">
-            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
+        <div className="mt-6 flex flex-col gap-3 rounded-lg border border-red-200 bg-red-50 p-4 sm:flex-row sm:items-start">
+            <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-red-100 text-red-700">
+                <AlertTriangle className="h-4 w-4" />
+            </span>
             <div className="min-w-0 flex-1">
                 <p className="font-medium">
                     {compensation?.loan_code

@@ -102,6 +102,8 @@ return [
         'Ruang Terbuka',
     ],
 
+    'school_timezone' => env('LAB_TIMEZONE', 'Asia/Jakarta'),
+
     'queue' => [
         // Round Robin: FIFO + prioritas admin saja (tanpa skor jadwal otomatis).
         'school_close_time' => env('LAB_SCHOOL_CLOSE_TIME', '17:00'),

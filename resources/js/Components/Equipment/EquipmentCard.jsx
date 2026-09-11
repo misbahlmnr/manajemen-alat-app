@@ -56,7 +56,7 @@ export function EquipmentCard({ equipment, onBorrow, showBorrowButton = true }) 
               ? 'bg-success/10 text-success' 
               : 'bg-destructive/10 text-destructive'
           )}>
-            {equipment.available} / {equipment.qty_baik ?? equipment.stock} baik
+            {equipment.available} / {equipment.qty_baik ?? equipment.stock}
           </span>
         </div>
       </div>

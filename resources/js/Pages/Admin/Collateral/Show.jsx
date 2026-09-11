@@ -343,7 +343,7 @@ function MetaRow({ label, children }) {
 
 function Info({ label, value }) {
     return (
-        <div className="rounded-[8px] border border-border/50 bg-muted/20 p-4">
+        <div className="rounded-lg border bg-muted/50 p-4">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 {label}
             </p>

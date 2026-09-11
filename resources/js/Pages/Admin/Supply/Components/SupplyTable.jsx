@@ -1,5 +1,4 @@
 import DataTable from "@/Components/DataTable";
-import InventoryStatusBadge from "@/Components/InventoryStatusBadge";
 import SupplyStockBadge from "@/Components/SupplyStockBadge";
 import EquipmentImage from "@/Components/Equipment/EquipmentImage";
 import TableRowActions from "@/Components/TableRowActions";
@@ -67,13 +66,6 @@ export default function SupplyTable({ items, pagination, onDelete }) {
             enableSorting: false,
             cell: ({ row }) => (
                 <SupplyStockBadge label={row.original.stock_label} />
-            ),
-        },
-        {
-            accessorKey: "status",
-            header: "Status",
-            cell: ({ getValue }) => (
-                <InventoryStatusBadge status={getValue()} />
             ),
         },
         { accessorKey: "created_at_formatted", header: "Dibuat" },

@@ -4,7 +4,6 @@ import { cn } from "@/lib/utils";
 import {
     AlertCircle,
     Calendar,
-    CheckCircle2,
     Clock,
     FileText,
     MapPin,
@@ -14,32 +13,15 @@ import {
     X,
 } from "lucide-react";
 
-const timelineSteps = [
-    { key: "diminta", label: "Diminta" },
-    { key: "disetujui", label: "Disetujui" },
-    { key: "dipinjam", label: "Dipinjam" },
-    { key: "dikembalikan", label: "Dikembalikan" },
-];
-
-const statusOrder = {
-    diminta: 0,
-    ditolak: 0,
-    disetujui: 1,
-    dipinjam: 2,
-    terlambat: 2,
-    dikembalikan: 3,
-};
-
 export default function LoanDetailModal({ loan, borrower, onClose, footer }) {
     if (!loan) return null;
 
     const isBahan = loan.item_type === "bahan";
-    const currentStep = statusOrder[loan.status] ?? 0;
     const items = loan.items ?? [];
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-foreground/50 p-4">
-            <div className="my-8 w-full max-w-lg animate-scale-in rounded-[12px] border border-[#E5E7EB] bg-card p-6 shadow-[var(--shadow-md)]">
+            <div className="my-8 w-full max-w-lg animate-scale-in rounded-lg border bg-card p-6 shadow-lg">
                 <div className="mb-5 flex items-center justify-between">
                     <h3 className="text-lg font-bold text-foreground">
                         Detail{" "}
@@ -73,7 +55,7 @@ export default function LoanDetailModal({ loan, borrower, onClose, footer }) {
                             itemType={loan.item_type}
                         />
                         {!isBahan && loan.borrow_scope && (
-                            <span className="inline-flex items-center gap-1 rounded bg-secondary px-2 py-0.5 text-[11px] font-medium text-foreground">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
                                 <MapPin className="h-3 w-3" />
                                 {loan.borrow_scope_label}
                             </span>
@@ -85,7 +67,7 @@ export default function LoanDetailModal({ loan, borrower, onClose, footer }) {
                         )}
                     </div>
 
-                    <div className="rounded-lg bg-secondary/50 p-4">
+                    <div className="rounded-lg border bg-muted/50 p-4">
                         <p className="mb-2 text-xs font-medium text-muted-foreground">
                             {loan.code}
                         </p>
@@ -129,7 +111,7 @@ export default function LoanDetailModal({ loan, borrower, onClose, footer }) {
                         )}
                     </div>
 
-                    <div className="rounded-lg bg-secondary/50 p-4">
+                    <div className="rounded-lg border bg-muted/50 p-4">
                         <div className="mb-2 flex items-center gap-2">
                             <User className="h-4 w-4 text-muted-foreground" />
                             <span className="text-sm font-medium">
@@ -164,7 +146,7 @@ export default function LoanDetailModal({ loan, borrower, onClose, footer }) {
 
                     {!isBahan && (
                         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                            <div className="rounded-lg bg-secondary/50 p-3">
+                            <div className="rounded-lg border bg-muted/50 p-3">
                                 <div className="mb-1 flex items-center gap-2">
                                     <Calendar className="h-4 w-4 text-muted-foreground" />
                                     <span className="text-xs text-muted-foreground">
@@ -177,7 +159,7 @@ export default function LoanDetailModal({ loan, borrower, onClose, footer }) {
                                         : loan.request_date_formatted}
                                 </p>
                             </div>
-                            <div className="rounded-lg bg-secondary/50 p-3">
+                            <div className="rounded-lg border bg-muted/50 p-3">
                                 <div className="mb-1 flex items-center gap-2">
                                     <Clock className="h-4 w-4 text-muted-foreground" />
                                     <span className="text-xs text-muted-foreground">
@@ -192,7 +174,7 @@ export default function LoanDetailModal({ loan, borrower, onClose, footer }) {
                     )}
 
                     {(loan.purpose || loan.notes) && (
-                        <div className="rounded-lg bg-secondary/50 p-4">
+                        <div className="rounded-lg border bg-muted/50 p-4">
                             <div className="mb-1 flex items-center gap-2">
                                 <FileText className="h-4 w-4 text-muted-foreground" />
                                 <span className="text-sm font-medium">
@@ -215,57 +197,6 @@ export default function LoanDetailModal({ loan, borrower, onClose, footer }) {
                                 <p className="text-sm text-destructive/80">
                                     {loan.rejection_reason}
                                 </p>
-                            </div>
-                        </div>
-                    )}
-
-                    {!isBahan && (
-                        <div>
-                            <p className="mb-3 text-sm font-medium">
-                                Timeline Status
-                            </p>
-                            <div className="space-y-2">
-                                {timelineSteps.map((step, idx) => {
-                                    const active = currentStep >= idx;
-                                    const isLate =
-                                        loan.status === "terlambat" &&
-                                        step.key === "dipinjam";
-                                    return (
-                                        <div
-                                            key={step.key}
-                                            className="flex items-center gap-3"
-                                        >
-                                            <div
-                                                className={cn(
-                                                    "flex h-6 w-6 items-center justify-center rounded-full text-xs",
-                                                    isLate
-                                                        ? "bg-destructive text-destructive-foreground"
-                                                        : active
-                                                          ? "bg-success text-success-foreground"
-                                                          : "bg-secondary text-muted-foreground",
-                                                )}
-                                            >
-                                                {active ? (
-                                                    <CheckCircle2 className="h-4 w-4" />
-                                                ) : (
-                                                    idx + 1
-                                                )}
-                                            </div>
-                                            <span
-                                                className={cn(
-                                                    "text-sm",
-                                                    active
-                                                        ? "text-foreground"
-                                                        : "text-muted-foreground",
-                                                )}
-                                            >
-                                                {isLate
-                                                    ? "Terlambat"
-                                                    : step.label}
-                                            </span>
-                                        </div>
-                                    );
-                                })}
                             </div>
                         </div>
                     )}

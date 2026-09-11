@@ -2,7 +2,6 @@ import AppLayout from "@/Layouts/AppLayout";
 import PageHeader from "@/Components/PageHeader";
 import LoanStatusBadge from "@/Components/LoanStatusBadge";
 import CollateralStatusBadge from "@/Components/CollateralStatusBadge";
-import StatusTimeline from "@/Components/StatusTimeline";
 import { Button } from "@/Components/ui/button";
 import {
     Card,
@@ -11,19 +10,13 @@ import {
     CardHeader,
     CardTitle,
 } from "@/Components/ui/card";
-import { buildLoanProgressSteps } from "@/lib/loanTimeline";
 import { Head, Link } from "@inertiajs/react";
 import { ArrowLeft } from "lucide-react";
-import { useMemo } from "react";
 
 export default function Show({ loan }) {
     const timeline = loan.timeline ?? [];
     const items = loan.items ?? [];
     const isBahan = loan.item_type === "bahan";
-    const progressSteps = useMemo(
-        () => buildLoanProgressSteps(loan),
-        [loan],
-    );
     const backRoute =
         loan.status &&
         ["dikembalikan", "ditolak", "dibatalkan"].includes(loan.status)
@@ -96,7 +89,7 @@ export default function Show({ loan }) {
                                     </MetaRow>
                                     {loan.is_catch_up && (
                                         <MetaRow label="Jenis">
-                                            <span className="rounded-full bg-amber-500/15 px-2.5 py-0.5 text-xs font-medium text-amber-800">
+                                            <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-800">
                                                 Lanjutan praktikum
                                             </span>
                                         </MetaRow>
@@ -115,18 +108,6 @@ export default function Show({ loan }) {
                                         {loan.rejection_reason}
                                     </p>
                                 )}
-                            </CardContent>
-                        </Card>
-
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Timeline</CardTitle>
-                                <CardDescription>
-                                    Progress hingga selesai
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <StatusTimeline steps={progressSteps} />
                             </CardContent>
                         </Card>
                     </div>
@@ -202,7 +183,7 @@ export default function Show({ loan }) {
                                                     {item.equipment_code}
                                                 </p>
                                             </div>
-                                            <span className="shrink-0 rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium">
+                                            <span className="shrink-0 rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-secondary-foreground">
                                                 ×{item.quantity}
                                                 {item.unit ? ` ${item.unit}` : ""}
                                             </span>
@@ -291,7 +272,7 @@ function MetaRow({ label, children }) {
 
 function Info({ label, value }) {
     return (
-        <div className="rounded-[8px] border border-border/50 bg-muted/20 p-4">
+        <div className="rounded-lg border bg-muted/50 p-4">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 {label}
             </p>

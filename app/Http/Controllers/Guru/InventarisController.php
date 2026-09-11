@@ -80,7 +80,6 @@ class InventarisController extends Controller
     {
         $search = $request->string('search')->trim();
         $category = $request->string('category')->toString() ?: 'all';
-        $status = $request->string('status')->toString() ?: 'all';
         $stockStatus = $request->string('stock_status')->toString() ?: 'all';
 
         $supplies = Supply::query()
@@ -93,7 +92,6 @@ class InventarisController extends Controller
                 });
             })
             ->when($category !== 'all', fn ($q) => $q->where('category', $category))
-            ->when($status !== 'all', fn ($q) => $q->where('status', $status))
             ->stockStatus($stockStatus)
             ->orderBy('name')
             ->paginate(10)
@@ -113,7 +111,7 @@ class InventarisController extends Controller
             'filters' => [
                 'search' => $search->toString(),
                 'category' => $category,
-                'status' => $status,
+                'status' => 'all',
                 'condition' => 'all',
                 'availability' => 'all',
                 'stock_status' => $stockStatus,

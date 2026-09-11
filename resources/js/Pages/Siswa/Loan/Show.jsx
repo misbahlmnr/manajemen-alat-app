@@ -3,7 +3,6 @@ import PageHeader from "@/Components/PageHeader";
 import LoanStatusBadge from "@/Components/LoanStatusBadge";
 import EquipmentImage from "@/Components/Equipment/EquipmentImage";
 import CollateralStatusBadge from "@/Components/CollateralStatusBadge";
-import StatusTimeline from "@/Components/StatusTimeline";
 import { Button } from "@/Components/ui/button";
 import {
     Card,
@@ -12,10 +11,9 @@ import {
     CardHeader,
     CardTitle,
 } from "@/Components/ui/card";
-import { buildLoanProgressSteps } from "@/lib/loanTimeline";
 import { Head, Link, router } from "@inertiajs/react";
 import { ArrowLeft, Pencil, RotateCcw, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import CancelLoanDialog from "./Components/CancelLoanDialog";
 import RequestReturnDialog from "./Components/RequestReturnDialog";
 
@@ -52,10 +50,6 @@ export default function Show({ loan }) {
     const timeline = loan.timeline ?? [];
     const items = loan.items ?? [];
     const isBahan = loan.item_type === "bahan";
-    const progressSteps = useMemo(
-        () => buildLoanProgressSteps(loan),
-        [loan],
-    );
 
     return (
         <AppLayout>
@@ -168,18 +162,6 @@ export default function Show({ loan }) {
                                 )}
                             </CardContent>
                         </Card>
-
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Timeline</CardTitle>
-                                <CardDescription>
-                                    Progress pengajuan Anda
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <StatusTimeline steps={progressSteps} />
-                            </CardContent>
-                        </Card>
                     </div>
 
                     <div className="space-y-6 lg:col-span-2">
@@ -270,7 +252,7 @@ export default function Show({ loan }) {
                                                     {item.equipment_code}
                                                 </p>
                                             </div>
-                                            <span className="shrink-0 rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium">
+                                            <span className="shrink-0 rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-secondary-foreground">
                                                 ×{item.quantity}
                                                 {item.unit ? ` ${item.unit}` : ""}
                                             </span>
@@ -399,7 +381,7 @@ function MetaRow({ label, children }) {
 
 function Info({ label, value }) {
     return (
-        <div className="rounded-[8px] border border-border/50 bg-muted/20 p-4">
+        <div className="rounded-lg border bg-muted/50 p-4">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 {label}
             </p>

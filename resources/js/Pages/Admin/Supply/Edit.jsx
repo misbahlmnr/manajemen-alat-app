@@ -14,7 +14,6 @@ export default function Edit({ supply, categoryOptions, unitOptions }) {
         min_stock: supply.min_stock ?? "",
         location: supply.location ?? "",
         description: supply.description ?? "",
-        status: supply.status,
         image: null,
         _method: "put",
     });
@@ -45,6 +44,7 @@ export default function Edit({ supply, categoryOptions, unitOptions }) {
                         categoryOptions={categoryOptions}
                         unitOptions={unitOptions}
                         existingImageUrl={supply.image_url}
+                        isEditing
                     />
 
                     <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-6">

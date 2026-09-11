@@ -70,10 +70,11 @@ class PracticumSchedule extends Model
 
     public function matchesRequestDate(Carbon|string $date): bool
     {
-        $date = $date instanceof Carbon ? $date->copy()->startOfDay() : Carbon::parse($date)->startOfDay();
+        $date = self::inSchoolTimezone($date)->startOfDay();
 
         if ($this->isKhusus()) {
-            return $this->tanggal !== null && $date->isSameDay($this->tanggal);
+            return $this->tanggal !== null
+                && $date->isSameDay(self::inSchoolTimezone($this->tanggal)->startOfDay());
         }
 
         if ($this->isMingguan() && $this->hari) {
@@ -85,7 +86,7 @@ class PracticumSchedule extends Model
 
     public function nextOccurrence(?Carbon $from = null): ?Carbon
     {
-        $from = ($from ?? now())->copy();
+        $from = self::inSchoolTimezone($from);
         $jamMulai = $this->normalizeTime($this->jam_mulai) ?? '00:00:00';
 
         if ($this->isKhusus()) {
@@ -93,7 +94,9 @@ class PracticumSchedule extends Model
                 return null;
             }
 
-            $occurrence = $this->tanggal->copy()->setTimeFromTimeString($jamMulai);
+            $occurrence = self::inSchoolTimezone($this->tanggal)
+                ->startOfDay()
+                ->setTimeFromTimeString($jamMulai);
 
             return $occurrence->copy()->startOfDay()->gte($from->copy()->startOfDay())
                 ? $occurrence
@@ -124,7 +127,7 @@ class PracticumSchedule extends Model
 
     public function isActive(?Carbon $at = null): bool
     {
-        $at = $at ?? now();
+        $at = self::inSchoolTimezone($at);
         $end = $this->occurrenceEndAt($at);
 
         return $end !== null && $end->gte($at);
@@ -132,7 +135,7 @@ class PracticumSchedule extends Model
 
     public static function nextDateForHari(string $hari, ?Carbon $from = null): Carbon
     {
-        $from = ($from ?? Carbon::today())->copy()->startOfDay();
+        $from = self::inSchoolTimezone($from)->startOfDay();
         $targetIso = self::hariToIso($hari);
 
         if ($targetIso === null) {
@@ -142,6 +145,26 @@ class PracticumSchedule extends Model
         $diff = ($targetIso - $from->dayOfWeekIso + 7) % 7;
 
         return $from->copy()->addDays($diff);
+    }
+
+    public static function schoolTimezone(): string
+    {
+        return (string) config('lab.school_timezone', 'Asia/Jakarta');
+    }
+
+    public static function inSchoolTimezone(Carbon|string|null $date = null): Carbon
+    {
+        $timezone = self::schoolTimezone();
+
+        if ($date instanceof Carbon) {
+            return $date->copy()->timezone($timezone);
+        }
+
+        if (is_string($date) && $date !== '') {
+            return Carbon::parse($date, $timezone);
+        }
+
+        return now()->timezone($timezone);
     }
 
     public function scopeVisibleInWeek(Builder $query, Carbon $weekStart, Carbon $weekEnd): Builder

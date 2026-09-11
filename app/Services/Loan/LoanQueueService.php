@@ -25,7 +25,7 @@ class LoanQueueService
                 ]);
             }
 
-            if ($equipment->status !== 'tersedia') {
+            if (! $equipment->isAvailableForInventory()) {
                 throw ValidationException::withMessages([
                     'items' => "{$equipment->name} sedang tidak tersedia untuk dipinjam.",
                 ]);
@@ -412,6 +412,33 @@ class LoanQueueService
         }
 
         return $requested->lessThanOrEqualTo($sliceEnd) ? $requested->copy() : $sliceEnd;
+    }
+
+    /**
+     * Pakai di lab: due_at selalu jam selesai jadwal.
+     * Tipe lain: clamp agar tidak melebihi time slice.
+     */
+    public function applyDueAtForLoan(Loan $loan, ?Carbon $from = null): void
+    {
+        if (! $loan->isAlat()) {
+            return;
+        }
+
+        $loan->loadMissing('schedule');
+
+        if ($loan->isPakaiDiLab() && $loan->schedule) {
+            $loan->update([
+                'due_at' => $this->resolveTimeSliceDueAt($loan, $from),
+            ]);
+
+            return;
+        }
+
+        if ($loan->due_at) {
+            $loan->update([
+                'due_at' => $this->clampDueAtToTimeSlice($loan, $from),
+            ]);
+        }
     }
 
     /**

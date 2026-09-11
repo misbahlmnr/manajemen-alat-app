@@ -141,6 +141,44 @@ class LoanQueueServiceTest extends TestCase
         );
     }
 
+    public function test_apply_due_at_forces_schedule_end_for_pakai_di_lab(): void
+    {
+        $guru = $this->makeUser('guru', 'guru-due');
+        $siswa = $this->makeUser('siswa', 'siswa-due');
+        $equipment = $this->makeEquipment('alat', available: 3);
+        $schedule = PracticumSchedule::query()->create([
+            'code' => 'JDW-TEST-DUE',
+            'title' => 'Praktikum',
+            'mata_kuliah' => 'DTE',
+            'jurusan' => 'Audio Video',
+            'kelas' => 'X TE 1',
+            'type' => 'khusus',
+            'tanggal' => now()->toDateString(),
+            'jam_mulai' => '08:00:00',
+            'jam_selesai' => '10:00:00',
+            'ruangan' => 'Lab AV',
+            'guru_id' => $guru->id,
+            'priority' => 'normal',
+        ]);
+
+        $loan = $this->makeQueuedLoan($siswa, $equipment);
+        $loan->update([
+            'status' => 'diminta',
+            'borrow_scope' => 'lab',
+            'borrow_reason' => 'reguler',
+            'practicum_schedule_id' => $schedule->id,
+            'due_at' => now()->setTime(9, 15),
+        ]);
+        $loan->setRelation('schedule', $schedule);
+
+        $this->queue->applyDueAtForLoan($loan->fresh()->load('schedule'));
+
+        $this->assertSame(
+            now()->toDateString().' 10:00:00',
+            $loan->fresh()->due_at->format('Y-m-d H:i:s'),
+        );
+    }
+
     public function test_process_queue_promotes_when_stock_available(): void
     {
         $equipment = $this->makeEquipment('bahan', available: 0);

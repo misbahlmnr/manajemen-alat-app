@@ -3,33 +3,33 @@ import { cn } from "@/lib/utils";
 const config = {
     draft: {
         label: "Draft",
-        dot: "bg-slate-400",
-        className: "border-slate-200 bg-slate-50 text-slate-600",
+        dot: "bg-muted-foreground",
+        className: "border-transparent bg-muted text-muted-foreground",
     },
     terjadwal: {
         label: "Terjadwal",
-        dot: "bg-slate-500",
-        className: "border-slate-200 bg-slate-100 text-slate-700",
+        dot: "bg-blue-500",
+        className: "border-transparent bg-blue-50 text-blue-700",
     },
     berlangsung: {
         label: "Berlangsung",
-        dot: "bg-slate-600",
-        className: "border-slate-200 bg-slate-100 text-slate-700",
+        dot: "bg-sky-500",
+        className: "border-transparent bg-sky-50 text-sky-700",
     },
     aktif: {
         label: "Aktif",
-        dot: "bg-slate-600",
-        className: "border-slate-200 bg-slate-100 text-slate-700",
+        dot: "bg-emerald-500",
+        className: "border-transparent bg-emerald-50 text-emerald-700",
     },
     selesai: {
         label: "Selesai",
-        dot: "bg-slate-400",
-        className: "border-slate-200 bg-slate-50 text-slate-600",
+        dot: "bg-muted-foreground",
+        className: "border-transparent bg-muted text-muted-foreground",
     },
     dibatalkan: {
         label: "Dibatalkan",
-        dot: "bg-red-600/70",
-        className: "border-red-200/70 bg-red-50 text-red-800/80",
+        dot: "bg-red-500",
+        className: "border-transparent bg-red-50 text-red-700",
     },
 };
 
@@ -40,7 +40,7 @@ export default function ScheduleStatusBadge({ status, displayStatus }) {
     return (
         <span
             className={cn(
-                "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium",
+                "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold",
                 item.className,
             )}
         >

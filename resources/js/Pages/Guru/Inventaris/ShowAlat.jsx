@@ -166,7 +166,7 @@ function MetaRow({ label, children }) {
 
 function Info({ label, value, mono = false }) {
     return (
-        <div className="rounded-[8px] border border-border/50 bg-muted/20 p-4">
+        <div className="rounded-lg border bg-muted/50 p-4">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 {label}
             </p>
@@ -185,7 +185,7 @@ function StockStat({ label, value, highlight = false }) {
             className={`rounded-[8px] border p-4 text-center ${
                 highlight
                     ? "border-primary/20 bg-primary/5"
-                    : "border-border/50 bg-muted/20"
+                    : "border bg-muted/50"
             }`}
         >
             <p

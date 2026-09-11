@@ -1,7 +1,6 @@
 import AppLayout from "@/Layouts/AppLayout";
 import PageHeader from "@/Components/PageHeader";
 import SupplyStockBadge from "@/Components/SupplyStockBadge";
-import InventoryStatusBadge from "@/Components/InventoryStatusBadge";
 import EquipmentImage from "@/Components/Equipment/EquipmentImage";
 import { Button } from "@/Components/ui/button";
 import {
@@ -54,11 +53,8 @@ export default function ShowBahan({ supply }) {
                             </p>
 
                             <div className="mt-6 space-y-4 border-t border-border pt-6">
-                                <MetaRow label="Status stok">
+                                <MetaRow label="Ketersediaan">
                                     <SupplyStockBadge label={supply.stock_label} />
-                                </MetaRow>
-                                <MetaRow label="Status bahan">
-                                    <InventoryStatusBadge status={supply.status} />
                                 </MetaRow>
                                 <MetaRow label="Satuan">
                                     <span className="text-sm font-medium text-foreground">
@@ -169,7 +165,7 @@ function MetaRow({ label, children }) {
 
 function Info({ label, value, mono = false }) {
     return (
-        <div className="rounded-[8px] border border-border/50 bg-muted/20 p-4">
+        <div className="rounded-lg border bg-muted/50 p-4">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 {label}
             </p>
@@ -188,7 +184,7 @@ function StockStat({ label, value, unit, highlight = false }) {
             className={`rounded-[8px] border p-4 text-center ${
                 highlight
                     ? "border-primary/20 bg-primary/5"
-                    : "border-border/50 bg-muted/20"
+                    : "border bg-muted/50"
             }`}
         >
             <p

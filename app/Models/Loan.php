@@ -112,6 +112,13 @@ class Loan extends Model
         return $this->borrow_reason === 'lanjutan';
     }
 
+    public function isPakaiDiLab(): bool
+    {
+        return $this->isAlat()
+            && $this->borrow_scope !== 'bawa_pulang'
+            && ! $this->isCatchUp();
+    }
+
     public function borrowReasonLabel(): ?string
     {
         if (! $this->borrow_reason) {

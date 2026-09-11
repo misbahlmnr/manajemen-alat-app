@@ -12,7 +12,9 @@ export function UpcomingSchedules({ schedules }) {
     return (
         <div className="mt-6 rounded-[10px] border border-border bg-card p-6">
             <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
-                <CalendarDays className="h-5 w-5 text-primary" />
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-sky-50 text-sky-700">
+                    <CalendarDays className="h-4 w-4" />
+                </span>
                 Jadwal Hari Ini
             </h2>
             <ul className="space-y-2">

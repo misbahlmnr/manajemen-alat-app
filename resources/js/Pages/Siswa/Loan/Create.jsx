@@ -29,6 +29,17 @@ function formatScheduleTime(value) {
     return String(value).slice(0, 5);
 }
 
+function todayLocalDate() {
+    const d = new Date();
+    const pad = (value) => String(value).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+function toDateTimeLocal(date, time) {
+    const hhmm = formatScheduleTime(time) || "23:59";
+    return `${date}T${hhmm}`;
+}
+
 function buildDueAt(requestDate, end) {
     const raw = end ? `${requestDate}T${end}` : `${requestDate}T23:59`;
     const parsed = new Date(raw);
@@ -257,10 +268,13 @@ export default function Create({
         const cartItem = cart.find((i) => i.equipment.id === eq.id);
         const stockLimit = Number(eq.stock ?? 0);
         const availableLimit = Number(eq.available ?? 0);
-        const base =
-            eq.status === "tidak_tersedia"
-                ? 0
-                : Math.max(stockLimit, availableLimit, 1);
+        const unavailable =
+            eq.item_type === "bahan"
+                ? Number(eq.stock ?? 0) <= 0
+                : eq.status === "tidak_tersedia";
+        const base = unavailable
+            ? 0
+            : Math.max(stockLimit, availableLimit, 1);
 
         if (cartItem) {
             return Math.max(base, cartItem.quantity);
@@ -324,7 +338,7 @@ export default function Create({
           : "pakai_di_lab";
 
     const setUsageLocation = (location) => {
-        const today = new Date().toISOString().slice(0, 10);
+        const today = todayLocalDate();
 
         if (location === "bawa_pulang") {
             setData((prev) => ({
@@ -395,12 +409,12 @@ export default function Create({
             return;
         }
 
-        const today = new Date().toISOString().slice(0, 10);
+        const today = todayLocalDate();
         const end = formatScheduleTime(s.jam_selesai);
         const requestDate = s.tanggal || today;
         const dueAt = isBawaPulang
             ? addDaysDateTime(requestDate, bawaPulangMaxDays, schoolCloseTime)
-            : buildDueAt(requestDate, end);
+            : toDateTimeLocal(requestDate, end);
 
         setData((prev) => ({
             ...prev,
@@ -418,6 +432,48 @@ export default function Create({
     const supervisorLocked =
         (isPakaiDiLab || isBawaPulang) && Boolean(selectedSchedule?.guru_id);
     const roomLocked = isPakaiDiLab && Boolean(selectedSchedule?.ruangan);
+    const dueAtLocked = isPakaiDiLab;
+    const scheduleEndAt = selectedSchedule
+        ? new Date(
+              toDateTimeLocal(
+                  selectedSchedule.tanggal || todayLocalDate(),
+                  selectedSchedule.jam_selesai,
+              ),
+          )
+        : null;
+    const scheduleEnded = Boolean(
+        isPakaiDiLab &&
+            scheduleEndAt &&
+            !Number.isNaN(scheduleEndAt.getTime()) &&
+            scheduleEndAt.getTime() <= Date.now(),
+    );
+
+    useEffect(() => {
+        if (!isPakaiDiLab || !selectedSchedule) {
+            return;
+        }
+
+        const requestDate = selectedSchedule.tanggal || todayLocalDate();
+        const dueAt = toDateTimeLocal(
+            requestDate,
+            selectedSchedule.jam_selesai,
+        );
+
+        if (data.request_date === requestDate && data.due_at === dueAt) {
+            return;
+        }
+
+        setData((prev) => ({
+            ...prev,
+            request_date: requestDate,
+            due_at: dueAt,
+        }));
+    }, [
+        isPakaiDiLab,
+        selectedSchedule?.id,
+        selectedSchedule?.tanggal,
+        selectedSchedule?.jam_selesai,
+    ]);
 
     const totalItems = cart.reduce((s, i) => s + i.quantity, 0);
     const collateralRequired =
@@ -430,7 +486,7 @@ export default function Create({
         const payload = {
             item_type: itemType,
             request_date:
-                formData.request_date || new Date().toISOString().slice(0, 10),
+                formData.request_date || todayLocalDate(),
             purpose,
             notes: formData.notes ?? "",
             items: cartItems.map((i) => ({
@@ -538,6 +594,7 @@ export default function Create({
                 data.due_at &&
                 (!showUsageRoom || data.usage_room?.trim()) &&
                 (!collateralRequired || data.collateral_agreed))) &&
+        !scheduleEnded &&
         (data.notes?.trim() || data.purpose?.trim());
 
     return (
@@ -1037,6 +1094,15 @@ export default function Create({
                                                         Prioritas Tinggi — Lomba
                                                     </p>
                                                 )}
+                                                {scheduleEnded && (
+                                                    <p className="flex items-center gap-1 font-medium text-destructive">
+                                                        <AlertTriangle className="h-3 w-3" />
+                                                        Jadwal ini sudah
+                                                        selesai. Pilih jam
+                                                        mapel lain atau gunakan
+                                                        tipe Pribadi.
+                                                    </p>
+                                                )}
                                             </div>
                                         )}
                                     </div>
@@ -1184,8 +1250,15 @@ export default function Create({
                                                     )
                                                 }
                                                 className="form-input"
-                                                disabled={busy}
+                                                disabled={busy || dueAtLocked}
                                             />
+                                            {isPakaiDiLab && (
+                                                <p className="text-xs text-muted-foreground">
+                                                    Mengikuti jam selesai
+                                                    jadwal mata pelajaran.
+                                                    Tidak dapat diubah.
+                                                </p>
+                                            )}
                                             {isBawaPulang && (
                                                 <p className="text-xs text-muted-foreground">
                                                     Maksimal {bawaPulangMaxDays}{" "}

@@ -250,7 +250,7 @@ class LoanWorkflowService
                     'items' => 'Barang tidak valid untuk jenis peminjaman ini.',
                 ]);
             }
-            if ($equipment->status !== 'tersedia') {
+            if (! $equipment->isAvailableForInventory()) {
                 throw ValidationException::withMessages([
                     'items' => "{$equipment->name} sedang tidak tersedia untuk dipinjam.",
                 ]);

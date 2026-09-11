@@ -9,16 +9,16 @@ export default function StatusBadge({ status }) {
     return (
         <span
             className={cn(
-                "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium",
+                "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold",
                 active
-                    ? "border-success/20 bg-success/10 text-success"
-                    : "border-muted-foreground/20 bg-muted text-muted-foreground",
+                    ? "border-transparent bg-emerald-50 text-emerald-700"
+                    : "border-transparent bg-muted text-muted-foreground",
             )}
         >
             <span
                 className={cn(
                     "mr-1.5 h-1.5 w-1.5 rounded-full",
-                    active ? "bg-success" : "bg-muted-foreground",
+                    active ? "bg-emerald-500" : "bg-muted-foreground",
                 )}
             />
             {active ? "Aktif" : "Nonaktif"}

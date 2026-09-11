@@ -31,29 +31,29 @@ export function AvailableEquipmentTable({ equipment = [], pageSize = 5 }) {
             <div className="-mx-1 overflow-x-auto px-1 sm:mx-0 sm:px-0">
                 <table className="w-full min-w-[800px]">
                     <thead>
-                        <tr className="border-b border-border bg-slate-50">
-                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                        <tr className="border-b bg-muted/50">
+                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                                 Kode
                             </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                                 Nama Alat
                             </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                                 Kategori
                             </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                                 Stok
                             </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                                 Kondisi
                             </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                                 Ketersediaan
                             </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                                 Lokasi
                             </th>
-                            <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
+                            <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                                 Aksi
                             </th>
                         </tr>

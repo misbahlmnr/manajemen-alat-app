@@ -62,6 +62,10 @@ class Equipment extends Model
 
     public function isAvailableForInventory(): bool
     {
+        if ($this->item_type === 'bahan') {
+            return (int) $this->stock > 0;
+        }
+
         return $this->status === 'tersedia';
     }
 
@@ -71,7 +75,7 @@ class Equipment extends Model
             return '';
         }
 
-        if ($this->status === 'tidak_tersedia') {
+        if ($this->stock <= 0) {
             return 'tidak_tersedia';
         }
 
@@ -97,16 +101,16 @@ class Equipment extends Model
         }
 
         match ($value) {
-            'tidak_tersedia', 'nonaktif' => $query->where('status', 'tidak_tersedia'),
-            'habis' => $query->where('status', 'tersedia')->where('available', '<=', 0),
-            'diambil' => $query->where('status', 'tersedia')
+            'tidak_tersedia', 'nonaktif' => $query->where('stock', '<=', 0),
+            'habis' => $query->where('stock', '>', 0)->where('available', '<=', 0),
+            'diambil' => $query->where('stock', '>', 0)
                 ->where('available', '>', 0)
                 ->whereColumn('available', '<', 'stock'),
-            'menipis' => $query->where('status', 'tersedia')
+            'menipis' => $query->where('stock', '>', 0)
                 ->where('available', '>', 0)
                 ->whereNotNull('min_stock')
                 ->whereColumn('available', '<=', 'min_stock'),
-            'tersedia' => $query->where('status', 'tersedia')
+            'tersedia', 'aman' => $query->where('stock', '>', 0)
                 ->where('available', '>', 0)
                 ->where(function ($q) {
                     $q->whereNull('min_stock')
@@ -154,7 +158,7 @@ class Equipment extends Model
 
     public function getIsLowStockAttribute(): bool
     {
-        if ($this->item_type !== 'bahan' || $this->status !== 'tersedia') {
+        if ($this->item_type !== 'bahan' || $this->stock <= 0) {
             return false;
         }
 
@@ -167,6 +171,10 @@ class Equipment extends Model
 
     public function getAvailabilityLabelAttribute(): string
     {
+        if ($this->item_type === 'bahan') {
+            return $this->stock_label;
+        }
+
         if ($this->status === 'tidak_tersedia') {
             return 'tidak_tersedia';
         }
@@ -248,5 +256,14 @@ class Equipment extends Model
         $this->qty_baik = $this->stock;
         $this->qty_rusak_ringan = 0;
         $this->qty_rusak_berat = 0;
+    }
+
+    public function syncInventoryStatusFromStock(): void
+    {
+        if ($this->item_type !== 'bahan') {
+            return;
+        }
+
+        $this->status = (int) $this->stock > 0 ? 'tersedia' : 'tidak_tersedia';
     }
 }

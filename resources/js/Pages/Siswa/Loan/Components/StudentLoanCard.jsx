@@ -73,7 +73,7 @@ export default function StudentLoanCard({
                     : "border-border/60",
             )}
         >
-            <div className="flex flex-col gap-3 border-b border-border/60 bg-muted/20 px-4 py-3 sm:flex-row sm:items-start sm:justify-between sm:px-5">
+            <div className="flex flex-col gap-3 border-b bg-muted/30 px-4 py-3 sm:flex-row sm:items-start sm:justify-between sm:px-5">
                 <div className="flex min-w-0 flex-1 items-start gap-3">
                     <EquipmentImage
                         imageUrl={previewItem?.image_url}
@@ -151,7 +151,7 @@ export default function StudentLoanCard({
                             {visibleItems.map((item) => (
                                 <li
                                     key={item.id ?? item.equipment_id}
-                                    className="flex items-center gap-3 rounded-lg bg-secondary/40 px-3 py-2 text-sm"
+                                    className="flex items-center gap-3 rounded-lg bg-muted/50 px-3 py-2 text-sm"
                                 >
                                     <EquipmentImage
                                         imageUrl={item.image_url}
