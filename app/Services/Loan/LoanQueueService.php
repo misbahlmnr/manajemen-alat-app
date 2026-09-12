@@ -362,8 +362,7 @@ class LoanQueueService
     }
 
     /**
-     * Pakai di lab: due_at selalu jam selesai jadwal.
-     * Tipe lain: clamp agar tidak melebihi time slice.
+     * Batas kembali alat selalu mengikuti time slice, tidak dari input siswa.
      */
     public function applyDueAtForLoan(Loan $loan, ?Carbon $from = null): void
     {
@@ -372,20 +371,9 @@ class LoanQueueService
         }
 
         $loan->loadMissing('schedule');
-
-        if ($loan->isPakaiDiLab() && $loan->schedule) {
-            $loan->update([
-                'due_at' => $this->resolveTimeSliceDueAt($loan, $from),
-            ]);
-
-            return;
-        }
-
-        if ($loan->due_at) {
-            $loan->update([
-                'due_at' => $this->clampDueAtToTimeSlice($loan, $from),
-            ]);
-        }
+        $loan->update([
+            'due_at' => $this->resolveTimeSliceDueAt($loan, $from),
+        ]);
     }
 
     /**

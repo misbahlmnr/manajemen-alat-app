@@ -95,6 +95,13 @@ export default function Show({ loan }) {
                                                 </span>
                                             </MetaRow>
                                         )}
+                                    {loan.supervisor_name ? (
+                                        <MetaRow label="Guru">
+                                            <span className="text-sm font-medium">
+                                                {loan.supervisor_name}
+                                            </span>
+                                        </MetaRow>
+                                    ) : null}
                                     {loan.purpose && (
                                         <MetaRow label="Tujuan">
                                             <span className="max-w-[10rem] truncate text-sm font-medium">
@@ -281,7 +288,21 @@ function MetaRow({ label, children }) {
     );
 }
 
+function hasDisplayValue(value) {
+    if (value == null) {
+        return false;
+    }
+
+    const text = String(value).trim();
+
+    return text !== "" && text !== "—";
+}
+
 function Info({ label, value, hint }) {
+    if (!hasDisplayValue(value)) {
+        return null;
+    }
+
     return (
         <div className="rounded-lg border bg-muted/50 p-4">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">

@@ -149,6 +149,31 @@ class LoanBookingAndPriorityTest extends TestCase
         $this->assertSame('bawa_pulang_lomba', $loan->queueTypeKey());
     }
 
+    public function test_pribadi_due_at_is_forced_to_lab_close_time(): void
+    {
+        $this->travelTo(Carbon::parse('2026-09-09 10:00:00'));
+
+        $siswa = $this->makeUser('siswa', 'siswa-due-lock');
+        $alat = $this->makeEquipment('alat', available: 5);
+
+        $this->actingAs($siswa)->post(route('siswa.loans.store'), [
+            'item_type' => 'alat',
+            'request_date' => '2026-09-09',
+            'purpose' => 'Pribadi',
+            'notes' => 'Pribadi',
+            'borrow_scope' => 'lab',
+            'borrow_reason' => 'lanjutan',
+            'usage_room' => 'Ruang Assembly',
+            'due_at' => '2026-09-09T14:00',
+            'items' => [
+                ['equipment_id' => $alat->id, 'quantity' => 1],
+            ],
+        ])->assertRedirect(route('siswa.loans.index', ['scope' => 'active']));
+
+        $loan = Loan::query()->where('borrower_id', $siswa->id)->latest('id')->first();
+        $this->assertSame('2026-09-09 17:00:00', $loan->due_at->format('Y-m-d H:i:s'));
+    }
+
     private function makeWeeklySchedule(User $guru, string $hari, string $start, string $end): PracticumSchedule
     {
         return PracticumSchedule::query()->create([

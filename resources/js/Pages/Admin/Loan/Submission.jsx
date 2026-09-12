@@ -2,101 +2,18 @@ import AppLayout from "@/Layouts/AppLayout";
 import PageHeader from "@/Components/PageHeader";
 import LoanStatusBadge from "@/Components/LoanStatusBadge";
 import SubmissionTypeBadges from "@/Components/SubmissionTypeBadges";
+import SubmissionTypeCard from "@/Components/SubmissionTypeCard";
 import { Button } from "@/Components/ui/button";
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from "@/Components/ui/card";
+import { Card, CardContent } from "@/Components/ui/card";
 import { Head, Link } from "@inertiajs/react";
 import { ArrowLeft, Package, Wrench } from "lucide-react";
-
-function ItemLines({ loan }) {
-    const items = loan?.items ?? [];
-    if (!items.length) {
-        return (
-            <p className="text-sm text-muted-foreground">
-                {loan?.items_summary || "Tidak ada item"}
-            </p>
-        );
-    }
-
-    return (
-        <ul className="space-y-1.5">
-            {items.map((item) => (
-                <li
-                    key={item.id ?? item.equipment_id}
-                    className="flex items-center justify-between gap-3 text-sm"
-                >
-                    <span className="font-medium">
-                        {item.equipment_name ?? "Item"}
-                    </span>
-                    <span className="tabular-nums text-muted-foreground">
-                        ×{item.quantity}
-                    </span>
-                </li>
-            ))}
-        </ul>
-    );
-}
-
-function TypeCard({ title, icon: Icon, loan, emptyLabel, manageHref, accent }) {
-    const hasLoan = Boolean(loan);
-
-    return (
-        <Card className={`rounded-[10px] border-border/60 shadow-card ${accent}`}>
-            <CardHeader className="pb-3">
-                <div className="flex items-start justify-between gap-3">
-                    <div>
-                        <CardTitle className="flex items-center gap-2 text-base">
-                            <Icon className="h-4 w-4" />
-                            {title}
-                        </CardTitle>
-                        <CardDescription>
-                            {hasLoan
-                                ? loan.item_type_label
-                                : emptyLabel}
-                        </CardDescription>
-                    </div>
-                    {hasLoan && (
-                        <LoanStatusBadge
-                            status={loan.status}
-                            itemType={loan.item_type}
-                        />
-                    )}
-                </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                {hasLoan ? (
-                    <>
-                        <ItemLines loan={loan} />
-                        {loan.status === "antrian" && loan.queue_position && (
-                            <p className="text-xs text-amber-800">
-                                Antrian #{loan.queue_position}
-                                {loan.queue_type_label
-                                    ? ` · ${loan.queue_type_label}`
-                                    : ""}
-                            </p>
-                        )}
-                        <Button asChild className="w-full sm:w-auto">
-                            <Link href={manageHref}>
-                                Kelola {title}
-                            </Link>
-                        </Button>
-                    </>
-                ) : (
-                    <p className="text-sm text-muted-foreground">{emptyLabel}</p>
-                )}
-            </CardContent>
-        </Card>
-    );
-}
 
 export default function Submission({ submission }) {
     const alat = submission.alat;
     const bahan = submission.bahan;
+    const scheduleLabel = [alat?.schedule_title, alat?.slot_label]
+        .filter(Boolean)
+        .join(" · ");
 
     return (
         <AppLayout>
@@ -157,6 +74,16 @@ export default function Submission({ submission }) {
                                     </p>
                                 </div>
                             </div>
+                            {alat?.schedule_title ? (
+                                <div>
+                                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                                        Jadwal
+                                    </p>
+                                    <p className="mt-1 font-medium">
+                                        {scheduleLabel}
+                                    </p>
+                                </div>
+                            ) : null}
                             <div className="flex flex-wrap items-center gap-2 pt-1">
                                 <SubmissionTypeBadges
                                     alatCount={submission.alat_count}
@@ -177,24 +104,28 @@ export default function Submission({ submission }) {
                 </Card>
 
                 <div className="grid gap-6 lg:grid-cols-2">
-                    <TypeCard
+                    <SubmissionTypeCard
                         title="Alat"
                         icon={Wrench}
                         loan={alat}
                         emptyLabel="Tidak ada alat pada pengajuan ini"
-                        manageHref={
-                            alat ? route("admin.loans.show", alat.id) : "#"
+                        actionHref={
+                            alat ? route("admin.loans.show", alat.id) : null
                         }
+                        actionLabel="Kelola Alat"
+                        actionVariant="default"
                         accent="border-violet-500/20"
                     />
-                    <TypeCard
+                    <SubmissionTypeCard
                         title="Bahan"
                         icon={Package}
                         loan={bahan}
                         emptyLabel="Tidak ada bahan pada pengajuan ini"
-                        manageHref={
-                            bahan ? route("admin.loans.show", bahan.id) : "#"
+                        actionHref={
+                            bahan ? route("admin.loans.show", bahan.id) : null
                         }
+                        actionLabel="Kelola Bahan"
+                        actionVariant="default"
                         accent="border-amber-500/20"
                     />
                 </div>

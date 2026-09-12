@@ -149,11 +149,13 @@ export default function Show({ loan }) {
                                             itemType={loan.item_type}
                                         />
                                     </MetaRow>
-                                    <MetaRow label="Guru Pembimbing">
-                                        <span className="text-sm font-medium">
-                                            {loan.supervisor_name}
-                                        </span>
-                                    </MetaRow>
+                                    {loan.supervisor_name ? (
+                                        <MetaRow label="Guru Pembimbing">
+                                            <span className="text-sm font-medium">
+                                                {loan.supervisor_name}
+                                            </span>
+                                        </MetaRow>
+                                    ) : null}
                                 </div>
                                 {loan.rejection_reason && (
                                     <p className="mt-4 rounded-[8px] border border-destructive/20 bg-destructive/5 p-3 text-xs text-destructive">
@@ -390,7 +392,21 @@ function MetaRow({ label, children }) {
     );
 }
 
+function hasDisplayValue(value) {
+    if (value == null) {
+        return false;
+    }
+
+    const text = String(value).trim();
+
+    return text !== "" && text !== "—";
+}
+
 function Info({ label, value, hint }) {
+    if (!hasDisplayValue(value)) {
+        return null;
+    }
+
     return (
         <div className="rounded-lg border bg-muted/50 p-4">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">

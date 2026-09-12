@@ -241,6 +241,27 @@ class LoanQueueServiceTest extends TestCase
         );
     }
 
+    public function test_apply_due_at_forces_lab_close_for_pribadi(): void
+    {
+        $siswa = $this->makeUser('siswa', 'siswa-pribadi-due');
+        $equipment = $this->makeEquipment('alat', available: 3);
+        $loan = $this->makeQueuedLoan($siswa, $equipment, borrowReason: 'lanjutan');
+        $loan->update([
+            'status' => 'diminta',
+            'borrow_scope' => 'lab',
+            'borrow_reason' => 'lanjutan',
+            'request_date' => now()->toDateString(),
+            'due_at' => now()->setTime(14, 0),
+        ]);
+
+        $this->queue->applyDueAtForLoan($loan->fresh());
+
+        $this->assertSame(
+            now()->toDateString().' 17:00:00',
+            $loan->fresh()->due_at->format('Y-m-d H:i:s'),
+        );
+    }
+
     public function test_process_queue_promotes_when_stock_available(): void
     {
         $equipment = $this->makeEquipment('bahan', available: 0);

@@ -553,7 +553,6 @@ export default function Create({
     const supervisorLocked =
         (isPakaiDiLab || isBawaPulang) && Boolean(selectedSchedule?.guru_id);
     const roomLocked = isPakaiDiLab && Boolean(selectedSchedule?.ruangan);
-    const dueAtLocked = isPakaiDiLab;
     const scheduleEndAt = selectedSchedule
         ? new Date(
               toDateTimeLocal(
@@ -595,6 +594,26 @@ export default function Create({
         selectedSchedule?.jam_selesai,
         data.request_date,
     ]);
+
+    useEffect(() => {
+        if (!isPribadi) {
+            return;
+        }
+
+        const dueAt = buildDueAt(
+            data.request_date || todayLocalDate(),
+            schoolCloseTime,
+        );
+
+        if (data.due_at === dueAt) {
+            return;
+        }
+
+        setData((prev) => ({
+            ...prev,
+            due_at: dueAt,
+        }));
+    }, [isPribadi, data.request_date, schoolCloseTime]);
 
     const totalItems = cart.reduce((s, i) => s + i.quantity, 0);
     const collateralRequired =
@@ -1432,14 +1451,9 @@ export default function Create({
                                             <input
                                                 type="datetime-local"
                                                 value={data.due_at}
-                                                onChange={(e) =>
-                                                    setData(
-                                                        "due_at",
-                                                        e.target.value,
-                                                    )
-                                                }
+                                                readOnly
                                                 className="form-input"
-                                                disabled={busy || dueAtLocked}
+                                                disabled
                                             />
                                             {isPakaiDiLab && (
                                                 <p className="text-xs text-muted-foreground">
@@ -1448,13 +1462,20 @@ export default function Create({
                                                     Tidak dapat diubah.
                                                 </p>
                                             )}
+                                            {isPribadi && (
+                                                <p className="text-xs text-muted-foreground">
+                                                    Mengikuti jam tutup lab (
+                                                    {schoolCloseTime}). Tidak
+                                                    dapat diubah.
+                                                </p>
+                                            )}
                                             {isBawaPulang && (
                                                 <p className="text-xs text-muted-foreground">
                                                     Maksimal {bawaPulangMaxDays}{" "}
                                                     hari setelah tanggal
-                                                    pengajuan, hingga pukul{" "}
-                                                    {schoolCloseTime} (jam
-                                                    operasional lab).
+                                                    pengajuan, pukul{" "}
+                                                    {schoolCloseTime}. Tidak
+                                                    dapat diubah.
                                                 </p>
                                             )}
                                             <InputError

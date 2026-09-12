@@ -215,10 +215,12 @@ export default function StudentLoanCard({
 
                 <div className="flex flex-col gap-3 border-t border-border/60 pt-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                        <span className="inline-flex items-center gap-1">
-                            <User className="h-3.5 w-3.5" />
-                            {loan.supervisor_name ?? "—"}
-                        </span>
+                        {loan.supervisor_name ? (
+                            <span className="inline-flex items-center gap-1">
+                                <User className="h-3.5 w-3.5" />
+                                {loan.supervisor_name}
+                            </span>
+                        ) : null}
                         {!isHistory && loan.item_type === "alat" && loan.due_at_formatted !== "—" && (
                             <span className="inline-flex items-center gap-1">
                                 <Clock className="h-3.5 w-3.5" />
