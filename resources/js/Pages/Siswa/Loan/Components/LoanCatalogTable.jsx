@@ -7,7 +7,10 @@ import { cn } from "@/lib/utils";
 import { useMemo } from "react";
 
 function StockIndicator({ item, isBahan }) {
-    const remain = item.available;
+    const remain = isBahan
+        ? item.available
+        : (item.slot_remaining ?? item.available);
+    const capacity = isBahan ? item.stock : (item.qty_baik ?? item.stock);
     const low = isBahan && item.is_low_stock;
     const queueOpen = remain <= 0;
 
@@ -27,7 +30,7 @@ function StockIndicator({ item, isBahan }) {
             >
                 {isBahan
                     ? `Stok: ${remain} ${item.unit ?? ""}`
-                    : `Tersedia: ${remain} / ${item.stock}`}
+                    : `Sisa jam ini: ${remain} / ${capacity}`}
             </span>
             {queueOpen && (
                 <p className="text-xs text-amber-800">Antrean dibuka</p>

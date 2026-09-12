@@ -43,7 +43,8 @@ export default function Show({ supply }) {
                         <p className="font-medium">Stok bahan sedang kosong.</p>
                         <p className="mt-1 text-amber-900/80">
                             Pengajuan baru tetap dapat dilakukan dan akan masuk
-                            antrean Round Robin berdasarkan waktu pengajuan.
+                            antrian menurut tipe peminjaman, lalu waktu masuk
+                            antrian.
                         </p>
                     </div>
                 )}

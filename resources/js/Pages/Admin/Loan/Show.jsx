@@ -26,7 +26,6 @@ import ReturnLoanDialog from "./Components/ReturnLoanDialog";
 import InspectReturnDialog from "../Collateral/Components/InspectReturnDialog";
 import ReceiveCardDialog from "../Collateral/Components/ReceiveCardDialog";
 import CollateralStatusBadge from "@/Components/CollateralStatusBadge";
-import QueuePriorityPanel from "./Components/QueuePriorityPanel";
 
 export default function Show({ loan }) {
     const [deleteOpen, setDeleteOpen] = useState(false);
@@ -217,10 +216,6 @@ export default function Show({ loan }) {
                     </Button>
                 </PageHeader>
 
-                {loan.can_set_queue_priority && (
-                    <QueuePriorityPanel loan={loan} />
-                )}
-
                 <div className="grid gap-6 lg:grid-cols-3">
                     <div className="space-y-6 lg:col-span-1">
                         <Card className="">
@@ -242,20 +237,25 @@ export default function Show({ loan }) {
                                             itemType={loan.item_type}
                                         />
                                     </MetaRow>
-                                    {loan.borrow_scope === "bawa_pulang" && (
-                                        <MetaRow label="Jenis">
-                                            <span className="text-sm font-medium">
-                                                Bawa Pulang
-                                            </span>
-                                        </MetaRow>
-                                    )}
-                                    {loan.is_catch_up && (
-                                        <MetaRow label="Jenis">
-                                            <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-800">
-                                                Lanjutan praktikum
-                                            </span>
-                                        </MetaRow>
-                                    )}
+                                    {loan.item_type === "alat" &&
+                                        loan.queue_type_label && (
+                                            <MetaRow label="Kategori">
+                                                <span className="text-sm font-medium">
+                                                    {loan.queue_type_label}
+                                                </span>
+                                            </MetaRow>
+                                        )}
+                                    {loan.status === "antrian" &&
+                                        loan.queue_position && (
+                                            <MetaRow label="Antrian">
+                                                <span className="text-sm font-medium">
+                                                    #{loan.queue_position}
+                                                    {loan.queue_type_label
+                                                        ? ` · ${loan.queue_type_label}`
+                                                        : ""}
+                                                </span>
+                                            </MetaRow>
+                                        )}
                                     <MetaRow label="Guru">
                                         <span className="text-sm font-medium">
                                             {loan.supervisor_name}
@@ -282,9 +282,23 @@ export default function Show({ loan }) {
                             </CardHeader>
                             <CardContent className="grid gap-4 sm:grid-cols-2">
                                 <Info
-                                    label="Tanggal pengajuan"
+                                    label="Tanggal booking"
                                     value={loan.request_date_formatted}
                                 />
+                                {loan.item_type === "alat" && (
+                                    <>
+                                        <Info
+                                            label="Kategori"
+                                            value={loan.queue_type_label}
+                                        />
+                                        {loan.slot_label && (
+                                            <Info
+                                                label="Slot"
+                                                value={loan.slot_label}
+                                            />
+                                        )}
+                                    </>
+                                )}
                                 {!isBahan && (
                                     <Info
                                         label="Batas pengembalian"
@@ -305,12 +319,6 @@ export default function Show({ loan }) {
                                     <Info
                                         label="Selesai"
                                         value={loan.returned_at_formatted}
-                                    />
-                                )}
-                                {loan.item_type === "alat" && (
-                                    <Info
-                                        label="Lokasi"
-                                        value={loan.borrow_scope_label}
                                     />
                                 )}
                                 {loan.schedule_title && (

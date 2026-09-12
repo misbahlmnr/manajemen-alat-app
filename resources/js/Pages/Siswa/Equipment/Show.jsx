@@ -49,8 +49,8 @@ export default function Show({ equipment }) {
                             </p>
                             <p className="mt-1 text-amber-900/80">
                                 Pengajuan baru tetap dapat dilakukan dan akan
-                                masuk antrean Round Robin berdasarkan waktu
-                                pengajuan.
+                                masuk antrian menurut tipe peminjaman, lalu
+                                waktu masuk antrian.
                             </p>
                         </div>
                     )}

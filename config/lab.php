@@ -91,8 +91,14 @@ return [
     ],
 
     'borrow_reasons' => [
-        'reguler' => 'Pakai di lab',
+        'reguler' => 'Praktik lab',
         'lanjutan' => 'Pribadi',
+        'lomba' => 'Bawa pulang lomba',
+    ],
+
+    'bawa_pulang_categories' => [
+        'lomba' => 'Bawa pulang lomba',
+        'lanjutan' => 'Bawa pulang project',
     ],
 
     'lab_room_options' => [
@@ -105,11 +111,16 @@ return [
     'school_timezone' => env('LAB_TIMEZONE', 'Asia/Jakarta'),
 
     'queue' => [
-        // Round Robin: FIFO + prioritas admin saja (tanpa skor jadwal otomatis).
+        'lab_open_time' => env('LAB_OPEN_TIME', '07:00'),
         'school_close_time' => env('LAB_SCHOOL_CLOSE_TIME', '17:00'),
         'bawa_pulang_max_days' => (int) env('LAB_BAWA_PULANG_MAX_DAYS', 1),
-        'default_admin_priority' => 150,
-        'max_admin_priority' => 1000,
+        'booking_horizon_days' => (int) env('LAB_BOOKING_HORIZON_DAYS', 7),
+        'type_scores' => [
+            'bawa_pulang_lomba' => 400,
+            'praktikum' => 300,
+            'pribadi' => 200,
+            'bawa_pulang_project' => 100,
+        ],
     ],
 
     'schedule_types' => [

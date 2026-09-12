@@ -121,8 +121,9 @@ export default function Show({ loan }) {
                             .
                         </p>
                         <p className="mt-1 text-muted-foreground">
-                            Stok alat sedang habis. Anda akan diberitahu saat
-                            stok tersedia dan pengajuan siap ditinjau admin.
+                            Urutan antrian mengikuti prioritas tipe peminjaman,
+                            lalu waktu masuk antrian. Satu pinjaman = satu jatah
+                            sampai batas kembali.
                         </p>
                     </div>
                 )}
@@ -171,18 +172,24 @@ export default function Show({ loan }) {
                             </CardHeader>
                             <CardContent className="grid gap-4 sm:grid-cols-2">
                                 <Info
-                                    label="Tanggal pengajuan"
+                                    label="Tanggal booking"
                                     value={loan.request_date_formatted}
                                 />
                                 {loan.item_type === "alat" && (
                                     <>
                                         <Info
+                                            label="Kategori"
+                                            value={loan.queue_type_label}
+                                        />
+                                        {loan.slot_label && (
+                                            <Info
+                                                label="Slot"
+                                                value={loan.slot_label}
+                                            />
+                                        )}
+                                        <Info
                                             label="Batas pengembalian"
                                             value={loan.due_at_formatted}
-                                        />
-                                        <Info
-                                            label="Kebutuhan penggunaan"
-                                            value={loan.borrow_scope_label}
                                         />
                                         {loan.usage_room && (
                                             <Info

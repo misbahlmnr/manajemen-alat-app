@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Loan;
 use App\Models\Submission;
 use App\Services\Loan\LoanQueueService;
+use App\Services\Loan\LoanSlotAvailabilityService;
 use App\Services\Loan\LoanWorkflowService;
 use App\Services\Loan\SubmissionPresenter;
 use Illuminate\Http\Request;
@@ -17,6 +18,7 @@ class LoanController extends Controller
     public function __construct(
         private LoanWorkflowService $workflow,
         private LoanQueueService $queueService,
+        private LoanSlotAvailabilityService $slotAvailability,
         private SubmissionPresenter $submissions,
     ) {}
 
@@ -93,7 +95,7 @@ class LoanController extends Controller
         $loan->load([
             'submission:id,code,borrower_id,supervisor_id,purpose,notes,request_date',
             'borrower:id,name,class,nisn',
-            'schedule:id,code,title,mata_kuliah,tanggal,kelas',
+            'schedule:id,code,title,mata_kuliah,tanggal,kelas,jam_mulai,jam_selesai',
             'items.equipment:id,code,name,item_type,category,unit',
             'statusLogs.user:id,name',
             'collateral',
@@ -114,7 +116,7 @@ class LoanController extends Controller
             'borrower:id,name,class,nisn',
             'supervisor:id,name',
             'loans.borrower:id,name,class',
-            'loans.schedule:id,code,title,mata_kuliah,tanggal,kelas',
+            'loans.schedule:id,code,title,mata_kuliah,tanggal,kelas,jam_mulai,jam_selesai',
             'loans.items.equipment:id,code,name,item_type,unit',
             'loans.collateral',
         ]);
@@ -213,6 +215,9 @@ class LoanController extends Controller
             'borrow_scope_label' => $loan->borrowLocationLabel(),
             'borrow_reason' => $loan->borrow_reason,
             'borrow_reason_label' => $loan->borrowReasonLabel(),
+            'queue_type_key' => $loan->queueTypeKey(),
+            'queue_type_label' => $loan->queueTypeLabel(),
+            'slot_label' => $loan->isAlat() ? $this->slotAvailability->slotLabel($loan) : null,
             'is_catch_up' => $loan->isCatchUp(),
             'items_summary' => $itemsSummary ?: '—',
             'items_count' => count($items),

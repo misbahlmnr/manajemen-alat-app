@@ -9,6 +9,21 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Loan extends Model
 {
+    public const SLOT_OCCUPYING_STATUSES = [
+        'diminta',
+        'disetujui',
+        'dipinjam',
+        'terlambat',
+        'menunggu_inspeksi',
+    ];
+
+    public const SLOT_FIRM_STATUSES = [
+        'disetujui',
+        'dipinjam',
+        'terlambat',
+        'menunggu_inspeksi',
+    ];
+
     protected $fillable = [
         'code',
         'submission_id',
@@ -20,6 +35,7 @@ class Loan extends Model
         'status',
         'queue_priority',
         'queued_at',
+        'stock_held',
         'queue_priority_note',
         'queue_priority_set_by',
         'queue_priority_set_at',
@@ -43,6 +59,7 @@ class Loan extends Model
             'due_at' => 'datetime',
             'returned_at' => 'datetime',
             'queued_at' => 'datetime',
+            'stock_held' => 'boolean',
             'queue_priority_set_at' => 'datetime',
         ];
     }
@@ -109,7 +126,9 @@ class Loan extends Model
 
     public function isCatchUp(): bool
     {
-        return $this->borrow_reason === 'lanjutan';
+        return $this->isAlat()
+            && $this->borrow_scope !== 'bawa_pulang'
+            && $this->borrow_reason === 'lanjutan';
     }
 
     public function isPakaiDiLab(): bool
@@ -119,10 +138,62 @@ class Loan extends Model
             && ! $this->isCatchUp();
     }
 
+    public function isBawaPulangLomba(): bool
+    {
+        return $this->isAlat()
+            && $this->borrow_scope === 'bawa_pulang'
+            && $this->borrow_reason === 'lomba';
+    }
+
+    public function queueTypeKey(): ?string
+    {
+        if (! $this->isAlat()) {
+            return null;
+        }
+
+        if ($this->isBawaPulangLomba()) {
+            return 'bawa_pulang_lomba';
+        }
+
+        if ($this->isPakaiDiLab()) {
+            return 'praktikum';
+        }
+
+        if ($this->isCatchUp()) {
+            return 'pribadi';
+        }
+
+        if ($this->borrow_scope === 'bawa_pulang') {
+            return 'bawa_pulang_project';
+        }
+
+        return null;
+    }
+
+    public function queueTypeLabel(): string
+    {
+        if (! $this->isAlat()) {
+            return 'Bahan';
+        }
+
+        return match ($this->queueTypeKey()) {
+            'bawa_pulang_lomba' => 'Bawa pulang lomba',
+            'praktikum' => 'Praktik lab',
+            'pribadi' => 'Pribadi',
+            'bawa_pulang_project' => 'Bawa pulang project',
+            default => 'Antrian',
+        };
+    }
+
     public function borrowReasonLabel(): ?string
     {
         if (! $this->borrow_reason) {
             return null;
+        }
+
+        if ($this->borrow_scope === 'bawa_pulang') {
+            return config("lab.bawa_pulang_categories.{$this->borrow_reason}")
+                ?? config("lab.borrow_reasons.{$this->borrow_reason}");
         }
 
         return config("lab.borrow_reasons.{$this->borrow_reason}");
@@ -131,23 +202,15 @@ class Loan extends Model
     public function borrowScopeLabel(): string
     {
         if ($this->borrow_scope === 'bawa_pulang') {
-            return 'Bawa Pulang';
+            return 'Bawa pulang';
         }
 
-        return 'Pakai di Lab';
+        return 'Praktik lab';
     }
 
     public function borrowLocationLabel(): string
     {
-        if ($this->borrow_scope === 'bawa_pulang') {
-            return 'Bawa Pulang';
-        }
-
-        if ($this->isCatchUp()) {
-            return 'Pribadi';
-        }
-
-        return 'Pakai di Lab';
+        return $this->queueTypeLabel();
     }
 
     public static function generateCode(): string

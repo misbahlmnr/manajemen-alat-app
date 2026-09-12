@@ -5,11 +5,11 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\RejectLoanRequest;
 use App\Http\Requests\Admin\ReturnLoanRequest;
-use App\Http\Requests\Admin\SetQueuePriorityRequest;
 use App\Models\Loan;
 use App\Models\Submission;
 use App\Models\User;
 use App\Services\Loan\LoanQueueService;
+use App\Services\Loan\LoanSlotAvailabilityService;
 use App\Services\Loan\LoanWorkflowService;
 use App\Services\Loan\SubmissionPresenter;
 use Illuminate\Http\RedirectResponse;
@@ -22,6 +22,7 @@ class LoanController extends Controller
     public function __construct(
         private LoanWorkflowService $workflow,
         private LoanQueueService $queueService,
+        private LoanSlotAvailabilityService $slotAvailability,
         private SubmissionPresenter $submissions,
     ) {}
 
@@ -101,7 +102,7 @@ class LoanController extends Controller
             'submission:id,code,borrower_id,supervisor_id,purpose,notes,request_date',
             'borrower:id,name,role,class,nisn',
             'supervisor:id,name,nip',
-            'schedule:id,code,title,mata_kuliah,tanggal',
+            'schedule:id,code,title,mata_kuliah,tanggal,jam_mulai,jam_selesai',
             'items.equipment:id,code,name,item_type,category',
             'statusLogs.user:id,name',
             'collateral',
@@ -125,7 +126,7 @@ class LoanController extends Controller
             'supervisor:id,name,nip',
             'loans.borrower:id,name,role,class',
             'loans.supervisor:id,name',
-            'loans.schedule:id,code,title,mata_kuliah,tanggal',
+            'loans.schedule:id,code,title,mata_kuliah,tanggal,jam_mulai,jam_selesai',
             'loans.items.equipment:id,code,name,item_type,category',
             'loans.collateral.heldByAdmin:id,name',
         ]);
@@ -195,41 +196,6 @@ class LoanController extends Controller
         return back()->with('success', $message);
     }
 
-    public function setQueuePriority(SetQueuePriorityRequest $request, Loan $loan): RedirectResponse
-    {
-        $this->authorize('setQueuePriority', $loan);
-
-        $validated = $request->validated();
-
-        if ($request->boolean('use_default')) {
-            $this->queueService->applyDefaultAdminPriority(
-                $loan,
-                $validated['note'] ?? null,
-                $request->user(),
-            );
-        } else {
-            $priority = $validated['queue_priority'] ?? null;
-
-            $this->queueService->setAdminPriority(
-                $loan,
-                $priority && (int) $priority > 0 ? (int) $priority : null,
-                $validated['note'] ?? null,
-                $request->user(),
-            );
-        }
-
-        return back()->with('success', 'Prioritas antrian berhasil diperbarui.');
-    }
-
-    public function resetQueuePriority(Loan $loan): RedirectResponse
-    {
-        $this->authorize('setQueuePriority', $loan);
-
-        $this->queueService->setAdminPriority($loan, null, null, request()->user());
-
-        return back()->with('success', 'Prioritas antrian direset ke Round Robin (FIFO).');
-    }
-
     private function syncItems(Loan $loan, array $rows): void
     {
         $loan->items()->delete();
@@ -289,6 +255,12 @@ class LoanController extends Controller
         $collateral = $loan->collateral;
         $needsCollateralReceipt = $loan->requiresCollateral() && $collateral?->status !== 'ditahan';
         $approvedAlat = $loan->isAlat() && $loan->status === 'disetujui';
+        $handoverBlockedReason = $approvedAlat
+            ? $this->slotAvailability->handoverBlockedReason($loan)
+            : null;
+        $markBorrowedBlockedReason = $approvedAlat && $needsCollateralReceipt
+            ? 'Belum menerima jaminan kartu'
+            : $handoverBlockedReason;
 
         $data = [
             'id' => $loan->id,
@@ -334,16 +306,16 @@ class LoanController extends Controller
             'borrow_scope_label' => $loan->borrowLocationLabel(),
             'borrow_reason' => $loan->borrow_reason,
             'borrow_reason_label' => $loan->borrowReasonLabel(),
+            'queue_type_key' => $loan->queueTypeKey(),
+            'queue_type_label' => $loan->queueTypeLabel(),
+            'slot_label' => $loan->isAlat() ? $this->slotAvailability->slotLabel($loan) : null,
             'is_catch_up' => $loan->isCatchUp(),
             'items_summary' => $itemsSummary ?: '—',
             'created_at_formatted' => $loan->created_at?->translatedFormat('d M Y'),
             'can_approve' => $loan->status === 'diminta',
             'can_reject' => in_array($loan->status, ['diminta', 'antrian', 'disetujui'], true),
-            'can_set_queue_priority' => $loan->status === 'antrian',
-            'can_mark_borrowed' => $approvedAlat && ! $needsCollateralReceipt,
-            'mark_borrowed_blocked_reason' => $approvedAlat && $needsCollateralReceipt
-                ? 'Belum menerima jaminan kartu'
-                : null,
+            'can_mark_borrowed' => $approvedAlat && $markBorrowedBlockedReason === null,
+            'mark_borrowed_blocked_reason' => $markBorrowedBlockedReason,
             'can_return' => $loan->isAlat() && in_array($loan->status, ['dipinjam', 'terlambat'], true),
             'can_inspect' => $loan->status === 'menunggu_inspeksi',
             'can_edit' => false,

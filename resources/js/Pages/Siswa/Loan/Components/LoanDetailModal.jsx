@@ -54,10 +54,10 @@ export default function LoanDetailModal({ loan, borrower, onClose, footer }) {
                             status={loan.status}
                             itemType={loan.item_type}
                         />
-                        {!isBahan && loan.borrow_scope && (
+                        {!isBahan && (loan.queue_type_label || loan.borrow_scope_label) && (
                             <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
                                 <MapPin className="h-3 w-3" />
-                                {loan.borrow_scope_label}
+                                {loan.queue_type_label || loan.borrow_scope_label}
                             </span>
                         )}
                         {loan.collateral_status && (
@@ -150,24 +150,22 @@ export default function LoanDetailModal({ loan, borrower, onClose, footer }) {
                                 <div className="mb-1 flex items-center gap-2">
                                     <Calendar className="h-4 w-4 text-muted-foreground" />
                                     <span className="text-xs text-muted-foreground">
-                                        Pinjam
+                                        Tanggal booking
                                     </span>
                                 </div>
                                 <p className="text-sm font-medium">
-                                    {loan.borrowed_at_formatted !== "—"
-                                        ? loan.borrowed_at_formatted
-                                        : loan.request_date_formatted}
+                                    {loan.request_date_formatted || "—"}
                                 </p>
                             </div>
                             <div className="rounded-lg border bg-muted/50 p-3">
                                 <div className="mb-1 flex items-center gap-2">
                                     <Clock className="h-4 w-4 text-muted-foreground" />
                                     <span className="text-xs text-muted-foreground">
-                                        Batas Kembali
+                                        {loan.slot_label ? "Slot" : "Batas kembali"}
                                     </span>
                                 </div>
                                 <p className="text-sm font-medium">
-                                    {loan.due_at_formatted}
+                                    {loan.slot_label || loan.due_at_formatted}
                                 </p>
                             </div>
                         </div>

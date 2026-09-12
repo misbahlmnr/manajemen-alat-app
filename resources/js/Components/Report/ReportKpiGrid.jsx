@@ -58,7 +58,7 @@ export default function ReportKpiGrid({ stats = {}, isGuruScope = false }) {
               {
                   label: "Dalam Antrian",
                   value: stats.queued ?? 0,
-                  subtitle: "Menunggu stok Round Robin",
+                  subtitle: "Menunggu stok / antrian",
                   icon: ListOrdered,
               },
               {
@@ -99,7 +99,7 @@ export default function ReportKpiGrid({ stats = {}, isGuruScope = false }) {
               {
                   label: "Dalam Antrian",
                   value: stats.queued ?? 0,
-                  subtitle: "Menunggu stok Round Robin",
+                  subtitle: "Menunggu stok / antrian",
                   icon: ListOrdered,
               },
               {

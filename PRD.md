@@ -26,7 +26,7 @@ Tujuannya: siswa mengajukan pemakaian secara digital, admin lab menyetujui dan m
 
 - Stok tersedia di lab berkurang otomatis saat pengajuan disetujui, dan kembali otomatis saat pengembalian (alat) atau tetap terpotong (bahan).
 - Satu pengajuan siswa bisa berisi alat dan bahan sekaligus (paket), tetapi diproses terpisah di backend.
-- Antrian stok adil (FIFO) dengan opsi prioritas admin.
+- Antrian stok menurut prioritas tipe peminjaman, lalu waktu antre; satu pinjaman = satu jatah sampai batas kembali.
 - Laporan inventaris, peminjaman, dan pengguna siap diekspor.
 
 ---
@@ -81,7 +81,7 @@ Kelas siswa mengikuti opsi: X TE 1–4, XI TAV 1–3, XII TAV 1–3.
 3. **Jadwal sekolah memakai hari Indonesia.** “Hari ini” = kalender `Asia/Jakarta`, termasuk Jumat dini hari.
 4. **Bawa pulang selalu berjaminan.** Kartu pelajar ditahan sebelum alat diserahkan.
 5. **Alat dikembalikan, bahan tidak.** Bahan habis pakai langsung berstatus diambil setelah disetujui.
-6. **Antrian adil, kecuali admin menaikkan prioritas.** Default FIFO per barang.
+6. **Antrian menurut tipe, bukan tombol admin.** Skor otomatis dari kategori pinjaman; tie-break waktu masuk antrian.
 
 ---
 
@@ -94,9 +94,9 @@ Kelas siswa mengikuti opsi: X TE 1–4, XI TAV 1–3, XII TAV 1–3.
 - CRUD alat dan bahan (stok, kondisi, foto, lokasi)
 - Jadwal praktikum mingguan & khusus
 - Pengajuan siswa (alat, bahan, atau paket)
-- Tiga tipe penggunaan alat: Pakai di lab, Pribadi, Bawa pulang
+- Empat tipe penggunaan alat: Praktik lab, Pribadi, Bawa pulang lomba, Bawa pulang project
 - Workflow admin: setujui / tolak / tandai dipinjam / pengembalian / batalkan
-- Antrian stok + prioritas admin
+- Antrian stok per jam (slot) + prioritas tipe otomatis
 - Jaminan kartu, inspeksi, kompensasi
 - Dashboard per peran
 - Notifikasi in-app dan Web Push
@@ -150,9 +150,8 @@ Setiap alat punya:
 
 - Form admin hanya mengisi jumlah per kondisi. Total = jumlah ketiga kondisi.
 - `available` tidak diisi manual saat peminjaman.
-- Saat pengajuan **disetujui**: `available` berkurang sejumlah item.
-- Saat **dikembalikan / ditolak setelah disetujui / dibatalkan setelah stok terpotong**: `available` bertambah kembali (maksimal sisa kapasitas).
-- Saat ditandai **dipinjam**, stok **tidak** dipotong lagi (sudah ter-reserve saat disetujui).
+- Kapasitas booking alat = `qty_baik` per jendela jam (slot). `available` fisik berkurang saat slot sudah mulai (atau saat admin menandai dipinjam), bukan otomatis di detik approve booking masa depan.
+- Saat **dikembalikan / ditolak setelah stok dipegang / dibatalkan setelah stok terpotong**: `available` bertambah kembali (maksimal sisa kapasitas).
 - Inspeksi rusak: pindahkan kuantitas dari baik ke rusak, dan kurangi `available` jika perlu.
 - Label ketersediaan di tabel: `tersedia`, `dipinjam` (sebagian), `habis` (antrian dibuka), `rusak`, `tidak_tersedia`.
 - Tampilan tabel: **Stok Tersedia** = `available / stock` (contoh `19 / 20`).
@@ -198,8 +197,8 @@ Ruang: Ruang Assembly, Ruang Komputer, Ruang Instalasi, Ruang Terbuka.
 ### 8.2 Aturan tampil ke siswa
 
 - Hanya jadwal **kelas siswa yang login**.
-- Hanya jadwal yang **cocok hari ini** (zona `Asia/Jakarta`).
-- Jadwal yang jam selesainya sudah lewat dianggap selesai; pengajuan “Pakai di lab” ditolak, siswa diarahkan ke tipe **Pribadi**.
+- Booking praktikum: pilih tanggal dulu (maks. 7 hari ke depan), lalu mapel yang cocok hari itu.
+- Jika tanggal booking adalah **hari ini** dan jam selesai jadwal sudah lewat, pengajuan praktik lab ditolak; siswa diarahkan ke tipe **Pribadi**.
 
 Admin dan guru melihat daftar lengkap (guru: lihat saja).
 
@@ -213,24 +212,26 @@ Siswa mengajukan dari satu keranjang. Boleh campur alat + bahan; sistem membuat 
 
 | Tipe UI | `borrow_scope` | `borrow_reason` | Jadwal | Jaminan | Batas kembali |
 |---|---|---|---|---|---|
-| Pakai di lab | `lab` | `reguler` | Wajib, hari ini | Tidak | **Terkunci** ke jam selesai jadwal |
-| Pribadi | `lab` | `lanjutan` | Tidak | Tidak | Jam tutup sekolah hari itu (default 17:00), bisa diisi siswa dalam batas |
-| Bawa pulang | `bawa_pulang` | — | Opsional (hari ini) | **Wajib kartu pelajar** | Maks. N hari (default 1) sampai jam tutup sekolah |
+| Praktik lab | `lab` | `reguler` | Wajib, hari yang sama dengan tanggal booking | Tidak | **Terkunci** ke jam selesai jadwal |
+| Pribadi | `lab` | `lanjutan` | Tidak | Tidak | Jam tutup sekolah hari booking (default 17:00) |
+| Bawa pulang lomba | `bawa_pulang` | `lomba` | Opsional | **Wajib kartu pelajar** | Maks. N hari (default 1) sampai jam tutup sekolah |
+| Bawa pulang project | `bawa_pulang` | `lanjutan` | Opsional | **Wajib kartu pelajar** | Sama seperti lomba; prioritas antrian paling belakang |
 
-**Pakai di lab — field terkunci**
+**Praktik lab — field terkunci**
 
-- Tanggal pengajuan = tanggal jadwal hari ini.
-- Batas kembali = tanggal + `jam_selesai` jadwal (siswa tidak boleh ubah).
+- Tanggal booking dipilih siswa (hari ini s.d. horizon 7 hari), lalu mapel yang `hari`-nya cocok.
+- Batas kembali = tanggal booking + `jam_selesai` jadwal (siswa tidak boleh ubah).
 - Guru pembimbing = guru di jadwal (jika terisi).
 - Ruang = ruang jadwal (jika terisi).
+- Diajukan ketua kelompok; keanggotaan kelompok di luar sistem.
 
 **Validasi penting**
 
 - Batas kembali tidak boleh melebihi time slice tipe tersebut.
-- Pakai di lab: jadwal harus masih aktif (belum lewat jam selesai).
-- Bawa pulang: siswa harus menyetujui jaminan kartu.
+- Praktik lab: jika tanggal booking = hari ini, jadwal harus belum lewat jam selesai.
+- Bawa pulang: siswa harus menyetujui jaminan kartu. Boleh diajukan kapan saja dalam horizon; ambil lomba setelah jam mapel barang itu selesai.
 - Item harus milik jenis yang benar (alat vs bahan) dan masih “tersedia” sebagai inventaris (`stock > 0` untuk bahan; `status = tersedia` untuk alat).
-- Jika stok saat ini tidak cukup, pengajuan **tetap diterima** sebagai antrian (bukan ditolak).
+- Jika sisa stok **di jam/slot itu** tidak cukup, pengajuan **tetap diterima** sebagai antrian (bukan ditolak).
 
 Siswa dapat **ubah** pengajuan berstatus `diminta`, `antrian`, atau `disetujui`, dan **batalkan** pada status yang sama.  
 Siswa **minta pengembalian** hanya jika alat sedang `dipinjam` / `terlambat`.
@@ -244,7 +245,7 @@ Siswa **minta pengembalian** hanya jika alat sedang `dipinjam` / `terlambat`.
 | Status | Arti |
 |---|---|
 | `diminta` | Menunggu persetujuan, stok cukup |
-| `antrian` | Menunggu stok (Round Robin / FIFO) |
+| `antrian` | Menunggu sisa stok di slot; urutan prioritas tipe lalu waktu antre |
 | `disetujui` | Stok sudah di-reserve (alat); menunggu penyerahan |
 | `dipinjam` | Barang sudah di tangan siswa. Bahan langsung ke sini saat disetujui |
 | `terlambat` | Melewati `due_at` (disinkronkan otomatis) |
@@ -259,15 +260,15 @@ Log status (`LoanStatusLog`) dicatat di setiap transisi.
 
 ```
 Ajukan
-  ├─ stok cukup  → diminta
-  └─ stok kurang → antrian ──(stok masuk / prioritas)──→ diminta
-Admin setujui → available− → disetujui
-  [bawa pulang: terima kartu dulu]
+  ├─ sisa slot cukup  → diminta
+  └─ sisa slot kurang → antrian ──(barang kembali / slot longgar)──→ diminta
+Admin setujui → kalender slot terkunci; available− hanya jika slot sudah mulai
+  [bawa pulang: terima kartu dulu; serah terima setelah jam praktikum barang itu selesai]
 Admin tandai dipinjam → dipinjam → (lewat due) terlambat
 Siswa minta kembali / admin proses kembali
   → menunggu_inspeksi
 Admin inspeksi
-  → dikembalikan + available+
+  → dikembalikan + available+ (jika stok sempat dipegang)
   → jika rusak/tidak lengkap: kompensasi
 ```
 
@@ -282,19 +283,23 @@ Tidak ada inspeksi pengembalian bahan.
 
 ### 10.4 Antrian
 
-- Urutan: **prioritas admin DESC**, lalu **waktu masuk antrian ASC** (FIFO).
-- Default prioritas 0 = murni FIFO.
-- Admin bisa set / reset prioritas pada loan `antrian`.
-- Saat stok bertambah (pengembalian atau restok), sistem memproses antrian barang terkait.
-- Jika admin mencoba menyetujui tetapi stok sudah tidak cukup, loan diturunkan ke antrian.
+- Skor otomatis dari tipe: **lomba 400 → praktik lab 300 → pribadi 200 → bawa pulang project 100**; bahan = 0.
+- Tie-break: `queued_at` ASC, lalu id loan. **Tidak ada tombol prioritas admin.**
+- Satu pinjaman non-praktikum = satu jatah sampai `due_at`. Setelah dikembalikan, antrian berikutnya (bukan praktik lab) bisa diangkat. Ajukan ulang masuk ke ekor.
+- Praktik lab tidak ikut jatah gilir non-praktikum (booking menurut jadwal; jika tabrakan, jadwal paling dekat ke sekarang unggul).
+- Kapasitas alat dihitung **puncak bersamaan per jam/slot** (`qty_baik`), bukan `available` global. Sisa jam mapel boleh dipakai pribadi.
+- Saat stok/slot longgar (pengembalian atau restok), sistem memproses antrian barang terkait.
+- Jika admin mencoba menyetujui tetapi sisa slot tidak cukup, loan diturunkan ke antrian.
 
 ### 10.5 Time slice batas kembali
 
 Di-clamp/dipaksa di server:
 
-- Pakai di lab → selalu jam selesai jadwal (abaikan nilai yang dikirim siswa).
-- Pribadi → tidak boleh lewat jam tutup sekolah hari itu.
-- Bawa pulang → tanggal pengajuan + N hari pada jam tutup sekolah.
+- Praktik lab → selalu jam selesai jadwal (abaikan nilai yang dikirim siswa).
+- Pribadi → tidak boleh lewat jam tutup sekolah hari booking.
+- Bawa pulang → tanggal booking + N hari pada jam tutup sekolah.
+
+Serah terima bawa pulang (lomba/project): setelah jam selesai praktikum terakhir yang memakai **barang yang sama** di hari ambil. Jika tidak ada praktikum barang itu, admin boleh serahkan setelah disetujui + kartu ditahan.
 
 ---
 
@@ -357,7 +362,7 @@ Pengajuan aktif, banner notifikasi, alert kompensasi, jadwal mapel hari ini, pin
 | A-02 | Kelola alat | CRUD, foto, kondisi via stepper, stok total otomatis, `available` tidak diisi manual untuk peminjaman |
 | A-03 | Kelola bahan | CRUD, foto, hanya total stok + min. peringatan; status dari total |
 | A-04 | Jadwal praktikum | CRUD mingguan/khusus, guru, ruang, prioritas |
-| A-05 | Peminjaman | Lihat submission & loan, setujui, tolak (alasan), tandai dipinjam, proses kembali, prioritas antrian |
+| A-05 | Peminjaman | Lihat submission & loan (kategori, tanggal booking, slot), setujui, tolak (alasan), tandai dipinjam, proses kembali |
 | A-06 | Jaminan | Terima kartu, kembalikan kartu, selesaikan kompensasi |
 | A-07 | Inspeksi | Input hasil lengkap/tidak lengkap/rusak + tingkat rusak |
 | A-08 | Laporan | Tab ringkasan / inventaris / peminjaman / pengguna; filter tanggal, status, jenis item; ekspor |
@@ -378,7 +383,7 @@ Pengajuan aktif, banner notifikasi, alert kompensasi, jadwal mapel hari ini, pin
 | ID | Fitur | Kriteria penerimaan |
 |---|---|---|
 | S-01 | Katalog alat/bahan | Cari, filter, detail, CTA ajukan |
-| S-02 | Form pengajuan | Keranjang, pilih tipe penggunaan, validasi jadwal/jaminan, paket alat+bahan |
+| S-02 | Form pengajuan | Keranjang, 4 pilihan (praktik lab / pribadi / bawa pulang lomba / bawa pulang project), validasi jadwal/jaminan, paket alat+bahan |
 | S-03 | Daftar milik saya | Aktif vs riwayat, status, sisa waktu |
 | S-04 | Ubah / batal | Hanya status yang diizinkan policy |
 | S-05 | Minta pengembalian | Hanya alat yang sedang dipinjam |
@@ -420,9 +425,9 @@ Meta: nama sekolah, nama lab, waktu generate. Ekspor dari UI laporan.
 3. `available` alat tidak boleh negatif; setujui gagal → masuk antrian.
 4. Bahan `stock = 0` tidak bisa diajukan (tidak tersedia).
 5. Bahan `available = 0` tetapi `stock > 0` → antrian dibuka.
-6. Pakai di lab tanpa jadwal hari ini → form menolak / peringatan kosong.
-7. Batas kembali pakai di lab = jam selesai jadwal, immutable di UI dan dipaksa di server.
-8. Bawa pulang tanpa kartu `ditahan` → tidak bisa `mark-borrowed`.
+6. Praktik lab tanpa jadwal yang cocok tanggal booking → form menolak / peringatan kosong.
+7. Batas kembali praktik lab = jam selesai jadwal, immutable di UI dan dipaksa di server.
+8. Bawa pulang tanpa kartu `ditahan` atau sebelum jam praktikum barang itu selesai → tidak bisa `mark-borrowed`.
 9. Sync terlambat: loan alat `dipinjam` dengan `due_at` < sekarang → `terlambat`.
 10. Hari jadwal dihitung di `Asia/Jakarta` (Jumat 00:30 WIB = Jumat, bukan Kamis UTC).
 
@@ -446,7 +451,7 @@ Meta: nama sekolah, nama lab, waktu generate. Ekspor dari UI laporan.
 
 - Waktu dari pengajuan sampai keputusan admin (setujui/tolak/antrian) turun dibanding proses manual.
 - Selisih stok fisik vs `available` di sistem mendekati nol pada audit mingguan.
-- 0 pengajuan “Pakai di lab” dengan `due_at` ≠ jam selesai jadwal.
+- 0 pengajuan praktik lab dengan `due_at` ≠ jam selesai jadwal.
 - 0 penyerahan bawa pulang tanpa kartu `ditahan`.
 - Bahan low-stock muncul di dashboard sebelum habis total.
 - Guru dapat menelusuri peminjaman siswa bimbingannya tanpa minta print-out admin.
@@ -455,23 +460,23 @@ Meta: nama sekolah, nama lab, waktu generate. Ekspor dari UI laporan.
 
 ## 19. Alur pengguna utama (happy path)
 
-### Siswa — pakai di lab
+### Siswa — praktik lab
 
 1. Login siswa.  
 2. Tambah alat ke keranjang.  
-3. Pilih **Pakai di lab** → pilih mapel hari ini.  
-4. Tanggal & batas kembali terisi otomatis, tidak bisa diubah.  
+3. Pilih **Praktik lab** → tanggal booking → mapel hari itu.  
+4. Tanggal & batas kembali mengikuti jadwal, tidak bisa diubah.  
 5. Ajukan. Status `diminta` atau `antrian`.  
-6. Admin setujui → stok lab berkurang.  
+6. Admin setujui; stok fisik berkurang saat jam slot mulai.  
 7. Admin tandai dipinjam.  
 8. Siswa minta pengembalian → inspeksi lengkap → stok lab kembali.
 
 ### Siswa — bawa pulang
 
-1. Pilih **Bawa pulang**, setujui jaminan.  
+1. Pilih **Bawa pulang lomba** atau **Bawa pulang project**, setujui jaminan.  
 2. Admin terima kartu (`ditahan`).  
-3. Admin setujui (jika belum) dan tandai dipinjam.  
-4. Pengembalian + inspeksi; kartu dikembalikan jika lengkap.
+3. Admin setujui (jika belum). Serah terima setelah jam praktikum barang itu selesai.  
+4. Pengembalian + inspeksi; kartu dikembalikan jika lengkap. Satu jatah sampai `due_at`.
 
 ### Admin — restok bahan
 
@@ -487,7 +492,7 @@ Meta: nama sekolah, nama lab, waktu generate. Ekspor dari UI laporan.
 |---|---|
 | Zona waktu server UTC | Timezone aplikasi & school timezone `Asia/Jakarta` |
 | Admin mengira harus mengedit `available` | Form menyembunyikan input itu; stok mengikuti workflow |
-| Siswa mengubah batas kembali pakai di lab | Input disabled + server memaksa jam selesai jadwal |
+| Siswa mengubah batas kembali praktik lab | Input disabled + server memaksa jam selesai jadwal |
 | Stok fisik rusak saat dipinjam | Inspeksi + `applyReturnDamage` |
 | Kelas siswa ≠ kelas jadwal | Filter jadwal by `kelas` |
 | Import pengguna salah format | Template + validasi baris + batas 500 |
@@ -508,10 +513,12 @@ Meta: nama sekolah, nama lab, waktu generate. Ekspor dari UI laporan.
 | Submission | Satu keranjang pengajuan (bisa berisi loan alat + loan bahan) |
 | Loan | Transaksi per jenis item yang di-workflow admin |
 | Time slice | Jendela waktu maksimal pengembalian menurut tipe penggunaan |
-| Antrian | Status menunggu stok; urutan FIFO + prioritas admin |
-| Pakai di lab | Penggunaan sesuai mata pelajaran & jam jadwal hari ini |
+| Slot | Jendela jam kapasitas alat (praktik lab = jam mapel; pribadi = buka–tutup lab; bawa pulang = tutup sekolah s.d. `due_at`) |
+| Antrian | Status menunggu sisa slot; prioritas tipe lalu waktu antre; 1 loan = 1 jatah sampai `due_at` |
+| Praktik lab | Penggunaan sesuai mata pelajaran & jam jadwal pada tanggal booking |
 | Pribadi | Penggunaan di lab di luar jam mapel, tanpa jaminan |
-| Bawa pulang | Dibawa keluar lab, wajib kartu pelajar |
+| Bawa pulang lomba | Dibawa keluar lab untuk lomba; wajib kartu; ambil setelah jam mapel barang itu selesai |
+| Bawa pulang project | Dibawa keluar lab untuk project; wajib kartu; prioritas antrian paling belakang |
 | Inspeksi | Pemeriksaan kondisi alat saat pengembalian |
 | Kompensasi | Kewajiban siswa jika rusak/tidak lengkap |
 

@@ -106,12 +106,12 @@ export default function GuruLoanCard({ loan, isHistory = false }) {
                         </div>
                         <p className="mt-0.5 text-xs text-muted-foreground">
                             Diajukan {loan.request_date_formatted}
-                            {!isBahan && loan.borrow_scope_label && (
+                            {!isBahan && (loan.queue_type_label || loan.borrow_scope_label) && (
                                 <>
                                     {" "}
                                     ·{" "}
                                     <MapPin className="mr-0.5 inline h-3 w-3" />
-                                    {loan.borrow_scope_label}
+                                    {loan.queue_type_label || loan.borrow_scope_label}
                                 </>
                             )}
                         </p>

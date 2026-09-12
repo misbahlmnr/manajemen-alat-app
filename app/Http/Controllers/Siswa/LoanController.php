@@ -13,9 +13,11 @@ use App\Models\Submission;
 use App\Models\User;
 use App\Services\Loan\CollateralWorkflowService;
 use App\Services\Loan\LoanQueueService;
+use App\Services\Loan\LoanSlotAvailabilityService;
 use App\Services\Loan\LoanWorkflowService;
 use App\Services\Loan\SubmissionPresenter;
 use App\Services\Notification\LabNotificationService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -29,6 +31,7 @@ class LoanController extends Controller
         private LoanWorkflowService $workflow,
         private CollateralWorkflowService $collateralWorkflow,
         private LoanQueueService $queueService,
+        private LoanSlotAvailabilityService $slotAvailability,
         private SubmissionPresenter $submissions,
     ) {}
 
@@ -88,10 +91,7 @@ class LoanController extends Controller
                 'date_to' => $dateTo,
             ],
             'statusOptions' => config('lab.submission_statuses'),
-            'queueConfig' => [
-                'school_close_time' => config('lab.queue.school_close_time'),
-                'bawa_pulang_max_days' => config('lab.queue.bawa_pulang_max_days'),
-            ],
+            'queueConfig' => $this->queueConfig(),
         ]);
     }
 
@@ -108,7 +108,7 @@ class LoanController extends Controller
         $prefillId = $type === 'bahan' ? $prefillSupplyId : $prefillEquipmentId;
 
         $options = $this->formOptions($user);
-        $prefillItem = $this->resolvePrefillCatalogItem($prefillId, $type);
+        $prefillItem = $this->resolvePrefillCatalogItem($prefillId, $type, $request);
 
         return Inertia::render('Siswa/Loan/Create', [
             'loanType' => $type,
@@ -135,11 +135,57 @@ class LoanController extends Controller
                     ? [['equipment_id' => (string) $prefillId, 'quantity' => 1]]
                     : [['equipment_id' => '', 'quantity' => 1]],
             ],
-            'queueConfig' => [
-                'school_close_time' => config('lab.queue.school_close_time'),
-                'bawa_pulang_max_days' => config('lab.queue.bawa_pulang_max_days'),
-            ],
+            'queueConfig' => $this->queueConfig(),
         ]);
+    }
+
+    public function slotAvailability(Request $request): JsonResponse
+    {
+        $this->authorize('create', Loan::class);
+
+        $validated = $request->validate([
+            'item_type' => ['nullable', 'in:alat,bahan'],
+            'request_date' => ['nullable', 'date'],
+            'borrow_scope' => ['nullable', 'in:lab,bawa_pulang'],
+            'borrow_reason' => ['nullable', 'in:reguler,lanjutan,lomba'],
+            'practicum_schedule_id' => ['nullable', 'integer'],
+            'due_at' => ['nullable', 'string'],
+            'except_loan_id' => ['nullable', 'integer'],
+            'equipment_ids' => ['nullable', 'array'],
+            'equipment_ids.*' => ['integer'],
+        ]);
+
+        $itemType = ($validated['item_type'] ?? 'alat') === 'bahan' ? 'bahan' : 'alat';
+        $ids = array_values(array_filter(array_map('intval', $validated['equipment_ids'] ?? [])));
+
+        $query = Equipment::query()->where('item_type', $itemType);
+
+        if ($ids !== []) {
+            $query->whereIn('id', $ids);
+        } else {
+            $query->limit(40);
+        }
+
+        $context = [
+            'item_type' => $itemType,
+            'borrow_scope' => $validated['borrow_scope'] ?? 'lab',
+            'borrow_reason' => $validated['borrow_reason'] ?? 'reguler',
+            'request_date' => $validated['request_date'] ?? now()->toDateString(),
+            'practicum_schedule_id' => $validated['practicum_schedule_id'] ?? null,
+            'due_at' => $validated['due_at'] ?? null,
+        ];
+
+        $remaining = [];
+
+        foreach ($query->get() as $equipment) {
+            $remaining[$equipment->id] = $this->slotAvailability->remainingForDraft(
+                $equipment,
+                $context,
+                $validated['except_loan_id'] ?? null,
+            );
+        }
+
+        return response()->json(['remaining' => $remaining]);
     }
 
     public function store(StoreStudentLoanRequest $request): RedirectResponse
@@ -220,13 +266,13 @@ class LoanController extends Controller
                 'search' => $request->string('catalog_search')->trim()->toString(),
             ],
             'initialCart' => $loan->items
-                ->map(function ($item) {
+                ->map(function ($item) use ($request, $loan) {
                     if (! $item->equipment) {
                         return null;
                     }
 
                     return [
-                        'equipment' => $this->formatCatalogItem($item->equipment),
+                        'equipment' => $this->formatCatalogItem($item->equipment, $this->slotContextFromRequest($request, $loan->item_type, $loan)),
                         'quantity' => $item->quantity,
                     ];
                 })
@@ -249,6 +295,7 @@ class LoanController extends Controller
                 'usage_room' => $loan->usage_room ?? '',
                 'collateral_agreed' => false,
             ],
+            'queueConfig' => $this->queueConfig(),
         ]);
     }
 
@@ -267,7 +314,12 @@ class LoanController extends Controller
         );
 
         $newStatus = in_array($loan->status, ['diminta', 'antrian'], true)
-            ? $this->queueService->resolveInitialStatus($items, $loan->item_type)
+            ? $this->queueService->resolveInitialStatus(
+                $items,
+                $loan->item_type,
+                $this->slotContextFromPayload($validated, $loan->item_type),
+                $loan->id,
+            )
             : $loan->status;
 
         $statusUpdate = [];
@@ -292,8 +344,8 @@ class LoanController extends Controller
             'borrow_scope' => $loan->isAlat()
                 ? ($validated['borrow_scope'] ?? 'lab')
                 : ($loan->borrow_scope ?? 'lab'),
-            'borrow_reason' => $loan->isAlat() && ($validated['borrow_scope'] ?? 'lab') === 'lab'
-                ? ($validated['borrow_reason'] ?? 'reguler')
+            'borrow_reason' => $loan->isAlat()
+                ? ($validated['borrow_reason'] ?? ($validated['borrow_scope'] === 'bawa_pulang' ? 'lanjutan' : 'reguler'))
                 : null,
             'usage_room' => $validated['usage_room'] ?? null,
             'due_at' => $dueAt,
@@ -333,7 +385,7 @@ class LoanController extends Controller
         $loan->load([
             'submission:id,code,borrower_id,supervisor_id,purpose,notes,request_date',
             'supervisor:id,name,nip',
-            'schedule:id,code,title,mata_kuliah,tanggal,kelas',
+            'schedule:id,code,title,mata_kuliah,tanggal,kelas,jam_mulai,jam_selesai',
             'items.equipment:id,code,name,item_type,category,unit,image_path',
             'statusLogs.user:id,name',
             'collateral',
@@ -355,7 +407,7 @@ class LoanController extends Controller
             'borrower:id,name,role,class',
             'supervisor:id,name',
             'loans.supervisor:id,name',
-            'loans.schedule:id,code,title,mata_kuliah,kelas,tanggal',
+            'loans.schedule:id,code,title,mata_kuliah,kelas,tanggal,jam_mulai,jam_selesai',
             'loans.items.equipment:id,code,name,item_type,unit,image_path',
             'loans.collateral',
         ]);
@@ -414,6 +466,8 @@ class LoanController extends Controller
 
     private function formOptions(User $user, ?Loan $loan = null): array
     {
+        $schedules = $this->bookableSchedules($user, $loan);
+
         return [
             'supervisorOptions' => User::query()
                 ->where('role', 'guru')
@@ -423,25 +477,36 @@ class LoanController extends Controller
                 ->map(fn (User $u) => ['id' => $u->id, 'name' => $u->name])
                 ->values()
                 ->all(),
-            'todaySchedules' => $this->schedulesForToday($user, $loan),
+            'todaySchedules' => $schedules,
+            'bookableSchedules' => $schedules,
             'labRoomOptions' => config('lab.lab_room_options', []),
         ];
     }
 
-    private function schedulesForToday(User $user, ?Loan $loan = null): array
+    private function queueConfig(): array
     {
-        $today = $this->scheduleOptions($user, todayOnly: true);
+        return [
+            'school_close_time' => config('lab.queue.school_close_time'),
+            'bawa_pulang_max_days' => config('lab.queue.bawa_pulang_max_days'),
+            'booking_horizon_days' => (int) config('lab.queue.booking_horizon_days', 7),
+            'lab_open_time' => config('lab.queue.lab_open_time', '07:00'),
+        ];
+    }
+
+    private function bookableSchedules(User $user, ?Loan $loan = null): array
+    {
+        $schedules = $this->scheduleOptions($user);
 
         if (! $loan?->practicum_schedule_id) {
-            return $today;
+            return $schedules;
         }
 
-        $exists = collect($today)->contains(
+        $exists = collect($schedules)->contains(
             fn (array $schedule) => (int) $schedule['id'] === (int) $loan->practicum_schedule_id
         );
 
         if ($exists) {
-            return $today;
+            return $schedules;
         }
 
         $current = PracticumSchedule::query()
@@ -449,15 +514,16 @@ class LoanController extends Controller
             ->find($loan->practicum_schedule_id);
 
         if (! $current) {
-            return $today;
+            return $schedules;
         }
 
-        return array_merge($today, [$this->formatScheduleOption($current)]);
+        return array_merge($schedules, [$this->formatScheduleOption($current)]);
     }
 
-    private function scheduleOptions(User $user, bool $futureOnly = true, bool $todayOnly = false): array
+    private function scheduleOptions(User $user, bool $futureOnly = true): array
     {
-        $now = now();
+        $horizon = max(1, (int) config('lab.queue.booking_horizon_days', 7));
+        $maxDate = now()->addDays($horizon)->toDateString();
 
         return PracticumSchedule::query()
             ->forStudentSelection($futureOnly)
@@ -467,9 +533,15 @@ class LoanController extends Controller
             ->orderBy('jam_mulai')
             ->orderBy('tanggal')
             ->get(['id', 'code', 'title', 'mata_kuliah', 'kelas', 'type', 'hari', 'tanggal', 'jam_mulai', 'jam_selesai', 'priority', 'guru_id', 'ruangan'])
-            ->when($todayOnly, fn ($collection) => $collection->filter(
-                fn (PracticumSchedule $schedule) => $schedule->matchesRequestDate($now)
-            ))
+            ->filter(function (PracticumSchedule $schedule) use ($maxDate) {
+                if ($schedule->isKhusus()) {
+                    $tanggal = $schedule->tanggal?->toDateString();
+
+                    return $tanggal !== null && $tanggal <= $maxDate;
+                }
+
+                return true;
+            })
             ->map(fn (PracticumSchedule $schedule) => $this->formatScheduleOption($schedule))
             ->values()
             ->all();
@@ -477,6 +549,8 @@ class LoanController extends Controller
 
     private function formatScheduleOption(PracticumSchedule $schedule): array
     {
+        $occurrence = $schedule->nextOccurrence();
+
         return [
             'id' => $schedule->id,
             'code' => $schedule->code,
@@ -488,6 +562,7 @@ class LoanController extends Controller
             'hari_label' => $schedule->hariLabel(),
             'jadwal_label' => $schedule->jadwalLabel(),
             'tanggal' => $schedule->tanggal?->format('Y-m-d'),
+            'occurrence_date' => $occurrence?->toDateString(),
             'jam_mulai' => $schedule->jam_mulai,
             'jam_selesai' => $schedule->jam_selesai,
             'priority' => $schedule->priority,
@@ -516,10 +591,10 @@ class LoanController extends Controller
         return $query
             ->paginate(10)
             ->withQueryString()
-            ->through(fn (Equipment $item) => $this->formatCatalogItem($item));
+            ->through(fn (Equipment $item) => $this->formatCatalogItem($item, $this->slotContextFromRequest($request, $itemType, $loan)));
     }
 
-    private function resolvePrefillCatalogItem(?int $id, string $itemType): ?array
+    private function resolvePrefillCatalogItem(?int $id, string $itemType, ?Request $request = null): ?array
     {
         if (! $id) {
             return null;
@@ -532,12 +607,27 @@ class LoanController extends Controller
 
         $item = $query->first();
 
-        return $item ? $this->formatCatalogItem($item) : null;
+        return $item ? $this->formatCatalogItem($item, $request ? $this->slotContextFromRequest($request, $itemType) : null) : null;
     }
 
-    private function formatCatalogItem(Equipment $equipment): array
+    /**
+     * @param  array<string, mixed>|null  $slotContext
+     * @return array<string, mixed>
+     */
+    private function formatCatalogItem(Equipment $equipment, ?array $slotContext = null): array
     {
         $isBahan = $equipment->item_type === 'bahan';
+        $slotRemaining = $isBahan
+            ? (int) $equipment->available
+            : $this->slotAvailability->remainingForDraft(
+                $equipment,
+                $slotContext ?? [
+                    'item_type' => 'alat',
+                    'borrow_scope' => 'lab',
+                    'borrow_reason' => 'reguler',
+                    'request_date' => now()->toDateString(),
+                ],
+            );
 
         return [
             'id' => $equipment->id,
@@ -546,13 +636,59 @@ class LoanController extends Controller
             'category' => $equipment->category,
             'item_type' => $equipment->item_type,
             'available' => $equipment->available,
+            'qty_baik' => $equipment->qty_baik,
             'stock' => $equipment->stock,
+            'slot_remaining' => $slotRemaining,
             'unit' => $equipment->unit ?? ($isBahan ? 'pcs' : 'unit'),
             'min_stock' => $equipment->min_stock,
             'image_url' => $equipment->image_url,
             'is_low_stock' => $isBahan
                 && $equipment->min_stock !== null
                 && $equipment->available <= $equipment->min_stock,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function slotContextFromRequest(Request $request, string $itemType, ?Loan $loan = null): array
+    {
+        if ($loan) {
+            return $this->slotContextFromPayload([
+                'item_type' => $loan->item_type,
+                'borrow_scope' => $loan->borrow_scope,
+                'borrow_reason' => $loan->borrow_reason,
+                'request_date' => $loan->request_date?->toDateString(),
+                'practicum_schedule_id' => $loan->practicum_schedule_id,
+                'due_at' => $loan->due_at?->format('Y-m-d H:i:s'),
+            ], $loan->item_type);
+        }
+
+        return [
+            'item_type' => $itemType,
+            'borrow_scope' => $request->input('borrow_scope', 'lab'),
+            'borrow_reason' => $request->input('borrow_reason', 'reguler'),
+            'request_date' => $request->input('request_date', now()->toDateString()),
+            'practicum_schedule_id' => $request->input('practicum_schedule_id'),
+            'due_at' => $request->input('due_at'),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function slotContextFromPayload(array $payload, ?string $itemType = null): array
+    {
+        $type = $itemType ?? ($payload['item_type'] ?? 'alat');
+
+        return [
+            'item_type' => $type,
+            'borrow_scope' => $payload['borrow_scope'] ?? 'lab',
+            'borrow_reason' => $payload['borrow_reason'] ?? 'reguler',
+            'request_date' => $payload['request_date'] ?? now()->toDateString(),
+            'practicum_schedule_id' => $payload['practicum_schedule_id'] ?? null,
+            'due_at' => $payload['due_at'] ?? null,
         ];
     }
 
@@ -611,6 +747,9 @@ class LoanController extends Controller
             'borrow_scope_label' => $loan->borrowLocationLabel(),
             'borrow_reason' => $loan->borrow_reason,
             'borrow_reason_label' => $loan->borrowReasonLabel(),
+            'queue_type_key' => $loan->queueTypeKey(),
+            'queue_type_label' => $loan->queueTypeLabel(),
+            'slot_label' => $loan->isAlat() ? $this->slotAvailability->slotLabel($loan) : null,
             'usage_room' => $loan->usage_room,
             'is_catch_up' => $loan->isCatchUp(),
             'items_summary' => $itemsSummary ?: '—',
@@ -729,6 +868,7 @@ class LoanController extends Controller
         $initialStatus = $this->queueService->resolveInitialStatus(
             $items,
             $validated['item_type'],
+            $this->slotContextFromPayload($validated),
         );
 
         $submission ??= Submission::createForBorrower($user, $validated);
@@ -744,8 +884,8 @@ class LoanController extends Controller
             'borrow_scope' => $validated['item_type'] === 'alat'
                 ? ($validated['borrow_scope'] ?? 'lab')
                 : 'lab',
-            'borrow_reason' => $validated['item_type'] === 'alat' && ($validated['borrow_scope'] ?? 'lab') === 'lab'
-                ? ($validated['borrow_reason'] ?? 'reguler')
+            'borrow_reason' => $validated['item_type'] === 'alat'
+                ? ($validated['borrow_reason'] ?? (($validated['borrow_scope'] ?? 'lab') === 'bawa_pulang' ? 'lanjutan' : 'reguler'))
                 : null,
             'usage_room' => $validated['usage_room'] ?? null,
             'due_at' => $validated['item_type'] === 'alat' ? ($validated['due_at'] ?? null) : null,
@@ -801,10 +941,10 @@ class LoanController extends Controller
     {
         if ($loan->status === 'antrian') {
             $position = $this->queueService->getQueuePosition($loan);
-            $base = 'Pengajuan berhasil dikirim. Stok saat ini belum mencukupi sehingga pengajuan Anda masuk antrean Round Robin.';
+            $base = 'Pengajuan berhasil dikirim. Stok saat ini belum mencukupi sehingga pengajuan Anda masuk antrian (prioritas tipe, jatah sampai batas kembali).';
 
             return $position
-                ? "{$base} Posisi antrean: #{$position} (berdasarkan waktu pengajuan)."
+                ? "{$base} Posisi antrian: #{$position}."
                 : $base;
         }
 

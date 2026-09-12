@@ -75,6 +75,9 @@ function TypeCard({ title, icon: Icon, loan, emptyLabel, manageHref, accent }) {
                         {loan.status === "antrian" && loan.queue_position && (
                             <p className="text-xs text-amber-800">
                                 Antrian #{loan.queue_position}
+                                {loan.queue_type_label
+                                    ? ` · ${loan.queue_type_label}`
+                                    : ""}
                             </p>
                         )}
                         <Button asChild className="w-full sm:w-auto">
