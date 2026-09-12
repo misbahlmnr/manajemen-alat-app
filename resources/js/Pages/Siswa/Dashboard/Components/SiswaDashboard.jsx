@@ -86,21 +86,33 @@ export default function SiswaDashboard({
             <UpcomingSchedules schedules={todaySchedules} />
 
             {myActive.length > 0 && (
-                <div className="mt-8">
-                    <h2 className="mb-4 text-lg font-semibold">
-                        Alat & Bahan Aktif
-                    </h2>
+                <DashboardSection
+                    title="Alat & Bahan Aktif"
+                    description="Pinjaman yang sedang berjalan"
+                    icon={FileText}
+                    iconTone="info"
+                    actionLabel="Lihat Semua"
+                    actionHref={route("siswa.loans.index", { scope: "active" })}
+                    actionVariant="outline"
+                    className="mt-8"
+                >
                     <RecentLoansTable loans={myActive} />
-                </div>
+                </DashboardSection>
             )}
 
             {returnedLoans.length > 0 && (
-                <div className="mt-8">
-                    <h2 className="mb-4 text-lg font-semibold">
-                        Riwayat Pengembalian
-                    </h2>
+                <DashboardSection
+                    title="Riwayat Pengembalian"
+                    description="Peminjaman yang sudah selesai"
+                    icon={ClipboardCheck}
+                    iconTone="success"
+                    actionLabel="Lihat Semua"
+                    actionHref={route("siswa.loans.index", { scope: "history" })}
+                    actionVariant="outline"
+                    className="mt-8"
+                >
                     <RecentLoansTable loans={returnedLoans} />
-                </div>
+                </DashboardSection>
             )}
 
             <DashboardSection

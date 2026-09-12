@@ -1,24 +1,13 @@
 import AvailabilityBadge from "@/Components/AvailabilityBadge";
-import DataPagination from "@/Components/DataPagination";
 import ConditionBreakdown from "@/Components/ConditionBreakdown";
 import { Button } from "@/Components/ui/button";
 import { Link } from "@inertiajs/react";
 import { Eye, FileText } from "lucide-react";
-import { useState } from "react";
 
-export function AvailableEquipmentTable({ equipment = [], pageSize = 5 }) {
-    const [page, setPage] = useState(1);
+export function AvailableEquipmentTable({ equipment = [], limit = 5 }) {
+    const visibleItems = equipment.slice(0, limit);
 
-    const total = equipment.length;
-    const lastPage = Math.max(1, Math.ceil(total / pageSize));
-    const safePage = Math.min(page, lastPage);
-    const start = (safePage - 1) * pageSize;
-    const pagedItems = equipment.slice(start, start + pageSize);
-
-    const from = total ? (safePage - 1) * pageSize + 1 : 0;
-    const to = total ? Math.min(safePage * pageSize, total) : 0;
-
-                if (!equipment.length) {
+    if (!equipment.length) {
         return (
             <p className="py-8 text-center text-sm text-muted-foreground">
                 Tidak ada inventaris aktif saat ini
@@ -59,7 +48,7 @@ export function AvailableEquipmentTable({ equipment = [], pageSize = 5 }) {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                        {pagedItems.map((item) => (
+                        {visibleItems.map((item) => (
                             <tr
                                 key={item.id}
                                 className="transition-colors hover:bg-muted/40"
@@ -137,14 +126,6 @@ export function AvailableEquipmentTable({ equipment = [], pageSize = 5 }) {
                     </tbody>
                 </table>
             </div>
-            <DataPagination
-                currentPage={safePage}
-                lastPage={lastPage}
-                from={from}
-                to={to}
-                total={total}
-                onPageChange={setPage}
-            />
         </div>
     );
 }

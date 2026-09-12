@@ -165,6 +165,12 @@ export default function AdminDashboard({ loans, equipment, stats }) {
                     description={`${activeAlat.length} peminjaman sedang berjalan`}
                     icon={FileText}
                     iconTone="info"
+                    actionLabel="Lihat Semua"
+                    actionHref={route("admin.loans.index", {
+                        scope: "all",
+                        status: "diproses",
+                    })}
+                    actionVariant="outline"
                     className="mb-0"
                 >
                     {activeAlat.length > 0 ? (
@@ -181,6 +187,9 @@ export default function AdminDashboard({ loans, equipment, stats }) {
                     iconTone="danger"
                     badge={overdue.length || undefined}
                     badgeTone="danger"
+                    actionLabel="Lihat Semua"
+                    actionHref={route("admin.loans.index", { scope: "action" })}
+                    actionVariant="outline"
                     className="mb-0"
                 >
                     {overdue.length > 0 ? (
@@ -217,6 +226,9 @@ export default function AdminDashboard({ loans, equipment, stats }) {
                     iconTone="warning"
                     badge={queueAlat.length}
                     badgeTone="warning"
+                    actionLabel="Lihat Semua"
+                    actionHref={route("admin.loans.index", { scope: "queue" })}
+                    actionVariant="outline"
                     className="mt-8"
                 >
                     <RecentLoansTable loans={queueAlat} />

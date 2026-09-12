@@ -1,26 +1,15 @@
 import AvailabilityBadge from "@/Components/AvailabilityBadge";
-import DataPagination from "@/Components/DataPagination";
 import ConditionBreakdown from "@/Components/ConditionBreakdown";
 import { Button } from "@/Components/ui/button";
 import { Link } from "@inertiajs/react";
 import { Eye } from "lucide-react";
-import { useState } from "react";
 
 export function MonitoringEquipmentTable({
     equipment = [],
-    pageSize = 5,
+    limit = 5,
     showDetailLink = false,
 }) {
-    const [page, setPage] = useState(1);
-
-    const total = equipment.length;
-    const lastPage = Math.max(1, Math.ceil(total / pageSize));
-    const safePage = Math.min(page, lastPage);
-    const start = (safePage - 1) * pageSize;
-    const pagedItems = equipment.slice(start, start + pageSize);
-
-    const from = total ? (safePage - 1) * pageSize + 1 : 0;
-    const to = total ? Math.min(safePage * pageSize, total) : 0;
+    const visibleItems = equipment.slice(0, limit);
 
     if (!equipment.length) {
         return (
@@ -68,7 +57,7 @@ export function MonitoringEquipmentTable({
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                        {pagedItems.map((item) => (
+                        {visibleItems.map((item) => (
                             <tr
                                 key={item.id}
                                 className="transition-colors hover:bg-muted/40"
@@ -140,14 +129,6 @@ export function MonitoringEquipmentTable({
                     </tbody>
                 </table>
             </div>
-            <DataPagination
-                currentPage={safePage}
-                lastPage={lastPage}
-                from={from}
-                to={to}
-                total={total}
-                onPageChange={setPage}
-            />
         </div>
     );
 }

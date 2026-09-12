@@ -1,30 +1,19 @@
 import LoanStatusBadge from '@/Components/LoanStatusBadge';
-import DataPagination from "@/Components/DataPagination";
-import { useState } from "react";
 
 export function RecentLoansTable({
   loans = [],
   showActions = false,
   onApprove,
   onReject,
-  pageSize = 5,
+  limit = 5,
 }) {
-  const [page, setPage] = useState(1);
-
   const formatDate = (dateString) => {
     if (!dateString) return '-';
     const date = new Date(dateString);
     return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
   };
 
-  const total = loans.length;
-  const lastPage = Math.max(1, Math.ceil(total / pageSize));
-  const safePage = Math.min(page, lastPage);
-  const start = (safePage - 1) * pageSize;
-  const pagedLoans = loans.slice(start, start + pageSize);
-
-  const from = total ? (safePage - 1) * pageSize + 1 : 0;
-  const to = total ? Math.min(safePage * pageSize, total) : 0;
+  const visibleLoans = loans.slice(0, limit);
 
   if (!loans.length) {
     return (
@@ -63,7 +52,7 @@ export function RecentLoansTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {pagedLoans.map((loan) => (
+            {visibleLoans.map((loan) => (
               <tr
                 key={loan.id}
                 className="border-b transition-colors hover:bg-muted/50"
@@ -115,14 +104,6 @@ export function RecentLoansTable({
           </tbody>
         </table>
       </div>
-      <DataPagination
-        currentPage={safePage}
-        lastPage={lastPage}
-        from={from}
-        to={to}
-        total={total}
-        onPageChange={setPage}
-      />
     </div>
   );
 }

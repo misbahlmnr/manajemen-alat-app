@@ -91,6 +91,9 @@ export default function GuruDashboard({
                     iconTone="danger"
                     badge={overdue.length}
                     badgeTone="danger"
+                    actionLabel="Lihat Semua"
+                    actionHref={route("guru.loans.index", { scope: "active" })}
+                    actionVariant="outline"
                     className="mt-8"
                 >
                     <RecentLoansTable loans={overdue} />

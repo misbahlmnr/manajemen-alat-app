@@ -51,7 +51,7 @@ class SiswaDashboardDataService
         $availableEquipment = $inventoryQuery
             ->orderByDesc('available')
             ->orderBy('name')
-            ->limit(8)
+            ->limit(5)
             ->get()
             ->map(function (Equipment $item) {
                 $queueOpen = $item->available <= 0;

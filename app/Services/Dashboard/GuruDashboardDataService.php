@@ -81,7 +81,7 @@ class GuruDashboardDataService
             ->where('status', 'tersedia')
             ->whereColumn('available', '<', 'qty_baik')
             ->orderBy('name')
-            ->limit(6)
+            ->limit(5)
             ->get()
             ->map(fn (Equipment $item) => [
                 'id' => $item->id,
