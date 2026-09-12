@@ -63,7 +63,6 @@ class DatabaseSeeder extends Seeder
         $this->call([
             EquipmentSeeder::class,
             SupplySeeder::class,
-            PracticumScheduleSeeder::class,
         ]);
     }
 }

@@ -90,6 +90,14 @@ class LoanSlotAvailabilityService
 
     public function slotLabel(Loan $loan): ?string
     {
+        return $this->slotPresentation($loan)['label'] ?? null;
+    }
+
+    /**
+     * @return array{kind: string, label: string, field_label: string, hint: string|null}|null
+     */
+    public function slotPresentation(Loan $loan): ?array
+    {
         if (! $loan->isAlat() || $loan->request_date === null) {
             return null;
         }
@@ -116,14 +124,64 @@ class LoanSlotAvailabilityService
 
         $startTime = $start->format('H:i');
         $endTime = $end->format('H:i');
+        $kind = $this->slotKindFor($loan);
 
-        if ($start->isSameDay($end)) {
-            return "{$startTime}–{$endTime}";
+        if ($kind === 'lab_hours') {
+            return [
+                'kind' => 'lab_hours',
+                'label' => "Pakai di lab sampai jam {$endTime}",
+                'field_label' => 'Pemakaian',
+                'hint' => null,
+            ];
         }
 
-        $days = (int) $start->copy()->startOfDay()->diffInDays($end->copy()->startOfDay());
+        if ($kind === 'take_home') {
+            $return = $start->isSameDay($end)
+                ? $endTime
+                : $end->format('d M').' '.$endTime;
 
-        return "{$startTime}–{$endTime} (+{$days} hari)";
+            return [
+                'kind' => 'take_home',
+                'label' => "Kembali {$return}",
+                'field_label' => 'Bawa pulang',
+                'hint' => 'Diambil setelah jam mapel terakhir yang memakai alat ini selesai.',
+            ];
+        }
+
+        return [
+            'kind' => 'schedule',
+            'label' => "{$startTime}–{$endTime}",
+            'field_label' => 'Jam mapel',
+            'hint' => null,
+        ];
+    }
+
+    /**
+     * @return array{slot_label: string|null, slot_kind: string|null, slot_field_label: string|null, slot_hint: string|null}
+     */
+    public function slotView(Loan $loan): array
+    {
+        $presentation = $this->slotPresentation($loan);
+
+        return [
+            'slot_label' => $presentation['label'] ?? null,
+            'slot_kind' => $presentation['kind'] ?? null,
+            'slot_field_label' => $presentation['field_label'] ?? null,
+            'slot_hint' => $presentation['hint'] ?? null,
+        ];
+    }
+
+    private function slotKindFor(Loan $loan): string
+    {
+        if ($loan->borrow_scope === 'bawa_pulang') {
+            return 'take_home';
+        }
+
+        if ($loan->isCatchUp() || ($loan->borrow_scope === 'lab' && $loan->borrow_reason === 'lanjutan')) {
+            return 'lab_hours';
+        }
+
+        return 'schedule';
     }
 
     /**

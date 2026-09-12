@@ -131,8 +131,12 @@ export default function Show({ loan }) {
                                         />
                                         {loan.slot_label && (
                                             <Info
-                                                label="Slot"
+                                                label={
+                                                    loan.slot_field_label ||
+                                                    "Slot"
+                                                }
                                                 value={loan.slot_label}
+                                                hint={loan.slot_hint}
                                             />
                                         )}
                                         <Info
@@ -277,13 +281,18 @@ function MetaRow({ label, children }) {
     );
 }
 
-function Info({ label, value }) {
+function Info({ label, value, hint }) {
     return (
         <div className="rounded-lg border bg-muted/50 p-4">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 {label}
             </p>
             <p className="mt-2 text-sm font-medium text-foreground">{value}</p>
+            {hint ? (
+                <p className="mt-1 text-xs leading-snug text-muted-foreground">
+                    {hint}
+                </p>
+            ) : null}
         </div>
     );
 }

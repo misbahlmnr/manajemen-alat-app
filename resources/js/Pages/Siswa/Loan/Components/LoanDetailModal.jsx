@@ -161,12 +161,20 @@ export default function LoanDetailModal({ loan, borrower, onClose, footer }) {
                                 <div className="mb-1 flex items-center gap-2">
                                     <Clock className="h-4 w-4 text-muted-foreground" />
                                     <span className="text-xs text-muted-foreground">
-                                        {loan.slot_label ? "Slot" : "Batas kembali"}
+                                        {loan.slot_field_label ||
+                                            (loan.slot_label
+                                                ? "Slot"
+                                                : "Batas kembali")}
                                     </span>
                                 </div>
                                 <p className="text-sm font-medium">
                                     {loan.slot_label || loan.due_at_formatted}
                                 </p>
+                                {loan.slot_hint ? (
+                                    <p className="mt-1 text-xs leading-snug text-muted-foreground">
+                                        {loan.slot_hint}
+                                    </p>
+                                ) : null}
                             </div>
                         </div>
                     )}

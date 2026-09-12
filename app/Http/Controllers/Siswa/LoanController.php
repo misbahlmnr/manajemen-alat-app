@@ -749,7 +749,7 @@ class LoanController extends Controller
             'borrow_reason_label' => $loan->borrowReasonLabel(),
             'queue_type_key' => $loan->queueTypeKey(),
             'queue_type_label' => $loan->queueTypeLabel(),
-            'slot_label' => $loan->isAlat() ? $this->slotAvailability->slotLabel($loan) : null,
+            ...$this->slotAvailability->slotView($loan),
             'usage_room' => $loan->usage_room,
             'is_catch_up' => $loan->isCatchUp(),
             'items_summary' => $itemsSummary ?: '—',

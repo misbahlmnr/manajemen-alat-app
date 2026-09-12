@@ -31,14 +31,19 @@ class LoanController extends Controller
         $this->authorize('viewAny', Loan::class);
         $this->workflow->syncOverdue();
 
+        $scope = $request->string('scope')->toString() ?: 'action';
+        if (! in_array($scope, ['action', 'queue', 'today', 'all'], true)) {
+            $scope = 'action';
+        }
+
         $search = $request->string('search')->trim();
         $status = $request->string('status')->toString() ?: 'all';
         $itemType = $request->string('item_type')->toString() ?: 'all';
-        $borrowerId = $request->string('borrower_id')->toString() ?: 'all';
         $supervisorId = $request->string('supervisor_id')->toString() ?: 'all';
         $kelas = $request->string('kelas')->toString() ?: 'all';
         $dateFrom = $request->string('date_from')->toString();
         $dateTo = $request->string('date_to')->toString();
+        $today = \App\Models\PracticumSchedule::inSchoolTimezone()->toDateString();
 
         $listQuery = Submission::query()
             ->with([
@@ -46,6 +51,7 @@ class LoanController extends Controller
                 'supervisor:id,name',
                 'loans.borrower:id,name,role,class',
                 'loans.supervisor:id,name',
+                'loans.schedule:id,code,title,jam_mulai,jam_selesai',
                 'loans.items.equipment:id,code,name,item_type',
                 'loans.collateral.heldByAdmin:id,name',
             ])
@@ -58,14 +64,20 @@ class LoanController extends Controller
                         ->orWhereHas('loans.items.equipment', fn ($e) => $e->where('name', 'like', "%{$search}%"));
                 });
             })
-            ->when($status !== 'all', fn ($q) => $q->whereAggregateStatus($status))
-            ->when($itemType !== 'all', fn ($q) => $q->whereHas('loans', fn ($l) => $l->where('item_type', $itemType)))
-            ->when($borrowerId !== 'all', fn ($q) => $q->where('borrower_id', $borrowerId))
-            ->when($supervisorId !== 'all', fn ($q) => $q->where('supervisor_id', $supervisorId))
             ->when($kelas !== 'all', fn ($q) => $q->whereHas('borrower', fn ($b) => $b->where('class', $kelas)))
-            ->when($dateFrom !== '', fn ($q) => $q->whereDate('request_date', '>=', $dateFrom))
-            ->when($dateTo !== '', fn ($q) => $q->whereDate('request_date', '<=', $dateTo))
-            ->latest();
+            ->when($scope === 'all' && $status !== 'all', fn ($q) => $q->whereAggregateStatus($status))
+            ->when($scope === 'all' && $itemType !== 'all', fn ($q) => $q->whereHas('loans', fn ($l) => $l->where('item_type', $itemType)))
+            ->when($scope === 'all' && $supervisorId !== 'all', fn ($q) => $q->where('supervisor_id', $supervisorId))
+            ->when($scope === 'all' && $dateFrom !== '', fn ($q) => $q->whereDate('request_date', '>=', $dateFrom))
+            ->when($scope === 'all' && $dateTo !== '', fn ($q) => $q->whereDate('request_date', '<=', $dateTo));
+
+        $this->applyIndexScope($listQuery, $scope, $today);
+
+        if ($scope === 'action') {
+            $listQuery->orderByAdminUrgency();
+        } else {
+            $listQuery->latest();
+        }
 
         $loans = $listQuery
             ->paginate(10)
@@ -79,17 +91,17 @@ class LoanController extends Controller
         return Inertia::render('Admin/Loan/Index', [
             'loans' => $loans,
             'filters' => [
+                'scope' => $scope,
                 'search' => $search->toString(),
                 'status' => $status,
                 'item_type' => $itemType,
-                'borrower_id' => $borrowerId,
                 'supervisor_id' => $supervisorId,
                 'kelas' => $kelas,
                 'date_from' => $dateFrom,
                 'date_to' => $dateTo,
             ],
-            'borrowerOptions' => $this->borrowerOptions(),
-            'supervisorOptions' => $this->supervisorOptions(),
+            'tabCounts' => $this->submissionTabCounts($today),
+            'supervisorOptions' => $scope === 'all' ? $this->supervisorOptions() : [],
             'kelasOptions' => config('lab.class_options'),
             'statusOptions' => config('lab.submission_statuses'),
         ]);
@@ -207,21 +219,27 @@ class LoanController extends Controller
         }
     }
 
-    private function borrowerOptions(): array
+    private function applyIndexScope($query, string $scope, string $today): void
     {
-        return User::query()
-            ->where('role', 'siswa')
-            ->where('status', 'active')
-            ->orderBy('name')
-            ->get(['id', 'name', 'class'])
-            ->map(fn (User $u) => [
-                'id' => $u->id,
-                'name' => $u->name,
-                'class' => $u->class,
-                'label' => "{$u->name}".($u->class ? " ({$u->class})" : ''),
-            ])
-            ->values()
-            ->all();
+        match ($scope) {
+            'action' => $query->needsAdminAction(),
+            'queue' => $query->inLoanQueue(),
+            'today' => $query->bookedOn($today),
+            default => $query,
+        };
+    }
+
+    /**
+     * @return array{action: int, queue: int, today: int, all: int}
+     */
+    private function submissionTabCounts(string $today): array
+    {
+        return [
+            'action' => Submission::query()->needsAdminAction()->count(),
+            'queue' => Submission::query()->inLoanQueue()->count(),
+            'today' => Submission::query()->bookedOn($today)->count(),
+            'all' => Submission::query()->count(),
+        ];
     }
 
     private function supervisorOptions(): array
@@ -308,9 +326,10 @@ class LoanController extends Controller
             'borrow_reason_label' => $loan->borrowReasonLabel(),
             'queue_type_key' => $loan->queueTypeKey(),
             'queue_type_label' => $loan->queueTypeLabel(),
-            'slot_label' => $loan->isAlat() ? $this->slotAvailability->slotLabel($loan) : null,
+            ...$this->slotAvailability->slotView($loan),
             'is_catch_up' => $loan->isCatchUp(),
             'items_summary' => $itemsSummary ?: '—',
+            'items' => $items,
             'created_at_formatted' => $loan->created_at?->translatedFormat('d M Y'),
             'can_approve' => $loan->status === 'diminta',
             'can_reject' => in_array($loan->status, ['diminta', 'antrian', 'disetujui'], true),
