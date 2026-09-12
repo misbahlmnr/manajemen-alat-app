@@ -1,7 +1,6 @@
 import AppLayout from "@/Layouts/AppLayout";
 import PageHeader from "@/Components/PageHeader";
 import LoanStatusBadge from "@/Components/LoanStatusBadge";
-import StatusTimeline from "@/Components/StatusTimeline";
 import { Button } from "@/Components/ui/button";
 import {
     Card,
@@ -10,7 +9,6 @@ import {
     CardHeader,
     CardTitle,
 } from "@/Components/ui/card";
-import { buildLoanProgressSteps } from "@/lib/loanTimeline";
 import { Head, Link, router } from "@inertiajs/react";
 import {
     ArrowLeft,
@@ -21,14 +19,13 @@ import {
     RotateCcw,
     X,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import DeleteLoanDialog from "./Components/DeleteLoanDialog";
 import RejectLoanDialog from "./Components/RejectLoanDialog";
 import ReturnLoanDialog from "./Components/ReturnLoanDialog";
 import InspectReturnDialog from "../Collateral/Components/InspectReturnDialog";
 import ReceiveCardDialog from "../Collateral/Components/ReceiveCardDialog";
 import CollateralStatusBadge from "@/Components/CollateralStatusBadge";
-import QueuePriorityPanel from "./Components/QueuePriorityPanel";
 
 export default function Show({ loan }) {
     const [deleteOpen, setDeleteOpen] = useState(false);
@@ -118,10 +115,6 @@ export default function Show({ loan }) {
     const timeline = loan.timeline ?? [];
     const items = loan.items ?? [];
     const isBahan = loan.item_type === "bahan";
-    const progressSteps = useMemo(
-        () => buildLoanProgressSteps(loan),
-        [loan],
-    );
 
     return (
         <AppLayout>
@@ -223,10 +216,6 @@ export default function Show({ loan }) {
                     </Button>
                 </PageHeader>
 
-                {loan.can_set_queue_priority && (
-                    <QueuePriorityPanel loan={loan} />
-                )}
-
                 <div className="grid gap-6 lg:grid-cols-3">
                     <div className="space-y-6 lg:col-span-1">
                         <Card className="">
@@ -248,43 +237,38 @@ export default function Show({ loan }) {
                                             itemType={loan.item_type}
                                         />
                                     </MetaRow>
-                                    {loan.borrow_scope === "bawa_pulang" && (
-                                        <MetaRow label="Jenis">
+                                    {loan.item_type === "alat" &&
+                                        loan.queue_type_label && (
+                                            <MetaRow label="Kategori">
+                                                <span className="text-sm font-medium">
+                                                    {loan.queue_type_label}
+                                                </span>
+                                            </MetaRow>
+                                        )}
+                                    {loan.status === "antrian" &&
+                                        loan.queue_position && (
+                                            <MetaRow label="Antrian">
+                                                <span className="text-sm font-medium">
+                                                    #{loan.queue_position}
+                                                    {loan.queue_type_label
+                                                        ? ` · ${loan.queue_type_label}`
+                                                        : ""}
+                                                </span>
+                                            </MetaRow>
+                                        )}
+                                    {loan.supervisor_name ? (
+                                        <MetaRow label="Guru">
                                             <span className="text-sm font-medium">
-                                                Bawa Pulang
+                                                {loan.supervisor_name}
                                             </span>
                                         </MetaRow>
-                                    )}
-                                    {loan.is_catch_up && (
-                                        <MetaRow label="Jenis">
-                                            <span className="rounded-full bg-amber-500/15 px-2.5 py-0.5 text-xs font-medium text-amber-800">
-                                                Lanjutan praktikum
-                                            </span>
-                                        </MetaRow>
-                                    )}
-                                    <MetaRow label="Guru">
-                                        <span className="text-sm font-medium">
-                                            {loan.supervisor_name}
-                                        </span>
-                                    </MetaRow>
+                                    ) : null}
                                 </div>
                                 {loan.rejection_reason && (
                                     <p className="mt-4 rounded-[8px] border border-destructive/20 bg-destructive/5 p-3 text-xs text-destructive">
                                         {loan.rejection_reason}
                                     </p>
                                 )}
-                            </CardContent>
-                        </Card>
-
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Timeline</CardTitle>
-                                <CardDescription>
-                                    Progress pengajuan hingga selesai
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <StatusTimeline steps={progressSteps} />
                             </CardContent>
                         </Card>
                     </div>
@@ -300,9 +284,27 @@ export default function Show({ loan }) {
                             </CardHeader>
                             <CardContent className="grid gap-4 sm:grid-cols-2">
                                 <Info
-                                    label="Tanggal pengajuan"
+                                    label="Tanggal booking"
                                     value={loan.request_date_formatted}
                                 />
+                                {loan.item_type === "alat" && (
+                                    <>
+                                        <Info
+                                            label="Kategori"
+                                            value={loan.queue_type_label}
+                                        />
+                                        {loan.slot_label && (
+                                            <Info
+                                                label={
+                                                    loan.slot_field_label ||
+                                                    "Slot"
+                                                }
+                                                value={loan.slot_label}
+                                                hint={loan.slot_hint}
+                                            />
+                                        )}
+                                    </>
+                                )}
                                 {!isBahan && (
                                     <Info
                                         label="Batas pengembalian"
@@ -323,12 +325,6 @@ export default function Show({ loan }) {
                                     <Info
                                         label="Selesai"
                                         value={loan.returned_at_formatted}
-                                    />
-                                )}
-                                {loan.item_type === "alat" && (
-                                    <Info
-                                        label="Lokasi"
-                                        value={loan.borrow_scope_label}
                                     />
                                 )}
                                 {loan.schedule_title && (
@@ -378,7 +374,7 @@ export default function Show({ loan }) {
                                                     {item.equipment_code}
                                                 </p>
                                             </div>
-                                            <span className="shrink-0 rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium">
+                                            <span className="shrink-0 rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-secondary-foreground">
                                                 ×{item.quantity}
                                             </span>
                                         </li>
@@ -572,13 +568,32 @@ function MetaRow({ label, children }) {
     );
 }
 
-function Info({ label, value }) {
+function hasDisplayValue(value) {
+    if (value == null) {
+        return false;
+    }
+
+    const text = String(value).trim();
+
+    return text !== "" && text !== "—";
+}
+
+function Info({ label, value, hint }) {
+    if (!hasDisplayValue(value)) {
+        return null;
+    }
+
     return (
-        <div className="rounded-[8px] border border-border/50 bg-muted/20 p-4">
+        <div className="rounded-lg border bg-muted/50 p-4">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 {label}
             </p>
             <p className="mt-2 text-sm font-medium text-foreground">{value}</p>
+            {hint ? (
+                <p className="mt-1 text-xs leading-snug text-muted-foreground">
+                    {hint}
+                </p>
+            ) : null}
         </div>
     );
 }

@@ -29,6 +29,17 @@ function formatScheduleTime(value) {
     return String(value).slice(0, 5);
 }
 
+function todayLocalDate() {
+    const d = new Date();
+    const pad = (value) => String(value).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+function toDateTimeLocal(date, time) {
+    const hhmm = formatScheduleTime(time) || "23:59";
+    return `${date}T${hhmm}`;
+}
+
 function buildDueAt(requestDate, end) {
     const raw = end ? `${requestDate}T${end}` : `${requestDate}T23:59`;
     const parsed = new Date(raw);
@@ -53,16 +64,65 @@ function addDaysDateTime(baseDate, days, time = "17:00") {
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-function itemTypeOf(eq, fallback = "alat") {
+function addDaysToDate(baseDate, days) {
+    const [year, month, day] = String(baseDate)
+        .split("-")
+        .map((part) => Number(part));
+    const d = new Date(year, (month || 1) - 1, day || 1);
+    d.setDate(d.getDate() + days);
+    const pad = (value) => String(value).padStart(2, "0");
+
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+function weekdayHari(dateStr) {
+    if (!dateStr) {
+        return null;
+    }
+
+    const [year, month, day] = String(dateStr)
+        .split("-")
+        .map((part) => Number(part));
+    const weekday = new Date(year, (month || 1) - 1, day || 1).getDay();
+    const map = {
+        0: "minggu",
+        1: "senin",
+        2: "selasa",
+        3: "rabu",
+        4: "kamis",
+        5: "jumat",
+        6: "sabtu",
+    };
+
+    return map[weekday] ?? null;
+}
+
+function scheduleMatchesDate(schedule, dateStr) {
+    if (!dateStr || !schedule) {
+        return false;
+    }
+
+    if (schedule.type === "khusus") {
+        return schedule.tanggal === dateStr;
+    }
+
+    return schedule.hari === weekdayHari(dateStr);
+}
+
+function itemTypeOf(eq, fallback) {
     return eq?.item_type === "bahan" || eq?.item_type === "alat"
         ? eq.item_type
         : fallback;
 }
 
 function CartLine({ item, maxQty, onUpdateQty, processing }) {
-    const availableNow = Number(item.equipment.available ?? 0);
-    const willQueue = item.quantity > availableNow;
     const isBahan = item.item_type === "bahan";
+    const availableNow = Number(
+        isBahan
+            ? (item.equipment.available ?? 0)
+            : (item.equipment.slot_remaining ?? item.equipment.available ?? 0),
+    );
+    const willQueue = item.quantity > availableNow;
 
     return (
         <div className="flex flex-col gap-2 rounded-lg bg-secondary/50 p-3 sm:flex-row sm:items-center">
@@ -83,7 +143,8 @@ function CartLine({ item, maxQty, onUpdateQty, processing }) {
                     </span>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                    Tersedia saat ini: {availableNow}{" "}
+                    {isBahan ? "Tersedia saat ini" : "Sisa di jam ini"}:{" "}
+                    {availableNow}{" "}
                     {item.equipment.unit ?? "unit"} · Max:{" "}
                     {maxQty(item.equipment)}
                 </p>
@@ -144,6 +205,7 @@ export default function Create({
     defaults,
     supervisorOptions = [],
     todaySchedules = [],
+    bookableSchedules = [],
     labRoomOptions = [],
     overdueLoans = [],
     queueConfig = {},
@@ -154,6 +216,10 @@ export default function Create({
     const [catalogTab, setCatalogTab] = useState(resolvedType);
     const schoolCloseTime = queueConfig.school_close_time || "17:00";
     const bawaPulangMaxDays = Number(queueConfig.bawa_pulang_max_days || 1);
+    const bookingHorizonDays = Number(queueConfig.booking_horizon_days || 7);
+    const maxBookingDate = addDaysToDate(todayLocalDate(), bookingHorizonDays);
+    const allSchedules =
+        bookableSchedules.length > 0 ? bookableSchedules : todaySchedules;
 
     useEffect(() => {
         if (isEdit) return;
@@ -172,6 +238,7 @@ export default function Create({
     });
     const [packageErrors, setPackageErrors] = useState({});
     const [submittingPackage, setSubmittingPackage] = useState(false);
+    const [slotRemaining, setSlotRemaining] = useState({});
     const isFirstSearch = useRef(true);
     const { data, setData, post, put, processing, errors, transform } = useForm(
         {
@@ -180,7 +247,11 @@ export default function Create({
         },
     );
 
-    const catalogList = catalog?.data ?? [];
+    const catalogList = (catalog?.data ?? []).map((item) => ({
+        ...item,
+        slot_remaining:
+            slotRemaining[item.id] ?? item.slot_remaining ?? item.available,
+    }));
     const catalogTotal = paginatorTotal(catalog);
     const catalogIsBahan = catalogTab === "bahan";
     const alatCart = cart.filter((i) => i.item_type === "alat");
@@ -235,6 +306,58 @@ export default function Create({
         return () => clearTimeout(timeout);
     }, [searchQuery, catalogTab, isEdit, loan?.id]);
 
+    useEffect(() => {
+        if (catalogTab === "bahan") {
+            return undefined;
+        }
+
+        const ids = Array.from(
+            new Set([
+                ...(catalog?.data ?? []).map((item) => item.id),
+                ...cart
+                    .filter((item) => item.item_type === "alat")
+                    .map((item) => item.equipment.id),
+            ]),
+        );
+
+        if (!ids.length || !data.request_date) {
+            return undefined;
+        }
+
+        const controller = new AbortController();
+
+        window.axios
+            .get(route("siswa.loans.slot-availability"), {
+                params: {
+                    item_type: "alat",
+                    request_date: data.request_date,
+                    borrow_scope: data.borrow_scope,
+                    borrow_reason: data.borrow_reason,
+                    practicum_schedule_id: data.practicum_schedule_id || undefined,
+                    due_at: data.due_at || undefined,
+                    except_loan_id: loan?.id || undefined,
+                    equipment_ids: ids,
+                },
+                signal: controller.signal,
+            })
+            .then((response) => {
+                setSlotRemaining(response.data?.remaining ?? {});
+            })
+            .catch(() => {});
+
+        return () => controller.abort();
+    }, [
+        catalogTab,
+        catalog?.data,
+        cart,
+        data.request_date,
+        data.borrow_scope,
+        data.borrow_reason,
+        data.practicum_schedule_id,
+        data.due_at,
+        loan?.id,
+    ]);
+
     const switchCatalogTab = (t) => {
         if (t === catalogTab) return;
 
@@ -255,12 +378,19 @@ export default function Create({
 
     const maxQty = (eq) => {
         const cartItem = cart.find((i) => i.equipment.id === eq.id);
-        const stockLimit = Number(eq.stock ?? 0);
-        const availableLimit = Number(eq.available ?? 0);
-        const base =
-            eq.status === "tidak_tersedia"
-                ? 0
-                : Math.max(stockLimit, availableLimit, 1);
+        const stockLimit = Number(eq.qty_baik ?? eq.stock ?? 0);
+        const availableLimit = Number(
+            eq.item_type === "bahan"
+                ? (eq.available ?? 0)
+                : (slotRemaining[eq.id] ?? eq.slot_remaining ?? eq.available ?? 0),
+        );
+        const unavailable =
+            eq.item_type === "bahan"
+                ? Number(eq.stock ?? 0) <= 0
+                : eq.status === "tidak_tersedia";
+        const base = unavailable
+            ? 0
+            : Math.max(stockLimit, availableLimit, 1);
 
         if (cartItem) {
             return Math.max(base, cartItem.quantity);
@@ -308,29 +438,37 @@ export default function Create({
     };
 
     const isBawaPulang = needsAlatFields && data.borrow_scope === "bawa_pulang";
-    const isPribadi = needsAlatFields && data.borrow_reason === "lanjutan";
+    const isPribadi = needsAlatFields && data.borrow_reason === "lanjutan" && !isBawaPulang;
     const isPakaiDiLab = needsAlatFields && !isBawaPulang && !isPribadi;
+    const isBawaPulangLomba = isBawaPulang && data.borrow_reason === "lomba";
     const scheduleRequired = isPakaiDiLab;
-    const scheduleList = isPakaiDiLab || isBawaPulang ? todaySchedules : [];
+    const scheduleList = (isPakaiDiLab || isBawaPulang)
+        ? allSchedules.filter((schedule) =>
+              scheduleMatchesDate(schedule, data.request_date),
+          )
+        : [];
     const showSupervisor =
         isPakaiDiLab ||
         (isBawaPulang && Boolean(data.practicum_schedule_id));
     const showUsageRoom = needsAlatFields && !isBawaPulang;
 
     const usageLocation = isBawaPulang
-        ? "bawa_pulang"
+        ? isBawaPulangLomba
+            ? "bawa_pulang_lomba"
+            : "bawa_pulang_project"
         : isPribadi
           ? "pribadi"
           : "pakai_di_lab";
 
     const setUsageLocation = (location) => {
-        const today = new Date().toISOString().slice(0, 10);
+        const today = data.request_date || todayLocalDate();
 
-        if (location === "bawa_pulang") {
+        if (location === "bawa_pulang_lomba" || location === "bawa_pulang_project") {
             setData((prev) => ({
                 ...prev,
                 borrow_scope: "bawa_pulang",
-                borrow_reason: "reguler",
+                borrow_reason:
+                    location === "bawa_pulang_lomba" ? "lomba" : "lanjutan",
                 practicum_schedule_id: "",
                 supervisor_id: "",
                 usage_room: "",
@@ -395,12 +533,11 @@ export default function Create({
             return;
         }
 
-        const today = new Date().toISOString().slice(0, 10);
+        const requestDate = data.request_date || todayLocalDate();
         const end = formatScheduleTime(s.jam_selesai);
-        const requestDate = s.tanggal || today;
         const dueAt = isBawaPulang
             ? addDaysDateTime(requestDate, bawaPulangMaxDays, schoolCloseTime)
-            : buildDueAt(requestDate, end);
+            : toDateTimeLocal(requestDate, end);
 
         setData((prev) => ({
             ...prev,
@@ -409,8 +546,6 @@ export default function Create({
             usage_room: isPakaiDiLab
                 ? s.ruangan || prev.usage_room
                 : prev.usage_room,
-            request_date:
-                isPakaiDiLab || isBawaPulang ? requestDate : prev.request_date,
             due_at: isPakaiDiLab || isBawaPulang ? dueAt : prev.due_at,
         }));
     };
@@ -418,6 +553,67 @@ export default function Create({
     const supervisorLocked =
         (isPakaiDiLab || isBawaPulang) && Boolean(selectedSchedule?.guru_id);
     const roomLocked = isPakaiDiLab && Boolean(selectedSchedule?.ruangan);
+    const scheduleEndAt = selectedSchedule
+        ? new Date(
+              toDateTimeLocal(
+                  data.request_date || todayLocalDate(),
+                  selectedSchedule.jam_selesai,
+              ),
+          )
+        : null;
+    const scheduleEnded = Boolean(
+        isPakaiDiLab &&
+            data.request_date === todayLocalDate() &&
+            scheduleEndAt &&
+            !Number.isNaN(scheduleEndAt.getTime()) &&
+            scheduleEndAt.getTime() <= Date.now(),
+    );
+
+    useEffect(() => {
+        if (!isPakaiDiLab || !selectedSchedule) {
+            return;
+        }
+
+        const requestDate = data.request_date || todayLocalDate();
+        const dueAt = toDateTimeLocal(
+            requestDate,
+            selectedSchedule.jam_selesai,
+        );
+
+        if (data.due_at === dueAt) {
+            return;
+        }
+
+        setData((prev) => ({
+            ...prev,
+            due_at: dueAt,
+        }));
+    }, [
+        isPakaiDiLab,
+        selectedSchedule?.id,
+        selectedSchedule?.jam_selesai,
+        data.request_date,
+    ]);
+
+    useEffect(() => {
+        if (!isPribadi) {
+            return;
+        }
+
+        const dueAt = buildDueAt(
+            data.request_date || todayLocalDate(),
+            schoolCloseTime,
+        );
+
+        if (data.due_at === dueAt) {
+            return;
+        }
+
+        setData((prev) => ({
+            ...prev,
+            due_at: dueAt,
+        }));
+    }, [isPribadi, data.request_date, schoolCloseTime]);
 
     const totalItems = cart.reduce((s, i) => s + i.quantity, 0);
     const collateralRequired =
@@ -430,7 +626,7 @@ export default function Create({
         const payload = {
             item_type: itemType,
             request_date:
-                formData.request_date || new Date().toISOString().slice(0, 10),
+                formData.request_date || todayLocalDate(),
             purpose,
             notes: formData.notes ?? "",
             items: cartItems.map((i) => ({
@@ -445,9 +641,10 @@ export default function Create({
 
         if (itemType !== "bahan") {
             payload.borrow_scope = formData.borrow_scope;
-            if (formData.borrow_scope === "lab") {
-                payload.borrow_reason = formData.borrow_reason || "reguler";
-            }
+            payload.borrow_reason =
+                formData.borrow_scope === "bawa_pulang"
+                    ? formData.borrow_reason || "lanjutan"
+                    : formData.borrow_reason || "reguler";
             if (formData.practicum_schedule_id) {
                 payload.practicum_schedule_id = formData.practicum_schedule_id;
             }
@@ -538,6 +735,7 @@ export default function Create({
                 data.due_at &&
                 (!showUsageRoom || data.usage_room?.trim()) &&
                 (!collateralRequired || data.collateral_agreed))) &&
+        !scheduleEnded &&
         (data.notes?.trim() || data.purpose?.trim());
 
     return (
@@ -699,6 +897,9 @@ export default function Create({
                             {catalogTotal}{" "}
                             {catalogIsBahan ? "bahan" : "alat"} tersedia
                             {searchQuery ? " untuk pencarian ini" : ""}
+                            {!catalogIsBahan
+                                ? " · sisa mengikuti tanggal dan jenis peminjaman yang dipilih"
+                                : ""}
                         </p>
                         {catalogTotal > 0 ? (
                             <LoanCatalogTable
@@ -746,7 +947,18 @@ export default function Create({
                                             {alatCart.map((item) => (
                                                 <CartLine
                                                     key={item.equipment.id}
-                                                    item={item}
+                                                    item={{
+                                                        ...item,
+                                                        equipment: {
+                                                            ...item.equipment,
+                                                            slot_remaining:
+                                                                slotRemaining[
+                                                                    item.equipment.id
+                                                                ] ??
+                                                                item.equipment
+                                                                    .slot_remaining,
+                                                        },
+                                                    }}
                                                     maxQty={maxQty}
                                                     onUpdateQty={updateQty}
                                                     processing={busy}
@@ -815,11 +1027,13 @@ export default function Create({
                                                 />
                                                 <div className="text-sm">
                                                     <p className="font-medium">
-                                                        Pakai di Lab
+                                                        Praktik lab
                                                     </p>
                                                     <p className="text-xs text-muted-foreground">
-                                                        Sesuai mata pelajaran
-                                                        dan jadwal hari ini.
+                                                        Praktikum sesuai jadwal
+                                                        mapel. Diajukan ketua
+                                                        kelompok. Bisa booking
+                                                        sebelum hari H.
                                                     </p>
                                                 </div>
                                             </label>
@@ -852,7 +1066,7 @@ export default function Create({
                                                         Pribadi
                                                     </p>
                                                     <p className="text-xs text-muted-foreground">
-                                                        Penggunaan di luar jam
+                                                        Pakai di lab di luar jam
                                                         mapel. Tanpa jaminan
                                                         kartu.
                                                     </p>
@@ -862,7 +1076,7 @@ export default function Create({
                                                 className={cn(
                                                     "flex cursor-pointer items-start gap-2 rounded-lg border p-2.5",
                                                     usageLocation ===
-                                                        "bawa_pulang"
+                                                        "bawa_pulang_lomba"
                                                         ? "border-warning bg-warning/5"
                                                         : "border-border",
                                                 )}
@@ -870,14 +1084,14 @@ export default function Create({
                                                 <input
                                                     type="radio"
                                                     name="usage_location"
-                                                    value="bawa_pulang"
+                                                    value="bawa_pulang_lomba"
                                                     checked={
                                                         usageLocation ===
-                                                        "bawa_pulang"
+                                                        "bawa_pulang_lomba"
                                                     }
                                                     onChange={() =>
                                                         setUsageLocation(
-                                                            "bawa_pulang",
+                                                            "bawa_pulang_lomba",
                                                         )
                                                     }
                                                     className="mt-0.5"
@@ -885,11 +1099,48 @@ export default function Create({
                                                 />
                                                 <div className="text-sm">
                                                     <p className="font-medium">
-                                                        Bawa Pulang
+                                                        Bawa pulang lomba
                                                     </p>
                                                     <p className="text-xs text-muted-foreground">
-                                                        Wajib jaminan kartu
-                                                        pelajar.
+                                                        Ambil lomba setelah jam
+                                                        mapel selesai. Wajib
+                                                        jaminan kartu.
+                                                    </p>
+                                                </div>
+                                            </label>
+                                            <label
+                                                className={cn(
+                                                    "flex cursor-pointer items-start gap-2 rounded-lg border p-2.5",
+                                                    usageLocation ===
+                                                        "bawa_pulang_project"
+                                                        ? "border-warning bg-warning/5"
+                                                        : "border-border",
+                                                )}
+                                            >
+                                                <input
+                                                    type="radio"
+                                                    name="usage_location"
+                                                    value="bawa_pulang_project"
+                                                    checked={
+                                                        usageLocation ===
+                                                        "bawa_pulang_project"
+                                                    }
+                                                    onChange={() =>
+                                                        setUsageLocation(
+                                                            "bawa_pulang_project",
+                                                        )
+                                                    }
+                                                    className="mt-0.5"
+                                                    disabled={busy}
+                                                />
+                                                <div className="text-sm">
+                                                    <p className="font-medium">
+                                                        Bawa pulang project
+                                                    </p>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        Prioritas paling
+                                                        belakang. Wajib jaminan
+                                                        kartu pelajar.
                                                     </p>
                                                 </div>
                                             </label>
@@ -899,6 +1150,64 @@ export default function Create({
                                         />
                                         <InputError
                                             message={errors.borrow_reason}
+                                        />
+                                    </div>
+                                )}
+
+                                {needsAlatFields && (
+                                    <div className="space-y-1.5">
+                                        <label className="flex items-center gap-1.5 text-sm font-medium">
+                                            <Calendar className="h-3.5 w-3.5" />{" "}
+                                            Tanggal Pemakaian
+                                        </label>
+                                        <input
+                                            type="date"
+                                            value={data.request_date}
+                                            min={todayLocalDate()}
+                                            max={maxBookingDate}
+                                            onChange={(e) => {
+                                                const nextDate = e.target.value;
+                                                setData((prev) => ({
+                                                    ...prev,
+                                                    request_date: nextDate,
+                                                    practicum_schedule_id:
+                                                        isPakaiDiLab ||
+                                                        isBawaPulang
+                                                            ? ""
+                                                            : prev.practicum_schedule_id,
+                                                    supervisor_id:
+                                                        isPakaiDiLab ||
+                                                        isBawaPulang
+                                                            ? ""
+                                                            : prev.supervisor_id,
+                                                    usage_room: isPakaiDiLab
+                                                        ? ""
+                                                        : prev.usage_room,
+                                                    due_at: isBawaPulang
+                                                        ? addDaysDateTime(
+                                                              nextDate,
+                                                              bawaPulangMaxDays,
+                                                              schoolCloseTime,
+                                                          )
+                                                        : isPribadi
+                                                          ? buildDueAt(
+                                                                nextDate,
+                                                                schoolCloseTime,
+                                                            )
+                                                          : "",
+                                                }));
+                                            }}
+                                            className="form-input"
+                                            disabled={busy}
+                                        />
+                                        <p className="text-xs text-muted-foreground">
+                                            Bisa booking hingga{" "}
+                                            {bookingHorizonDays} hari ke depan.
+                                            Pilih tanggal dulu, lalu pilih mapel
+                                            yang ada di hari itu.
+                                        </p>
+                                        <InputError
+                                            message={errors.request_date}
                                         />
                                     </div>
                                 )}
@@ -920,10 +1229,10 @@ export default function Create({
                                         </label>
                                         {(isPakaiDiLab || isBawaPulang) && (
                                             <p className="text-xs text-muted-foreground">
-                                                Hanya jadwal mata pelajaran hari
-                                                ini untuk kelas Anda.
+                                                Jadwal mapel kelas Anda pada
+                                                tanggal yang dipilih.
                                                 {isBawaPulang
-                                                    ? " Kosongkan jika tidak ada jadwal hari ini."
+                                                    ? " Kosongkan jika tidak perlu mapel."
                                                     : ""}
                                             </p>
                                         )}
@@ -939,8 +1248,8 @@ export default function Create({
                                                 <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
                                                 <span>
                                                     {isBawaPulang
-                                                        ? "Tidak ada jadwal mapel hari ini — Anda tetap bisa mengajukan tanpa memilih mapel."
-                                                        : "Tidak ada jadwal mapel hari ini untuk kelas Anda."}
+                                                        ? "Tidak ada jadwal mapel di tanggal itu — Anda tetap bisa mengajukan tanpa memilih mapel."
+                                                        : "Tidak ada jadwal mapel di tanggal itu untuk kelas Anda."}
                                                 </span>
                                             </div>
                                         ) : (
@@ -1037,6 +1346,15 @@ export default function Create({
                                                         Prioritas Tinggi — Lomba
                                                     </p>
                                                 )}
+                                                {scheduleEnded && (
+                                                    <p className="flex items-center gap-1 font-medium text-destructive">
+                                                        <AlertTriangle className="h-3 w-3" />
+                                                        Jadwal ini sudah
+                                                        selesai. Pilih jam
+                                                        mapel lain atau gunakan
+                                                        tipe Pribadi.
+                                                    </p>
+                                                )}
                                             </div>
                                         )}
                                     </div>
@@ -1128,71 +1446,36 @@ export default function Create({
                                         <div className="space-y-1.5">
                                             <label className="flex items-center gap-1.5 text-sm font-medium">
                                                 <Calendar className="h-3.5 w-3.5" />{" "}
-                                                Tanggal Pengajuan
-                                            </label>
-                                            <input
-                                                type="date"
-                                                value={data.request_date}
-                                                onChange={(e) => {
-                                                    const nextDate =
-                                                        e.target.value;
-                                                    if (isBawaPulang) {
-                                                        setData((prev) => ({
-                                                            ...prev,
-                                                            request_date:
-                                                                nextDate,
-                                                            due_at: addDaysDateTime(
-                                                                nextDate,
-                                                                bawaPulangMaxDays,
-                                                                schoolCloseTime,
-                                                            ),
-                                                        }));
-                                                        return;
-                                                    }
-                                                    setData(
-                                                        "request_date",
-                                                        nextDate,
-                                                    );
-                                                }}
-                                                className="form-input"
-                                                disabled={
-                                                    busy || isPakaiDiLab
-                                                }
-                                            />
-                                            {isPakaiDiLab && (
-                                                <p className="text-xs text-muted-foreground">
-                                                    Mengikuti jadwal mata
-                                                    pelajaran hari ini.
-                                                </p>
-                                            )}
-                                            <InputError
-                                                message={errors.request_date}
-                                            />
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <label className="flex items-center gap-1.5 text-sm font-medium">
-                                                <Calendar className="h-3.5 w-3.5" />{" "}
                                                 Batas Kembali
                                             </label>
                                             <input
                                                 type="datetime-local"
                                                 value={data.due_at}
-                                                onChange={(e) =>
-                                                    setData(
-                                                        "due_at",
-                                                        e.target.value,
-                                                    )
-                                                }
+                                                readOnly
                                                 className="form-input"
-                                                disabled={busy}
+                                                disabled
                                             />
+                                            {isPakaiDiLab && (
+                                                <p className="text-xs text-muted-foreground">
+                                                    Mengikuti jam selesai
+                                                    jadwal mata pelajaran.
+                                                    Tidak dapat diubah.
+                                                </p>
+                                            )}
+                                            {isPribadi && (
+                                                <p className="text-xs text-muted-foreground">
+                                                    Mengikuti jam tutup lab (
+                                                    {schoolCloseTime}). Tidak
+                                                    dapat diubah.
+                                                </p>
+                                            )}
                                             {isBawaPulang && (
                                                 <p className="text-xs text-muted-foreground">
                                                     Maksimal {bawaPulangMaxDays}{" "}
                                                     hari setelah tanggal
-                                                    pengajuan, hingga pukul{" "}
-                                                    {schoolCloseTime} (jam
-                                                    operasional lab).
+                                                    pengajuan, pukul{" "}
+                                                    {schoolCloseTime}. Tidak
+                                                    dapat diubah.
                                                 </p>
                                             )}
                                             <InputError

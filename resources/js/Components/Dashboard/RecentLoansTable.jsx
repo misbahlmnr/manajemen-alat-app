@@ -38,35 +38,35 @@ export function RecentLoansTable({
     <div className="data-table overflow-hidden">
       <div className="-mx-1 overflow-x-auto px-1 sm:mx-0 sm:px-0">
         <table className="w-full min-w-[640px]">
-          <thead className="sticky top-0 z-10 border-b border-border bg-slate-100">
+          <thead className="sticky top-0 z-10 border-b bg-muted/50">
             <tr>
-              <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 sm:px-4">
+              <th className="h-12 px-4 text-left align-middle text-xs font-medium text-muted-foreground">
                 Peminjam
               </th>
-              <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 sm:px-4">
+              <th className="h-12 px-4 text-left align-middle text-xs font-medium text-muted-foreground">
                 Peralatan
               </th>
-              <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 sm:px-4">
+              <th className="h-12 px-4 text-left align-middle text-xs font-medium text-muted-foreground">
                 Tanggal Pinjam
               </th>
-              <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 sm:px-4">
+              <th className="h-12 px-4 text-left align-middle text-xs font-medium text-muted-foreground">
                 Jatuh Tempo
               </th>
-              <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 sm:px-4">
+              <th className="h-12 px-4 text-left align-middle text-xs font-medium text-muted-foreground">
                 Status
               </th>
               {showActions && (
-                <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 sm:px-4">
+                <th className="h-12 px-4 text-left align-middle text-xs font-medium text-muted-foreground">
                   Aksi
                 </th>
               )}
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {pagedLoans.map((loan, index) => (
+            {pagedLoans.map((loan) => (
               <tr
                 key={loan.id}
-                className={`transition-colors hover:bg-primary/5 ${index % 2 === 1 ? "bg-muted/20" : ""}`}
+                className="border-b transition-colors hover:bg-muted/50"
               >
                 <td className="px-3 py-3.5 sm:px-4 sm:py-4">
                   <div>

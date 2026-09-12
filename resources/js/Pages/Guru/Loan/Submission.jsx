@@ -2,85 +2,11 @@ import AppLayout from "@/Layouts/AppLayout";
 import PageHeader from "@/Components/PageHeader";
 import LoanStatusBadge from "@/Components/LoanStatusBadge";
 import SubmissionTypeBadges from "@/Components/SubmissionTypeBadges";
+import SubmissionTypeCard from "@/Components/SubmissionTypeCard";
 import { Button } from "@/Components/ui/button";
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from "@/Components/ui/card";
+import { Card, CardContent } from "@/Components/ui/card";
 import { Head, Link } from "@inertiajs/react";
 import { ArrowLeft, Package, Wrench } from "lucide-react";
-
-function ItemLines({ loan }) {
-    const items = loan?.items ?? [];
-    if (!items.length) {
-        return (
-            <p className="text-sm text-muted-foreground">
-                {loan?.items_summary || "Tidak ada item"}
-            </p>
-        );
-    }
-
-    return (
-        <ul className="space-y-1.5">
-            {items.map((item) => (
-                <li
-                    key={item.id ?? item.equipment_id}
-                    className="flex items-center justify-between gap-3 text-sm"
-                >
-                    <span className="font-medium">
-                        {item.equipment_name ?? "Item"}
-                    </span>
-                    <span className="tabular-nums text-muted-foreground">
-                        ×{item.quantity}
-                    </span>
-                </li>
-            ))}
-        </ul>
-    );
-}
-
-function TypeCard({ title, icon: Icon, loan, emptyLabel, detailHref, accent }) {
-    const hasLoan = Boolean(loan);
-
-    return (
-        <Card className={`rounded-[10px] border-border/60 shadow-card ${accent}`}>
-            <CardHeader className="pb-3">
-                <div className="flex items-start justify-between gap-3">
-                    <div>
-                        <CardTitle className="flex items-center gap-2 text-base">
-                            <Icon className="h-4 w-4" />
-                            {title}
-                        </CardTitle>
-                        <CardDescription>
-                            {hasLoan ? loan.item_type_label : emptyLabel}
-                        </CardDescription>
-                    </div>
-                    {hasLoan && (
-                        <LoanStatusBadge
-                            status={loan.status}
-                            itemType={loan.item_type}
-                        />
-                    )}
-                </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                {hasLoan ? (
-                    <>
-                        <ItemLines loan={loan} />
-                        <Button variant="outline" asChild className="w-full sm:w-auto">
-                            <Link href={detailHref}>Lihat Detail {title}</Link>
-                        </Button>
-                    </>
-                ) : (
-                    <p className="text-sm text-muted-foreground">{emptyLabel}</p>
-                )}
-            </CardContent>
-        </Card>
-    );
-}
 
 export default function Submission({ submission }) {
     return (
@@ -162,27 +88,27 @@ export default function Submission({ submission }) {
                 </Card>
 
                 <div className="grid gap-6 lg:grid-cols-2">
-                    <TypeCard
+                    <SubmissionTypeCard
                         title="Alat"
                         icon={Wrench}
                         loan={submission.alat}
                         emptyLabel="Tidak ada alat"
-                        detailHref={
+                        actionHref={
                             submission.alat
                                 ? route("guru.loans.show", submission.alat.id)
-                                : "#"
+                                : null
                         }
                         accent="border-violet-500/20"
                     />
-                    <TypeCard
+                    <SubmissionTypeCard
                         title="Bahan"
                         icon={Package}
                         loan={submission.bahan}
                         emptyLabel="Tidak ada bahan"
-                        detailHref={
+                        actionHref={
                             submission.bahan
                                 ? route("guru.loans.show", submission.bahan.id)
-                                : "#"
+                                : null
                         }
                         accent="border-amber-500/20"
                     />

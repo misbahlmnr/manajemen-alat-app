@@ -13,10 +13,12 @@ class Supply extends Equipment
         static::creating(function (Supply $supply) {
             $supply->item_type = 'bahan';
             $supply->syncSupplyConditionQuantities();
+            $supply->syncInventoryStatusFromStock();
         });
 
         static::updating(function (Supply $supply) {
             $supply->syncSupplyConditionQuantities();
+            $supply->syncInventoryStatusFromStock();
         });
     }
 }

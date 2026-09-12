@@ -15,7 +15,6 @@ export default function Index({ supplies, filters, categories }) {
     const { data, setData } = useForm({
         search: filters.search ?? "",
         category: filters.category ?? "all",
-        status: filters.status ?? "all",
         stock_status: filters.stock_status ?? "all",
     });
 
@@ -36,7 +35,7 @@ export default function Index({ supplies, filters, categories }) {
         }, 400);
 
         return () => clearTimeout(timeout);
-    }, [data.search, data.category, data.status, data.stock_status]);
+    }, [data.search, data.category, data.stock_status]);
 
     const list = supplies.data ?? [];
     const total = paginatorTotal(supplies);
@@ -55,7 +54,7 @@ export default function Index({ supplies, filters, categories }) {
                     title="Cari & filter"
                     description={`${total} bahan sesuai filter aktif`}
                 >
-                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                         <div className="relative sm:col-span-2">
                             <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
@@ -95,14 +94,6 @@ export default function Index({ supplies, filters, categories }) {
                             </option>
                             <option value="tidak_tersedia">Tidak Tersedia</option>
                         </Select>
-                        <Select
-                            value={data.status}
-                            onChange={(e) => setData("status", e.target.value)}
-                        >
-                            <option value="all">Semua status</option>
-                            <option value="tersedia">Tersedia</option>
-                            <option value="tidak_tersedia">Tidak Tersedia</option>
-                        </Select>
                     </div>
                 </FilterToolbar>
 
@@ -123,7 +114,6 @@ export default function Index({ supplies, filters, categories }) {
                                     setData({
                                         search: "",
                                         category: "all",
-                                        status: "all",
                                         stock_status: "all",
                                     });
                                 }}

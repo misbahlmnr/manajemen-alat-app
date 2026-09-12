@@ -1,7 +1,6 @@
 import AppLayout from "@/Layouts/AppLayout";
 import PageHeader from "@/Components/PageHeader";
 import SupplyStockBadge from "@/Components/SupplyStockBadge";
-import InventoryStatusBadge from "@/Components/InventoryStatusBadge";
 import EquipmentImage from "@/Components/Equipment/EquipmentImage";
 import { Button } from "@/Components/ui/button";
 import {
@@ -39,12 +38,13 @@ export default function Show({ supply }) {
                     )}
                 </PageHeader>
 
-                {supply.status === "tersedia" && Number(supply.available) <= 0 && (
+                {Number(supply.stock) > 0 && Number(supply.available) <= 0 && (
                     <div className="mb-6 rounded-[8px] border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm text-amber-900">
                         <p className="font-medium">Stok bahan sedang kosong.</p>
                         <p className="mt-1 text-amber-900/80">
                             Pengajuan baru tetap dapat dilakukan dan akan masuk
-                            antrean Round Robin berdasarkan waktu pengajuan.
+                            antrian menurut tipe peminjaman, lalu waktu masuk
+                            antrian.
                         </p>
                     </div>
                 )}
@@ -72,9 +72,6 @@ export default function Show({ supply }) {
                             <div className="mt-6 space-y-4 border-t border-border pt-6">
                                 <MetaRow label="Ketersediaan">
                                     <SupplyStockBadge label={supply.stock_label} />
-                                </MetaRow>
-                                <MetaRow label="Status bahan">
-                                    <InventoryStatusBadge status={supply.status} />
                                 </MetaRow>
                                 <MetaRow label="Satuan">
                                     <span className="text-sm font-medium text-foreground">
@@ -199,7 +196,7 @@ function MetaRow({ label, children }) {
 
 function Info({ label, value, mono = false }) {
     return (
-        <div className="rounded-[8px] border border-border/50 bg-muted/20 p-4">
+        <div className="rounded-lg border bg-muted/50 p-4">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 {label}
             </p>
@@ -218,7 +215,7 @@ function StockStat({ label, value, unit, highlight = false }) {
             className={`rounded-[8px] border p-4 text-center ${
                 highlight
                     ? "border-primary/20 bg-primary/5"
-                    : "border-border/50 bg-muted/20"
+                    : "border bg-muted/50"
             }`}
         >
             <p

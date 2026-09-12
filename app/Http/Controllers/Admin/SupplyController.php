@@ -22,7 +22,6 @@ class SupplyController extends Controller
 
         $search = $request->string('search')->trim();
         $category = $request->string('category')->toString() ?: 'all';
-        $status = $request->string('status')->toString() ?: 'all';
 
         $supplies = Supply::query()
             ->when($search->isNotEmpty(), function ($query) use ($search) {
@@ -35,7 +34,6 @@ class SupplyController extends Controller
                 });
             })
             ->when($category !== 'all', fn ($q) => $q->where('category', $category))
-            ->when($status !== 'all', fn ($q) => $q->where('status', $status))
             ->latest()
             ->paginate(10)
             ->withQueryString()
@@ -52,7 +50,6 @@ class SupplyController extends Controller
             'filters' => [
                 'search' => $search->toString(),
                 'category' => $category,
-                'status' => $status,
             ],
             'categories' => $categories,
             'categoryOptions' => config('lab.supply_categories'),

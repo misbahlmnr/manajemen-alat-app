@@ -1,5 +1,5 @@
 import DataTable from "@/Components/DataTable";
-import InventoryStatusBadge from "@/Components/InventoryStatusBadge";
+import AvailabilityBadge from "@/Components/AvailabilityBadge";
 import ConditionBreakdown from "@/Components/ConditionBreakdown";
 import EquipmentImage from "@/Components/Equipment/EquipmentImage";
 import TableRowActions from "@/Components/TableRowActions";
@@ -40,22 +40,22 @@ export default function EquipmentTable({ items, pagination, onDelete }) {
         },
         { accessorKey: "category", header: "Kategori" },
         {
-            id: "stock",
-            header: "Stok Baik",
+            id: "available",
+            header: "Stok Tersedia",
             accessorFn: (row) => row.available,
             cell: ({ row }) => (
-                <>
+                <span className="tabular-nums" title="Unit di lab / total stok">
                     <span className="font-medium">{row.original.available}</span>
                     <span className="text-muted-foreground">
                         {" "}
-                        / {row.original.qty_baik} baik ({row.original.stock} total)
+                        / {row.original.stock}
                     </span>
-                </>
+                </span>
             ),
         },
         {
             id: "condition",
-            header: "Kondisi",
+            header: "Kondisi Detail",
             cell: ({ row }) => (
                 <ConditionBreakdown
                     breakdown={row.original.condition_breakdown}
@@ -64,10 +64,12 @@ export default function EquipmentTable({ items, pagination, onDelete }) {
             ),
         },
         {
-            accessorKey: "status",
+            id: "availability",
             header: "Status",
-            cell: ({ getValue }) => (
-                <InventoryStatusBadge status={getValue()} />
+            accessorFn: (row) => row.availability_label,
+            enableSorting: false,
+            cell: ({ row }) => (
+                <AvailabilityBadge label={row.original.availability_label} />
             ),
         },
         {
@@ -90,7 +92,7 @@ export default function EquipmentTable({ items, pagination, onDelete }) {
             data={items ?? []}
             columns={columns}
             pagination={pagination}
-            tableClassName="min-w-[720px]"
+            tableClassName="min-w-[800px]"
             getRowId={(row) => String(row.id)}
             emptyState="Tidak ada alat ditemukan"
             initialSorting={[{ id: "name", desc: false }]}

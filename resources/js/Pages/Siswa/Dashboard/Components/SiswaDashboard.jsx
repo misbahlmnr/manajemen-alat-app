@@ -46,19 +46,19 @@ export default function SiswaDashboard({
                     title="Pinjaman Alat Aktif"
                     value={myActive.length}
                     icon={FileText}
-                    variant="primary"
+                    variant="info"
                 />
                 <StatCard
                     title="Pengajuan Pending"
                     value={myPending.length}
                     icon={ClipboardCheck}
-                    variant={myPending.length > 0 ? "warning" : "default"}
+                    variant="warning"
                 />
                 <StatCard
                     title="Notifikasi Baru"
                     value={unreadNotifications}
                     icon={Bell}
-                    variant={unreadNotifications > 0 ? "warning" : "default"}
+                    variant="warning"
                 />
             </div>
 
@@ -110,6 +110,8 @@ export default function SiswaDashboard({
                         ? `${inventorySummary.tersedia ?? 0} tersedia · ${inventorySummary.sedang_dipinjam ?? 0} stok kosong · ${inventorySummary.antrean_aktif ?? 0} antrean aktif Anda`
                         : `${availableEquipment.length} alat lab`
                 }
+                icon={FileText}
+                iconTone="info"
                 actionLabel="Lihat Semua"
                 actionHref={route("siswa.equipment.index")}
                 actionVariant="outline"

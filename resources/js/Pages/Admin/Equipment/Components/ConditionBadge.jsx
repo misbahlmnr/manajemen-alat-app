@@ -1,9 +1,9 @@
 import { cn } from "@/lib/utils";
 
 const config = {
-    baik: { label: "Baik", className: "bg-emerald-500/10 text-emerald-700 border-emerald-500/20" },
-    rusak_ringan: { label: "Rusak Ringan", className: "bg-amber-500/10 text-amber-700 border-amber-500/20" },
-    rusak_berat: { label: "Rusak Berat", className: "bg-red-500/10 text-red-700 border-red-500/20" },
+    baik: { label: "Baik", className: "border-transparent bg-emerald-50 text-emerald-700" },
+    rusak_ringan: { label: "Rusak Ringan", className: "border-transparent bg-amber-50 text-amber-800" },
+    rusak_berat: { label: "Rusak Berat", className: "border-transparent bg-red-50 text-red-700" },
 };
 
 export default function ConditionBadge({ condition }) {

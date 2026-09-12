@@ -5,37 +5,37 @@ const config = {
         label: "Tersedia",
         secondary: null,
         dot: "bg-emerald-500",
-        className: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700",
+        className: "border-transparent bg-emerald-50 text-emerald-700",
     },
     diambil: {
         label: "Sebagian Diambil",
         secondary: null,
-        dot: "bg-blue-500",
-        className: "border-blue-500/20 bg-blue-500/10 text-blue-700",
+        dot: "bg-sky-500",
+        className: "border-transparent bg-sky-50 text-sky-700",
     },
     menipis: {
         label: "Stok Menipis",
         secondary: null,
         dot: "bg-amber-500",
-        className: "border-amber-500/20 bg-amber-500/10 text-amber-800",
+        className: "border-transparent bg-amber-50 text-amber-800",
     },
     habis: {
         label: "Stok Kosong",
         secondary: "Antrean Dibuka",
         dot: "bg-amber-500",
-        className: "border-amber-500/20 bg-amber-500/10 text-amber-800",
+        className: "border-transparent bg-amber-50 text-amber-800",
     },
     tidak_tersedia: {
         label: "Tidak Tersedia",
         secondary: null,
-        dot: "bg-slate-400",
-        className: "border-slate-500/20 bg-slate-500/10 text-slate-600",
+        dot: "bg-muted-foreground",
+        className: "border-transparent bg-muted text-muted-foreground",
     },
     nonaktif: {
         label: "Tidak Tersedia",
         secondary: null,
-        dot: "bg-slate-400",
-        className: "border-slate-500/20 bg-slate-500/10 text-slate-600",
+        dot: "bg-muted-foreground",
+        className: "border-transparent bg-muted text-muted-foreground",
     },
 };
 
@@ -46,7 +46,7 @@ export default function SupplyStockBadge({ label, dual = true }) {
         return (
             <span
                 className={cn(
-                    "inline-flex flex-col gap-0.5 rounded-lg border px-2.5 py-1 text-xs font-medium",
+                    "inline-flex flex-col gap-0.5 rounded-full border px-2.5 py-1 text-xs font-semibold",
                     item.className,
                 )}
             >
@@ -66,7 +66,7 @@ export default function SupplyStockBadge({ label, dual = true }) {
     return (
         <span
             className={cn(
-                "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium",
+                "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold",
                 item.className,
             )}
         >

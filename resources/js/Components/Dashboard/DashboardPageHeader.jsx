@@ -14,7 +14,7 @@ export function DashboardPageHeader({ title, subtitle }) {
 
     return (
         <div className="mb-6">
-            <div className="rounded-[10px] border border-[#E5E7EB] bg-card p-5 shadow-[var(--shadow-card)] sm:p-6">
+            <div className="rounded-xl border bg-card p-6 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     Lab Audio Video · SMKN 7 Bekasi
                 </p>

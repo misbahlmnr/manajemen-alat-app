@@ -35,24 +35,27 @@ export default function GuruDashboard({
                     title="Siswa Pinjam Aktif"
                     value={activeAlat.length}
                     icon={Users}
-                    variant="primary"
+                    variant="info"
                 />
                 <StatCard
                     title="Keterlambatan"
                     value={stats.overdue}
                     icon={AlertTriangle}
-                    variant={stats.overdue > 0 ? "danger" : "default"}
+                    variant="danger"
                 />
                 <StatCard
                     title="Bahan Diambil (7 hari)"
                     value={stats.bahanThisWeek}
                     icon={Package}
+                    variant="success"
                 />
             </div>
 
             <DashboardSection
                 title="Peminjaman Siswa Terbaru"
                 description="Pantau aktivitas peminjaman siswa Anda."
+                icon={Users}
+                iconTone="info"
                 actionLabel="Lihat Semua"
                 actionHref={route("guru.loans.index")}
                 actionVariant="outline"
@@ -65,7 +68,10 @@ export default function GuruDashboard({
             <DashboardSection
                 title="Monitoring Alat Praktikum"
                 description="Alat dengan stok sedang dipinjam"
+                icon={Package}
+                iconTone="info"
                 badge={borrowedEquipment.length || undefined}
+                badgeTone="info"
                 actionLabel="Lihat Inventaris"
                 actionHref={route("guru.inventaris.index", { type: "alat" })}
                 actionVariant="outline"
@@ -81,7 +87,10 @@ export default function GuruDashboard({
                 <DashboardSection
                     title="Peminjaman Terlambat"
                     description="Perlu tindak lanjut segera"
+                    icon={AlertTriangle}
+                    iconTone="danger"
                     badge={overdue.length}
+                    badgeTone="danger"
                     className="mt-8"
                 >
                     <RecentLoansTable loans={overdue} />
@@ -90,7 +99,7 @@ export default function GuruDashboard({
 
             {upcomingSchedules?.length > 0 && (
                 <div className="mt-6 flex items-center gap-2 text-sm text-muted-foreground">
-                    <CalendarDays className="h-4 w-4 text-primary" />
+                    <CalendarDays className="h-4 w-4 text-sky-600" />
                     <span>
                         {upcomingSchedules.length} jadwal praktikum dalam
                         minggu ini

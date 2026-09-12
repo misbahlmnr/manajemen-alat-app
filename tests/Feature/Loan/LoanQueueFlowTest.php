@@ -36,6 +36,9 @@ class LoanQueueFlowTest extends TestCase
         $this->assertSame('bahan', $loan->item_type);
         $this->assertNull($loan->supervisor_id);
         $this->assertNotNull($loan->queued_at);
+        $response->assertSessionHas('success');
+        $this->assertStringContainsString('antrian', session('success'));
+        $this->assertStringNotContainsString('Round Robin', session('success'));
     }
 
     public function test_siswa_can_submit_package_alat_and_bahan(): void
@@ -90,6 +93,7 @@ class LoanQueueFlowTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Admin/Loan/Index')
+                ->where('filters.scope', 'action')
                 ->has('loans.data', 1)
                 ->where('loans.data.0.code', $loans[0]->submission->code)
                 ->where('loans.data.0.alat_count', 1)
@@ -219,6 +223,7 @@ class LoanQueueFlowTest extends TestCase
         $queuedEarlier = Loan::query()->where('borrower_id', $siswaQueued->id)->latest('id')->first();
         $this->assertSame('antrian', $queuedEarlier->status);
 
+        $this->travel(1)->seconds();
         $alat->update(['available' => 20, 'stock' => 20, 'qty_baik' => 20]);
 
         $this->actingAs($siswaA)->post(route('siswa.loans.store'), $payload(15))->assertRedirect();
@@ -230,8 +235,11 @@ class LoanQueueFlowTest extends TestCase
         $loanC = Loan::query()->where('borrower_id', $siswaC->id)->latest('id')->first();
 
         $this->assertSame('diminta', $loanA->status);
-        $this->assertSame('diminta', $loanB->status);
+        $this->assertSame('antrian', $loanB->status);
         $this->assertSame('diminta', $loanC->status);
+
+        // Race: B lolos jadi diminta sebelum cek slot (submit bersamaan).
+        $loanB->update(['status' => 'diminta', 'queued_at' => $loanB->created_at]);
 
         $workflow->approve($loanA->fresh(), $admin);
 
@@ -254,6 +262,105 @@ class LoanQueueFlowTest extends TestCase
 
         $this->assertSame('antrian', $loanB->fresh()->status);
         $this->assertSame(5, (int) $alat->fresh()->available);
+    }
+
+    public function test_admin_approve_does_not_reorder_action_queue(): void
+    {
+        $siswaA = $this->makeUser('siswa', 'siswa-order-a');
+        $siswaB = $this->makeUser('siswa', 'siswa-order-b');
+        $guru = $this->makeUser('guru', 'guru-order');
+        $admin = $this->makeUser('admin', 'admin-order');
+        $alat = $this->makeEquipment('alat', available: 20);
+
+        $payload = fn () => [
+            'supervisor_id' => $guru->id,
+            'item_type' => 'alat',
+            'request_date' => now()->toDateString(),
+            'purpose' => 'Pinjam alat',
+            'notes' => 'Pinjam alat',
+            'borrow_scope' => 'lab',
+            'borrow_reason' => 'lanjutan',
+            'usage_room' => 'Ruang Assembly',
+            'due_at' => now()->setTime(17, 0)->format('Y-m-d\TH:i'),
+            'items' => [
+                ['equipment_id' => $alat->id, 'quantity' => 1],
+            ],
+        ];
+
+        $this->actingAs($siswaA)->post(route('siswa.loans.store'), $payload())->assertRedirect();
+        $this->travel(1)->seconds();
+        $this->actingAs($siswaB)->post(route('siswa.loans.store'), $payload())->assertRedirect();
+
+        $loanA = Loan::query()->where('borrower_id', $siswaA->id)->latest('id')->first();
+        $loanB = Loan::query()->where('borrower_id', $siswaB->id)->latest('id')->first();
+        $loanA->load('submission');
+        $loanB->load('submission');
+
+        $this->assertNotNull($loanA);
+        $this->assertNotNull($loanB);
+        $this->assertTrue($loanA->id < $loanB->id);
+        $this->assertSame('diminta', $loanA->status);
+        $this->assertSame('diminta', $loanB->status);
+
+        $this->actingAs($admin)
+            ->get(route('admin.loans.index'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Admin/Loan/Index')
+                ->where('filters.scope', 'action')
+                ->has('loans.data', 2)
+                ->where('loans.data.0.code', $loanB->submission->code)
+                ->where('loans.data.1.code', $loanA->submission->code)
+            );
+
+        $this->actingAs($admin)
+            ->post(route('admin.loans.approve', $loanA))
+            ->assertRedirect();
+
+        $this->assertSame('disetujui', $loanA->fresh()->status);
+
+        $this->actingAs($admin)
+            ->get(route('admin.loans.index'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Admin/Loan/Index')
+                ->has('loans.data', 2)
+                ->where('loans.data.0.code', $loanB->submission->code)
+                ->where('loans.data.1.code', $loanA->submission->code)
+                ->where('loans.data.1.package_members.0.status', 'disetujui')
+            );
+    }
+
+    public function test_removed_admin_queue_priority_route_returns_404(): void
+    {
+        $admin = $this->makeUser('admin', 'admin-no-prio');
+        $siswa = $this->makeUser('siswa', 'siswa-no-prio');
+        $alat = $this->makeEquipment('alat', available: 0);
+
+        $this->actingAs($siswa)->post(route('siswa.loans.store'), [
+            'item_type' => 'alat',
+            'request_date' => now()->toDateString(),
+            'purpose' => 'Antrian tanpa prioritas admin',
+            'notes' => 'Antrian tanpa prioritas admin',
+            'borrow_scope' => 'lab',
+            'borrow_reason' => 'lanjutan',
+            'usage_room' => 'Ruang Assembly',
+            'due_at' => now()->setTime(17, 0)->format('Y-m-d\TH:i'),
+            'items' => [
+                ['equipment_id' => $alat->id, 'quantity' => 1],
+            ],
+        ])->assertRedirect();
+
+        $loan = Loan::query()->where('borrower_id', $siswa->id)->latest('id')->first();
+        $this->assertSame('antrian', $loan?->status);
+
+        $this->actingAs($admin)
+            ->post('/admin/loans/'.$loan->id.'/queue-priority', ['level' => 'high'])
+            ->assertNotFound();
+
+        $this->actingAs($admin)
+            ->post('/admin/loans/'.$loan->id.'/queue-priority/reset')
+            ->assertNotFound();
     }
 
     private function makeUser(string $role, string $username): User
@@ -280,7 +387,7 @@ class LoanQueueFlowTest extends TestCase
             'item_type' => $itemType,
             'stock' => max($available, 10),
             'available' => $available,
-            'qty_baik' => max($available, 10),
+            'qty_baik' => $itemType === 'alat' ? $available : max($available, 10),
             'qty_rusak_ringan' => 0,
             'qty_rusak_berat' => 0,
             'status' => 'tersedia',

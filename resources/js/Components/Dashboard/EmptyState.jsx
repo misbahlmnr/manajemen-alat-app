@@ -1,16 +1,36 @@
 import { cn } from "@/lib/utils";
 
-export function EmptyState({ icon: Icon, title, description, action, className }) {
+const iconTones = {
+    default: "bg-muted text-muted-foreground",
+    success: "bg-emerald-50 text-emerald-700",
+    warning: "bg-amber-50 text-amber-700",
+    danger: "bg-red-50 text-red-700",
+    info: "bg-sky-50 text-sky-700",
+};
+
+export function EmptyState({
+    icon: Icon,
+    title,
+    description,
+    action,
+    className,
+    tone = "default",
+}) {
     return (
         <div
             className={cn(
-                "flex flex-col items-center justify-center rounded-[10px] border border-dashed border-border bg-muted/20 px-6 py-12 text-center",
+                "flex flex-col items-center justify-center rounded-xl border border-dashed bg-muted/40 px-6 py-12 text-center",
                 className,
             )}
         >
             {Icon && (
-                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-[8px] bg-muted">
-                    <Icon className="h-5 w-5 text-muted-foreground" />
+                <div
+                    className={cn(
+                        "mb-4 flex h-11 w-11 items-center justify-center rounded-md",
+                        iconTones[tone] ?? iconTones.default,
+                    )}
+                >
+                    <Icon className="h-5 w-5" />
                 </div>
             )}
             {title && (

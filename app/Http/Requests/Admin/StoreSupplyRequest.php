@@ -24,13 +24,12 @@ class StoreSupplyRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'category' => ['required', 'string', 'max:100'],
-            'stock' => ['required', 'integer', 'min:1'],
+            'stock' => ['required', 'integer', 'min:0'],
             'available' => ['required', 'integer', 'min:0', 'lte:stock'],
             'unit' => ['required', Rule::in(config('lab.supply_units'))],
             'min_stock' => ['nullable', 'integer', 'min:0'],
             'location' => ['nullable', 'string', 'max:100'],
             'description' => ['nullable', 'string', 'max:2000'],
-            'status' => ['required', Rule::in(['tersedia', 'tidak_tersedia'])],
             'image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
         ];
     }
@@ -46,7 +45,6 @@ class StoreSupplyRequest extends FormRequest
             'min_stock' => 'stok minimum',
             'location' => 'lokasi gudang',
             'description' => 'deskripsi',
-            'status' => 'status',
             'image' => 'gambar',
         ];
     }

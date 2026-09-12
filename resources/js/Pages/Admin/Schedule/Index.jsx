@@ -11,11 +11,9 @@ import { CalendarDays, Plus, Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import ScheduleTable from "./Components/ScheduleTable";
 import DeleteScheduleDialog from "./Components/DeleteScheduleDialog";
-import WeekScheduleOverview from "./Components/WeekScheduleOverview";
 
 export default function Index({
     schedules,
-    weekSchedules,
     filters,
     guruOptions,
     kelasOptions,
@@ -92,12 +90,12 @@ export default function Index({
                     </Button>
                 </PageHeader>
 
-                <div className="mb-8">
+                {/* <div className="mb-8">
                     <p className="mb-3 text-sm font-semibold text-foreground">
                         Minggu ini
                     </p>
                     <WeekScheduleOverview schedules={weekSchedules ?? []} />
-                </div>
+                </div> */}
 
                 <div className="mb-4 flex items-end justify-between gap-3">
                     <div>
@@ -152,9 +150,7 @@ export default function Index({
                         </Select>
                         <Select
                             value={data.guru_id}
-                            onChange={(e) =>
-                                setData("guru_id", e.target.value)
-                            }
+                            onChange={(e) => setData("guru_id", e.target.value)}
                         >
                             <option value="all">Semua guru</option>
                             {guruOptions.map((guru) => (

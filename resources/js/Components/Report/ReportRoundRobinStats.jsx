@@ -28,10 +28,11 @@ export default function ReportRoundRobinStats({ roundRobin = {} }) {
         <section className="space-y-3">
             <div>
                 <h3 className="text-base font-semibold text-foreground">
-                    Statistik Round Robin
+                    Statistik antrian
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                    Ringkasan antrian stok berdasarkan prioritas admin dan FIFO.
+                    Prioritas tipe peminjaman, lalu waktu antre. Satu pinjaman =
+                    satu jatah sampai batas kembali.
                 </p>
             </div>
             <div className="rounded-[10px] border border-border/60 bg-card p-5 shadow-sm">
@@ -42,8 +43,8 @@ export default function ReportRoundRobinStats({ roundRobin = {} }) {
                     />
                     <Metric label="Sedang menunggu" value={roundRobin.waiting} />
                     <Metric
-                        label="Prioritas admin aktif"
-                        value={roundRobin.admin_priority_active}
+                        label="Antrian praktikum"
+                        value={roundRobin.waiting_praktikum}
                     />
                     <Metric label="Rata-rata waktu tunggu" value={avgWait} />
                     <Metric label="Antrian terlama" value={longest} />

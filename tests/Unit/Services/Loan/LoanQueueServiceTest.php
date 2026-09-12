@@ -40,40 +40,102 @@ class LoanQueueServiceTest extends TestCase
         ], 'bahan'));
     }
 
-    public function test_queue_sort_is_fifo_then_admin_priority(): void
+    public function test_queue_sort_is_fifo_when_types_match(): void
     {
         $equipment = $this->makeEquipment('alat', available: 0);
         $siswaA = $this->makeUser('siswa', 'siswa-a');
         $siswaB = $this->makeUser('siswa', 'siswa-b');
-        $admin = $this->makeUser('admin', 'admin-q');
 
         $first = $this->makeQueuedLoan($siswaA, $equipment, queuedAt: now()->subMinutes(5));
         $second = $this->makeQueuedLoan($siswaB, $equipment, queuedAt: now()->subMinutes(1));
 
         $ordered = $this->queue->queuedLoansForEquipment($equipment->id);
         $this->assertSame([$first->id, $second->id], $ordered->pluck('id')->all());
-
-        $this->queue->setAdminPriority($second, 150, 'urgent', $admin);
-
-        $ordered = $this->queue->queuedLoansForEquipment($equipment->id);
-        $this->assertSame([$second->id, $first->id], $ordered->pluck('id')->all());
     }
 
-    public function test_admin_priority_syncs_to_package_siblings(): void
+    public function test_queue_sorts_by_loan_type_score(): void
     {
-        $alatEq = $this->makeEquipment('alat', available: 0);
-        $bahanEq = $this->makeEquipment('bahan', available: 0);
-        $siswa = $this->makeUser('siswa', 'siswa-pkg');
-        $admin = $this->makeUser('admin', 'admin-pkg');
-        $groupId = (string) Str::uuid();
+        $equipment = $this->makeEquipment('alat', available: 0);
+        $siswa = $this->makeUser('siswa', 'siswa-type');
 
-        $alatLoan = $this->makeQueuedLoan($siswa, $alatEq, loanGroupId: $groupId);
-        $bahanLoan = $this->makeQueuedLoan($siswa, $bahanEq, itemType: 'bahan', loanGroupId: $groupId);
+        $project = $this->makeQueuedLoan($siswa, $equipment, queuedAt: now()->subMinutes(8), borrowScope: 'bawa_pulang', borrowReason: 'lanjutan');
+        $pribadi = $this->makeQueuedLoan($siswa, $equipment, queuedAt: now()->subMinutes(6), borrowScope: 'lab', borrowReason: 'lanjutan');
+        $praktikum = $this->makeQueuedLoan($siswa, $equipment, queuedAt: now()->subMinutes(4), borrowScope: 'lab', borrowReason: 'reguler');
+        $lomba = $this->makeQueuedLoan($siswa, $equipment, queuedAt: now()->subMinutes(1), borrowScope: 'bawa_pulang', borrowReason: 'lomba');
 
-        $this->queue->setAdminPriority($alatLoan, 200, 'lomba', $admin);
+        $ordered = $this->queue->queuedLoansForEquipment($equipment->id);
+        $this->assertSame(
+            [$lomba->id, $praktikum->id, $pribadi->id, $project->id],
+            $ordered->pluck('id')->all(),
+        );
+        $this->assertSame('Bawa pulang lomba', $lomba->queueTypeLabel());
+        $this->assertSame('Praktik lab', $praktikum->queueTypeLabel());
+        $this->assertSame('Pribadi', $pribadi->queueTypeLabel());
+        $this->assertSame('Bawa pulang project', $project->queueTypeLabel());
+    }
 
-        $this->assertSame(200, (int) $alatLoan->fresh()->queue_priority);
-        $this->assertSame(200, (int) $bahanLoan->fresh()->queue_priority);
+    public function test_praktikum_queue_prefers_closest_schedule(): void
+    {
+        $equipment = $this->makeEquipment('alat', available: 0);
+        $siswa = $this->makeUser('siswa', 'siswa-sched');
+        $guru = $this->makeUser('guru', 'guru-sched');
+        $today = now()->toDateString();
+
+        $morning = PracticumSchedule::query()->create([
+            'code' => 'JDW-MORNING',
+            'title' => 'Pagi',
+            'mata_kuliah' => 'DTE',
+            'jurusan' => 'Audio Video',
+            'kelas' => 'X TE 1',
+            'type' => 'khusus',
+            'tanggal' => $today,
+            'jam_mulai' => '07:00:00',
+            'jam_selesai' => '09:30:00',
+            'ruangan' => 'Ruang Assembly',
+            'guru_id' => $guru->id,
+            'priority' => 'normal',
+        ]);
+        $afternoon = PracticumSchedule::query()->create([
+            'code' => 'JDW-AFTERNOON',
+            'title' => 'Siang',
+            'mata_kuliah' => 'PMM',
+            'jurusan' => 'Audio Video',
+            'kelas' => 'X TE 1',
+            'type' => 'khusus',
+            'tanggal' => $today,
+            'jam_mulai' => '13:00:00',
+            'jam_selesai' => '15:30:00',
+            'ruangan' => 'Ruang Assembly',
+            'guru_id' => $guru->id,
+            'priority' => 'normal',
+        ]);
+
+        $laterQueued = $this->makeQueuedLoan(
+            $siswa,
+            $equipment,
+            queuedAt: now()->subMinutes(1),
+            borrowScope: 'lab',
+            borrowReason: 'reguler',
+            scheduleId: $morning->id,
+            requestDate: $today,
+        );
+        $earlierQueued = $this->makeQueuedLoan(
+            $siswa,
+            $equipment,
+            queuedAt: now()->subMinutes(10),
+            borrowScope: 'lab',
+            borrowReason: 'reguler',
+            scheduleId: $afternoon->id,
+            requestDate: $today,
+        );
+
+        $this->travelTo(Carbon::parse($today.' 06:00:00'));
+        $ordered = $this->queue->queuedLoansForEquipment($equipment->id);
+        $this->assertSame([$laterQueued->id, $earlierQueued->id], $ordered->pluck('id')->all());
+
+        $this->travelTo(Carbon::parse($today.' 12:00:00'));
+        $ordered = $this->queue->queuedLoansForEquipment($equipment->id);
+        $this->assertSame([$earlierQueued->id, $laterQueued->id], $ordered->pluck('id')->all());
     }
 
     public function test_time_slice_reguler_pribadi_and_bawa_pulang(): void
@@ -141,6 +203,65 @@ class LoanQueueServiceTest extends TestCase
         );
     }
 
+    public function test_apply_due_at_forces_schedule_end_for_pakai_di_lab(): void
+    {
+        $guru = $this->makeUser('guru', 'guru-due');
+        $siswa = $this->makeUser('siswa', 'siswa-due');
+        $equipment = $this->makeEquipment('alat', available: 3);
+        $schedule = PracticumSchedule::query()->create([
+            'code' => 'JDW-TEST-DUE',
+            'title' => 'Praktikum',
+            'mata_kuliah' => 'DTE',
+            'jurusan' => 'Audio Video',
+            'kelas' => 'X TE 1',
+            'type' => 'khusus',
+            'tanggal' => now()->toDateString(),
+            'jam_mulai' => '08:00:00',
+            'jam_selesai' => '10:00:00',
+            'ruangan' => 'Lab AV',
+            'guru_id' => $guru->id,
+            'priority' => 'normal',
+        ]);
+
+        $loan = $this->makeQueuedLoan($siswa, $equipment);
+        $loan->update([
+            'status' => 'diminta',
+            'borrow_scope' => 'lab',
+            'borrow_reason' => 'reguler',
+            'practicum_schedule_id' => $schedule->id,
+            'due_at' => now()->setTime(9, 15),
+        ]);
+        $loan->setRelation('schedule', $schedule);
+
+        $this->queue->applyDueAtForLoan($loan->fresh()->load('schedule'));
+
+        $this->assertSame(
+            now()->toDateString().' 10:00:00',
+            $loan->fresh()->due_at->format('Y-m-d H:i:s'),
+        );
+    }
+
+    public function test_apply_due_at_forces_lab_close_for_pribadi(): void
+    {
+        $siswa = $this->makeUser('siswa', 'siswa-pribadi-due');
+        $equipment = $this->makeEquipment('alat', available: 3);
+        $loan = $this->makeQueuedLoan($siswa, $equipment, borrowReason: 'lanjutan');
+        $loan->update([
+            'status' => 'diminta',
+            'borrow_scope' => 'lab',
+            'borrow_reason' => 'lanjutan',
+            'request_date' => now()->toDateString(),
+            'due_at' => now()->setTime(14, 0),
+        ]);
+
+        $this->queue->applyDueAtForLoan($loan->fresh());
+
+        $this->assertSame(
+            now()->toDateString().' 17:00:00',
+            $loan->fresh()->due_at->format('Y-m-d H:i:s'),
+        );
+    }
+
     public function test_process_queue_promotes_when_stock_available(): void
     {
         $equipment = $this->makeEquipment('bahan', available: 0);
@@ -178,7 +299,7 @@ class LoanQueueServiceTest extends TestCase
             'item_type' => $itemType,
             'stock' => max($available, 10),
             'available' => $available,
-            'qty_baik' => max($available, 10),
+            'qty_baik' => $itemType === 'alat' ? $available : max($available, 10),
             'qty_rusak_ringan' => 0,
             'qty_rusak_berat' => 0,
             'status' => 'tersedia',
@@ -192,6 +313,10 @@ class LoanQueueServiceTest extends TestCase
         ?Carbon $queuedAt = null,
         string $itemType = 'alat',
         ?string $loanGroupId = null,
+        string $borrowScope = 'lab',
+        ?string $borrowReason = null,
+        ?int $scheduleId = null,
+        ?string $requestDate = null,
     ): Loan {
         $guru = User::query()->where('role', 'guru')->first()
             ?? $this->makeUser('guru', 'guru-'.Str::lower(Str::random(4)));
@@ -221,10 +346,13 @@ class LoanQueueServiceTest extends TestCase
             'status' => 'antrian',
             'queue_priority' => 0,
             'queued_at' => $queuedAt ?? now(),
-            'request_date' => now()->toDateString(),
+            'request_date' => $requestDate ?? now()->toDateString(),
             'purpose' => 'Tes antrian',
-            'borrow_scope' => 'lab',
-            'borrow_reason' => $itemType === 'alat' ? 'lanjutan' : null,
+            'borrow_scope' => $borrowScope,
+            'borrow_reason' => $itemType === 'alat'
+                ? ($borrowReason ?? ($borrowScope === 'bawa_pulang' ? 'lanjutan' : 'lanjutan'))
+                : null,
+            'practicum_schedule_id' => $scheduleId,
             'due_at' => $itemType === 'alat' ? now()->addHours(2) : null,
         ]);
 

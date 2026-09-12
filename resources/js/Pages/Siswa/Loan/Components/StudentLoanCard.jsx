@@ -73,7 +73,7 @@ export default function StudentLoanCard({
                     : "border-border/60",
             )}
         >
-            <div className="flex flex-col gap-3 border-b border-border/60 bg-muted/20 px-4 py-3 sm:flex-row sm:items-start sm:justify-between sm:px-5">
+            <div className="flex flex-col gap-3 border-b bg-muted/30 px-4 py-3 sm:flex-row sm:items-start sm:justify-between sm:px-5">
                 <div className="flex min-w-0 flex-1 items-start gap-3">
                     <EquipmentImage
                         imageUrl={previewItem?.image_url}
@@ -111,18 +111,20 @@ export default function StudentLoanCard({
                                 <>
                                     {" "}
                                     · Antrian #{loan.queue_position}
-                                    <span className="text-muted-foreground/80">
-                                        {" "}
-                                        (waktu pengajuan)
-                                    </span>
+                                    {loan.queue_type_label ? (
+                                        <span className="text-muted-foreground/80">
+                                            {" "}
+                                            ({loan.queue_type_label})
+                                        </span>
+                                    ) : null}
                                 </>
                             )}
-                            {!isBahan && loan.borrow_scope_label && (
+                            {!isBahan && (loan.queue_type_label || loan.borrow_scope_label) && (
                                 <>
                                     {" "}
                                     ·{" "}
                                     <MapPin className="mr-0.5 inline h-3 w-3" />
-                                    {loan.borrow_scope_label}
+                                    {loan.queue_type_label || loan.borrow_scope_label}
                                 </>
                             )}
                         </p>
@@ -151,7 +153,7 @@ export default function StudentLoanCard({
                             {visibleItems.map((item) => (
                                 <li
                                     key={item.id ?? item.equipment_id}
-                                    className="flex items-center gap-3 rounded-lg bg-secondary/40 px-3 py-2 text-sm"
+                                    className="flex items-center gap-3 rounded-lg bg-muted/50 px-3 py-2 text-sm"
                                 >
                                     <EquipmentImage
                                         imageUrl={item.image_url}
@@ -213,10 +215,12 @@ export default function StudentLoanCard({
 
                 <div className="flex flex-col gap-3 border-t border-border/60 pt-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                        <span className="inline-flex items-center gap-1">
-                            <User className="h-3.5 w-3.5" />
-                            {loan.supervisor_name ?? "—"}
-                        </span>
+                        {loan.supervisor_name ? (
+                            <span className="inline-flex items-center gap-1">
+                                <User className="h-3.5 w-3.5" />
+                                {loan.supervisor_name}
+                            </span>
+                        ) : null}
                         {!isHistory && loan.item_type === "alat" && loan.due_at_formatted !== "—" && (
                             <span className="inline-flex items-center gap-1">
                                 <Clock className="h-3.5 w-3.5" />

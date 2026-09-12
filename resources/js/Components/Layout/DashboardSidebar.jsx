@@ -28,7 +28,7 @@ export default function DashboardSidebar({
 
             <aside
                 className={cn(
-                    "fixed inset-y-0 left-0 z-50 flex h-screen w-64 flex-col gradient-hero",
+                    "fixed inset-y-0 left-0 z-50 flex h-screen w-64 flex-col bg-sidebar",
                     "border-r border-sidebar-border/60",
                     "transform transition-transform duration-300 ease-out",
                     isOpen

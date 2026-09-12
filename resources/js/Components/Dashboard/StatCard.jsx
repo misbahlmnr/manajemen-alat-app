@@ -6,14 +6,16 @@ const variantStyles = {
     warning: "bg-card border-border",
     success: "bg-card border-border",
     danger: "bg-card border-border",
+    info: "bg-card border-border",
 };
 
 const iconVariantStyles = {
     default: "bg-muted text-muted-foreground",
-    primary: "bg-muted text-foreground",
-    warning: "bg-amber-50 text-amber-800/80",
-    success: "bg-slate-100 text-slate-600",
-    danger: "bg-red-50 text-red-800/75",
+    primary: "bg-primary/10 text-primary",
+    info: "bg-sky-50 text-sky-700",
+    warning: "bg-amber-50 text-amber-700",
+    success: "bg-emerald-50 text-emerald-700",
+    danger: "bg-red-50 text-red-700",
 };
 
 export function StatCard({
@@ -57,7 +59,7 @@ export function StatCard({
                 {Icon && (
                     <div
                         className={cn(
-                            "rounded-[8px] p-2.5",
+                            "rounded-md p-2.5",
                             iconVariantStyles[variant],
                         )}
                     >

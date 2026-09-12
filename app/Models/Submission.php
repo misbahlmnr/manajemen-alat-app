@@ -183,6 +183,40 @@ class Submission extends Model
         };
     }
 
+    public function scopeNeedsAdminAction($query)
+    {
+        return $query->whereHas('loans', fn ($q) => $q->whereIn('status', [
+            'diminta',
+            'disetujui',
+            'menunggu_inspeksi',
+            'terlambat',
+        ]));
+    }
+
+    public function scopeInLoanQueue($query)
+    {
+        return $query->whereHas('loans', fn ($q) => $q->where('status', 'antrian'));
+    }
+
+    public function scopeBookedOn($query, string $date)
+    {
+        return $query->whereDate('request_date', $date);
+    }
+
+    public function scopeOrderByAdminUrgency($query)
+    {
+        return $query->orderByRaw("
+            (
+                SELECT MIN(CASE
+                    WHEN loans.status = 'terlambat' THEN 0
+                    ELSE 1
+                END)
+                FROM loans
+                WHERE loans.submission_id = submissions.id
+            ) ASC
+        ")->latest('id');
+    }
+
     private function loanIsFinishedForSubmission(Loan $loan): bool
     {
         if ($loan->item_type === 'bahan') {

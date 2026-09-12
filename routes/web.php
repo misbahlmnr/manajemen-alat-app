@@ -57,8 +57,6 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
     Route::post('loans/{loan}/reject', [LoanController::class, 'reject'])->name('loans.reject');
     Route::post('loans/{loan}/mark-borrowed', [LoanController::class, 'markBorrowed'])->name('loans.mark-borrowed');
     Route::post('loans/{loan}/return', [LoanController::class, 'processReturn'])->name('loans.return');
-    Route::post('loans/{loan}/queue-priority', [LoanController::class, 'setQueuePriority'])->name('loans.queue-priority');
-    Route::post('loans/{loan}/queue-priority/reset', [LoanController::class, 'resetQueuePriority'])->name('loans.queue-priority.reset');
     Route::resource('collaterals', LoanCollateralController::class);
     Route::post('collaterals/{collateral}/hold', [LoanCollateralController::class, 'hold'])->name('collaterals.hold');
     Route::post('collaterals/{collateral}/return-card', [LoanCollateralController::class, 'returnCard'])->name('collaterals.return-card');
@@ -88,6 +86,7 @@ Route::middleware(['auth', 'verified', 'role:siswa'])->prefix('siswa')->name('si
     Route::get('supplies/{supply}', [SiswaSupplyController::class, 'show'])->name('supplies.show');
     Route::get('loans', [SiswaLoanController::class, 'index'])->name('loans.index');
     Route::get('loans/create', [SiswaLoanController::class, 'create'])->name('loans.create');
+    Route::get('loans/slot-availability', [SiswaLoanController::class, 'slotAvailability'])->name('loans.slot-availability');
     Route::post('loans', [SiswaLoanController::class, 'store'])->name('loans.store');
     Route::post('loans/package', [SiswaLoanController::class, 'storePackage'])->name('loans.store-package');
     Route::get('loans/pengajuan/{submission}', [SiswaLoanController::class, 'showSubmission'])->name('loans.submission');

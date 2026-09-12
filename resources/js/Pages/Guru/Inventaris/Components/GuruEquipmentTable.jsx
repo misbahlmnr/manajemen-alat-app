@@ -53,24 +53,24 @@ export default function GuruEquipmentTable({ items, pagination }) {
             meta: { cellClassName: "text-muted-foreground" },
         },
         {
-            id: "stock",
-            header: "Stok Baik",
+            id: "available",
+            header: "Stok Tersedia",
             accessorFn: (row) => row.available,
             cell: ({ row }) => (
-                <span className="tabular-nums">
+                <span className="tabular-nums" title="Unit di lab / total stok">
                     <span className="font-medium text-foreground">
                         {row.original.available}
                     </span>
                     <span className="text-muted-foreground">
                         {" "}
-                        / {row.original.qty_baik} baik
+                        / {row.original.stock}
                     </span>
                 </span>
             ),
         },
         {
             id: "condition",
-            header: "Kondisi",
+            header: "Kondisi Detail",
             cell: ({ row }) => (
                 <ConditionBreakdown
                     breakdown={row.original.condition_breakdown}

@@ -14,7 +14,6 @@ export default function Create({ categoryOptions, unitOptions }) {
         min_stock: "",
         location: "",
         description: "",
-        status: "tersedia",
         image: null,
     });
 

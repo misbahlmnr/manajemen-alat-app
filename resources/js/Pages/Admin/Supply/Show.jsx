@@ -1,6 +1,6 @@
 import AppLayout from "@/Layouts/AppLayout";
 import PageHeader from "@/Components/PageHeader";
-import InventoryStatusBadge from "@/Components/InventoryStatusBadge";
+import SupplyStockBadge from "@/Components/SupplyStockBadge";
 import EquipmentImage from "@/Components/Equipment/EquipmentImage";
 import { Button } from "@/Components/ui/button";
 import {
@@ -57,7 +57,7 @@ export default function Show({ supply }) {
                     <Card className="lg:col-span-1">
                         <CardHeader>
                             <CardTitle>Identitas</CardTitle>
-                            <CardDescription>Foto dan status bahan</CardDescription>
+                            <CardDescription>Foto dan ketersediaan stok</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <EquipmentImage
@@ -78,13 +78,11 @@ export default function Show({ supply }) {
                             </p>
 
                             <div className="mt-4 flex flex-wrap gap-2">
+                                <SupplyStockBadge label={supply.stock_label} />
                                 <StockLowBadge show={supply.is_low_stock} />
                             </div>
 
                             <div className="mt-6 space-y-4 border-t border-border pt-6">
-                                <MetaRow label="Status">
-                                    <InventoryStatusBadge status={supply.status} />
-                                </MetaRow>
                                 <MetaRow label="Satuan">
                                     <span className="text-sm font-medium text-foreground">
                                         {supply.unit}
@@ -144,31 +142,36 @@ export default function Show({ supply }) {
                             </CardContent>
                         </Card>
 
-                        <Card className="rounded-[10px] border-border/60 shadow-card">
+                        <Card className="rounded-xl border shadow-sm">
                             <CardHeader>
                                 <CardTitle>Stok Bahan</CardTitle>
                                 <CardDescription>
-                                    Ketersediaan bahan habis pakai di gudang
+                                    Stok di gudang berkurang otomatis saat pengajuan disetujui
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <div className="grid gap-4 sm:grid-cols-3">
-                                    <StockStat
-                                        label="Tersisa"
-                                        value={supply.available}
-                                        unit={supply.unit}
-                                        highlight
-                                    />
-                                    <StockStat
-                                        label="Terpakai"
-                                        value={used}
-                                        unit={supply.unit}
-                                    />
-                                    <StockStat
-                                        label="Total stok"
-                                        value={supply.stock}
-                                        unit={supply.unit}
-                                    />
+                                <div className="grid gap-3 sm:grid-cols-3">
+                                    <div className="rounded-lg border bg-muted/40 p-3">
+                                        <p className="text-xs text-muted-foreground">Total stok</p>
+                                        <p className="mt-1 text-2xl font-bold tabular-nums">
+                                            {supply.stock}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground">{supply.unit}</p>
+                                    </div>
+                                    <div className="rounded-lg border border-emerald-200 bg-emerald-50/70 p-3">
+                                        <p className="text-xs text-emerald-800">Di gudang</p>
+                                        <p className="mt-1 text-2xl font-bold tabular-nums text-emerald-800">
+                                            {supply.available}
+                                        </p>
+                                        <p className="text-xs text-emerald-800/80">siap diambil</p>
+                                    </div>
+                                    <div className="rounded-lg border border-sky-200 bg-sky-50/70 p-3">
+                                        <p className="text-xs text-sky-800">Sudah diambil</p>
+                                        <p className="mt-1 text-2xl font-bold tabular-nums text-sky-800">
+                                            {used}
+                                        </p>
+                                        <p className="text-xs text-sky-800/80">dari peminjaman</p>
+                                    </div>
                                 </div>
                             </CardContent>
                         </Card>
@@ -198,7 +201,7 @@ function MetaRow({ label, children }) {
 
 function Info({ label, value, mono = false }) {
     return (
-        <div className="rounded-[8px] border border-border/50 bg-muted/20 p-4">
+        <div className="rounded-lg border bg-muted/50 p-4">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 {label}
             </p>
@@ -211,25 +214,3 @@ function Info({ label, value, mono = false }) {
     );
 }
 
-function StockStat({ label, value, unit, highlight = false }) {
-    return (
-        <div
-            className={`rounded-[8px] border p-4 text-center ${
-                highlight
-                    ? "border-primary/20 bg-primary/5"
-                    : "border-border/50 bg-muted/20"
-            }`}
-        >
-            <p
-                className={`text-2xl font-bold tabular-nums ${
-                    highlight ? "text-primary" : "text-foreground"
-                }`}
-            >
-                {value}
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-                {label} ({unit})
-            </p>
-        </div>
-    );
-}

@@ -5,17 +5,17 @@ const config = {
     siswa: {
         label: "Siswa",
         icon: GraduationCap,
-        className: "bg-blue-500/10 text-blue-700 border-blue-500/20",
+        className: "border-transparent bg-blue-50 text-blue-700",
     },
     guru: {
         label: "Guru",
         icon: Users,
-        className: "bg-emerald-500/10 text-emerald-700 border-emerald-500/20",
+        className: "border-transparent bg-emerald-50 text-emerald-700",
     },
     admin: {
         label: "Admin",
         icon: UserCog,
-        className: "bg-violet-500/10 text-violet-700 border-violet-500/20",
+        className: "border-transparent bg-violet-50 text-violet-700",
     },
 };
 

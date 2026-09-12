@@ -17,7 +17,6 @@ class SupplyController extends Controller
 
         $search = $request->string('search')->trim();
         $category = $request->string('category')->toString() ?: 'all';
-        $status = $request->string('status')->toString() ?: 'all';
         $stockStatus = $request->string('stock_status')->toString() ?: 'all';
 
         $supplies = Supply::query()
@@ -31,7 +30,6 @@ class SupplyController extends Controller
                 });
             })
             ->when($category !== 'all', fn ($q) => $q->where('category', $category))
-            ->when($status !== 'all', fn ($q) => $q->where('status', $status))
             ->stockStatus($stockStatus)
             ->orderBy('name')
             ->paginate(10)
@@ -49,7 +47,6 @@ class SupplyController extends Controller
             'filters' => [
                 'search' => $search->toString(),
                 'category' => $category,
-                'status' => $status,
                 'stock_status' => $stockStatus,
             ],
             'categories' => $categories,
@@ -67,11 +64,11 @@ class SupplyController extends Controller
 
     private function formatSupply(Supply $supply, bool $detailed = false): array
     {
-        $queueOpen = $supply->status === 'tersedia' && $supply->available <= 0;
+        $queueOpen = $supply->isAvailableForInventory() && $supply->available <= 0;
 
         return [
             ...EquipmentFormatter::format($supply, $detailed),
-            'can_request' => $supply->status === 'tersedia',
+            'can_request' => $supply->isAvailableForInventory(),
             'queue_open' => $queueOpen,
             'cta_label' => $queueOpen ? 'Ajukan' : 'Tambah',
             'show_url' => route('siswa.supplies.show', $supply),
@@ -82,7 +79,7 @@ class SupplyController extends Controller
 
     private function requestUrl(Supply $supply): ?string
     {
-        if ($supply->status !== 'tersedia') {
+        if (! $supply->isAvailableForInventory()) {
             return null;
         }
 

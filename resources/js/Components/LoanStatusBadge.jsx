@@ -1,30 +1,29 @@
 import { cn } from "@/lib/utils";
 
-/** Soft semantic badge styles — slate / gold / green / red only */
 const tone = {
     neutral: {
-        dot: "bg-slate-400",
-        className: "border-slate-200 bg-slate-50 text-slate-600",
+        dot: "bg-muted-foreground",
+        className: "border-transparent bg-muted text-muted-foreground",
     },
     pending: {
-        dot: "bg-slate-500",
-        className: "border-slate-200 bg-slate-100 text-slate-700",
+        dot: "bg-blue-500",
+        className: "border-transparent bg-blue-50 text-blue-700",
     },
     warning: {
-        dot: "bg-amber-600/80",
-        className: "border-amber-200/80 bg-amber-50 text-amber-900/80",
+        dot: "bg-amber-500",
+        className: "border-transparent bg-amber-50 text-amber-800",
     },
     success: {
-        dot: "bg-slate-600",
-        className: "border-slate-200 bg-slate-100 text-slate-700",
+        dot: "bg-emerald-500",
+        className: "border-transparent bg-emerald-50 text-emerald-700",
     },
     active: {
-        dot: "bg-amber-600/70",
-        className: "border-amber-200/60 bg-amber-50/80 text-amber-950/70",
+        dot: "bg-sky-500",
+        className: "border-transparent bg-sky-50 text-sky-700",
     },
     danger: {
-        dot: "bg-red-600/70",
-        className: "border-red-200/70 bg-red-50 text-red-800/80",
+        dot: "bg-red-500",
+        className: "border-transparent bg-red-50 text-red-700",
     },
 };
 
@@ -70,7 +69,7 @@ export default function LoanStatusBadge({ status, itemType }) {
     return (
         <span
             className={cn(
-                "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium leading-none",
+                "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold leading-none",
                 item.className,
             )}
         >

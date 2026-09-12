@@ -36,7 +36,7 @@ export default function CatalogCardGrid({
                     return (
                         <div
                             key={item.id}
-                            className="group flex flex-col overflow-hidden rounded-[10px] border border-[#E5E7EB] bg-card shadow-[var(--shadow-card)]"
+                            className="group flex flex-col overflow-hidden rounded-xl border bg-card shadow-sm"
                         >
                             <div className="aspect-[4/3] border-b border-border bg-muted/30 p-4">
                                 <EquipmentImage

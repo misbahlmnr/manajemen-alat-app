@@ -45,16 +45,28 @@ export default function AdminDashboard({ loans, equipment, stats }) {
 
     return (
         <>
-            <div className="mb-6 rounded-[10px] border border-border bg-muted/40 px-5 py-4 sm:px-6">
+            <div className="mb-6 rounded-xl border bg-muted/40 px-5 py-4 sm:px-6">
                 <p className="text-sm font-medium text-foreground">
                     Ringkasan hari ini · {todayLabel}
                 </p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                    {stats.pendingAlat || 0} menunggu verifikasi ·{" "}
-                    {stats.alatDipinjam || 0} alat dipinjam ·{" "}
-                    {stats.overdue || 0} keterlambatan ·{" "}
-                    {stats.lowStockBahan || 0} stok menipis
-                </p>
+                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                    <span className="inline-flex items-center gap-1.5">
+                        <ClipboardCheck className="h-3.5 w-3.5 text-amber-600" />
+                        {stats.pendingAlat || 0} menunggu verifikasi
+                    </span>
+                    <span className="inline-flex items-center gap-1.5">
+                        <FileText className="h-3.5 w-3.5 text-sky-600" />
+                        {stats.alatDipinjam || 0} alat dipinjam
+                    </span>
+                    <span className="inline-flex items-center gap-1.5">
+                        <AlertTriangle className="h-3.5 w-3.5 text-red-600" />
+                        {stats.overdue || 0} keterlambatan
+                    </span>
+                    <span className="inline-flex items-center gap-1.5">
+                        <PackageMinus className="h-3.5 w-3.5 text-amber-600" />
+                        {stats.lowStockBahan || 0} stok menipis
+                    </span>
+                </div>
             </div>
 
             <div className="mb-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
@@ -62,25 +74,25 @@ export default function AdminDashboard({ loans, equipment, stats }) {
                     title="Permintaan Pending"
                     value={stats.pendingAlat}
                     icon={ClipboardCheck}
-                    variant={stats.pendingAlat > 0 ? "warning" : "default"}
+                    variant="warning"
                 />
                 <StatCard
                     title="Antrian Konflik Stok"
                     value={stats.queueAlat}
                     icon={ListOrdered}
-                    variant={stats.queueAlat > 0 ? "warning" : "default"}
+                    variant="warning"
                 />
                 <StatCard
                     title="Jadwal Aktif (7 hari)"
                     value={stats.activeSchedulesWeek}
                     icon={CalendarDays}
-                    variant="primary"
+                    variant="info"
                 />
                 <StatCard
                     title="Kartu Ditahan"
                     value={stats.heldCards}
                     icon={CreditCard}
-                    variant={stats.heldCards > 0 ? "warning" : "default"}
+                    variant="warning"
                 />
             </div>
 
@@ -89,19 +101,19 @@ export default function AdminDashboard({ loans, equipment, stats }) {
                     title="Alat Dipinjam"
                     value={stats.alatDipinjam}
                     icon={FileText}
-                    variant="primary"
+                    variant="info"
                 />
                 <StatCard
                     title="Keterlambatan"
                     value={stats.overdue}
                     icon={AlertTriangle}
-                    variant={stats.overdue > 0 ? "danger" : "default"}
+                    variant="danger"
                 />
                 <StatCard
                     title="Stok Bahan Menipis"
                     value={stats.lowStockBahan}
                     icon={PackageMinus}
-                    variant={stats.lowStockBahan > 0 ? "warning" : "default"}
+                    variant="warning"
                 />
             </div>
 
@@ -109,6 +121,8 @@ export default function AdminDashboard({ loans, equipment, stats }) {
                 <DashboardSection
                     title="Grafik peminjaman"
                     description="Distribusi status pengajuan & peminjaman"
+                    icon={ClipboardCheck}
+                    iconTone="info"
                     className="mb-0"
                 >
                     <StatusDistributionChart loans={loans} />
@@ -116,6 +130,8 @@ export default function AdminDashboard({ loans, equipment, stats }) {
                 <DashboardSection
                     title="Alat terpopuler"
                     description="Berdasarkan frekuensi peminjaman"
+                    icon={FileText}
+                    iconTone="primary"
                     className="mb-0"
                 >
                     <PopularEquipmentChart loans={alatLoans} />
@@ -125,7 +141,10 @@ export default function AdminDashboard({ loans, equipment, stats }) {
             <DashboardSection
                 title="Verifikasi Permintaan"
                 description="Permintaan peminjaman alat menunggu persetujuan."
+                icon={ClipboardCheck}
+                iconTone="warning"
                 badge={pendingAlat.length}
+                badgeTone="warning"
                 actionLabel="Buka Verifikasi"
                 actionHref={route("admin.loans.index", { status: "diminta" })}
             >
@@ -134,6 +153,7 @@ export default function AdminDashboard({ loans, equipment, stats }) {
                 ) : (
                     <EmptyState
                         icon={CheckCircle2}
+                        tone="success"
                         description="Tidak ada permintaan menunggu"
                     />
                 )}
@@ -143,6 +163,8 @@ export default function AdminDashboard({ loans, equipment, stats }) {
                 <DashboardSection
                     title="Peminjaman Aktif"
                     description={`${activeAlat.length} peminjaman sedang berjalan`}
+                    icon={FileText}
+                    iconTone="info"
                     className="mb-0"
                 >
                     {activeAlat.length > 0 ? (
@@ -155,6 +177,10 @@ export default function AdminDashboard({ loans, equipment, stats }) {
                 <DashboardSection
                     title="Keterlambatan"
                     description="Peminjaman melewati batas waktu"
+                    icon={AlertTriangle}
+                    iconTone="danger"
+                    badge={overdue.length || undefined}
+                    badgeTone="danger"
                     className="mb-0"
                 >
                     {overdue.length > 0 ? (
@@ -162,6 +188,7 @@ export default function AdminDashboard({ loans, equipment, stats }) {
                     ) : (
                         <EmptyState
                             icon={CheckCircle2}
+                            tone="success"
                             description="Tidak ada keterlambatan"
                         />
                     )}
@@ -172,7 +199,10 @@ export default function AdminDashboard({ loans, equipment, stats }) {
                 <DashboardSection
                     title="Bahan yang hampir habis"
                     description="Perlu restock segera"
+                    icon={PackageMinus}
+                    iconTone="warning"
                     badge={lowStock.length}
+                    badgeTone="warning"
                     className="mt-8"
                 >
                     <LowStockList items={lowStock} />
@@ -183,6 +213,10 @@ export default function AdminDashboard({ loans, equipment, stats }) {
                 <DashboardSection
                     title="Antrian Konflik Stok"
                     description="Menunggu ketersediaan alat"
+                    icon={ListOrdered}
+                    iconTone="warning"
+                    badge={queueAlat.length}
+                    badgeTone="warning"
                     className="mt-8"
                 >
                     <RecentLoansTable loans={queueAlat} />

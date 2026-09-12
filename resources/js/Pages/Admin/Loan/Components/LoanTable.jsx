@@ -52,6 +52,7 @@ export default function LoanTable({ items, pagination }) {
         {
             accessorKey: "supervisor_name",
             header: "Guru",
+            cell: ({ row }) => row.original.supervisor_name || "—",
         },
         {
             accessorKey: "request_date_formatted",

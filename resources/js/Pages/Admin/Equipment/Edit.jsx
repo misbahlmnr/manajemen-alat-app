@@ -42,6 +42,7 @@ export default function Edit({ equipment, categoryOptions }) {
                         processing={processing}
                         categoryOptions={categoryOptions}
                         existingImageUrl={equipment.image_url}
+                        isEditing
                     />
 
                     <div className="sticky bottom-0 z-10 flex flex-wrap justify-end gap-2 rounded-[10px] border border-border bg-card/95 px-4 py-4 shadow-[var(--shadow-card)] backdrop-blur">

@@ -40,7 +40,7 @@ class LoanWorkflowService
         $queue = app(LoanQueueService::class);
         $loan->loadMissing('items.equipment');
 
-        if (! $queue->allItemsAvailable($loan)) {
+        if (! $queue->allItemsAvailable($loan, includePending: false)) {
             $queue->demoteToQueue($loan, $actor);
 
             throw ValidationException::withMessages([
@@ -91,15 +91,16 @@ class LoanWorkflowService
         }
 
         DB::transaction(function () use ($loan, $reason, $actor) {
-            // Alat yang sudah disetujui sudah mengurangi stok — kembalikan.
-            if ($loan->status === 'disetujui') {
-                $this->restoreStock($loan);
-            }
+            $wasApproved = $loan->status === 'disetujui';
 
             $loan->update([
                 'status' => 'ditolak',
                 'rejection_reason' => $reason,
             ]);
+
+            if ($wasApproved) {
+                $this->restoreStock($loan);
+            }
 
             app(CollateralWorkflowService::class)->removePendingCollateralIfExists($loan->fresh());
 
@@ -124,11 +125,20 @@ class LoanWorkflowService
             }
         }
 
+        $slots = app(LoanSlotAvailabilityService::class);
+        if (! $slots->canHandOver($loan)) {
+            throw ValidationException::withMessages([
+                'status' => $slots->handoverBlockedReason($loan)
+                    ?? 'Alat belum dapat diserahkan karena praktikum masih berlangsung.',
+            ]);
+        }
+
         DB::transaction(function () use ($loan, $actor) {
             $borrowedAt = $loan->borrowed_at ?? now();
             $dueAt = app(LoanQueueService::class)->clampDueAtToTimeSlice($loan, $borrowedAt);
 
-            // Stok sudah dikurangi saat approve — tidak deduct lagi.
+            $this->deductStock($loan, force: true);
+
             $loan->update([
                 'status' => 'dipinjam',
                 'borrowed_at' => $borrowedAt,
@@ -153,11 +163,11 @@ class LoanWorkflowService
         }
 
         DB::transaction(function () use ($loan, $note, $actor) {
-            $this->restoreStock($loan);
             $loan->update([
                 'status' => 'dikembalikan',
                 'returned_at' => now(),
             ]);
+            $this->restoreStock($loan);
             $this->logStatus($loan, 'dikembalikan', $note ?? 'Alat telah dikembalikan.', $actor);
         });
     }
@@ -171,19 +181,24 @@ class LoanWorkflowService
         }
 
         DB::transaction(function () use ($loan, $actor) {
-            if (in_array($loan->status, ['disetujui', 'dipinjam', 'terlambat', 'menunggu_inspeksi'], true)) {
-                $this->restoreStock($loan);
-            }
+            $wasHoldingStock = in_array($loan->status, ['disetujui', 'dipinjam', 'terlambat', 'menunggu_inspeksi'], true);
 
             app(CollateralWorkflowService::class)->removePendingCollateralIfExists($loan);
 
             $loan->update(['status' => 'dibatalkan']);
+
+            if ($wasHoldingStock) {
+                $this->restoreStock($loan);
+            }
+
             $this->logStatus($loan, 'dibatalkan', 'Peminjaman dibatalkan.', $actor);
         });
     }
 
     public function syncOverdue(): void
     {
+        $this->syncHeldStock();
+
         $loans = Loan::query()
             ->where('item_type', 'alat')
             ->where('status', 'dipinjam')
@@ -198,9 +213,44 @@ class LoanWorkflowService
         }
     }
 
-    public function deductStock(Loan $loan): void
+    /**
+     * Potong stok fisik untuk pengajuan yang slotnya sudah mulai.
+     */
+    public function syncHeldStock(): void
     {
-        $loan->load('items.equipment');
+        $loans = Loan::query()
+            ->where('item_type', 'alat')
+            ->where('stock_held', false)
+            ->whereIn('status', ['disetujui', 'dipinjam', 'terlambat', 'menunggu_inspeksi'])
+            ->with(['items.equipment', 'schedule'])
+            ->get();
+
+        $slots = app(LoanSlotAvailabilityService::class);
+
+        foreach ($loans as $loan) {
+            if (! $slots->windowHasStarted($loan)) {
+                continue;
+            }
+
+            try {
+                $this->deductStock($loan);
+            } catch (ValidationException) {
+                // Stok fisik belum kembali; kalender slot tetap terkunci.
+            }
+        }
+    }
+
+    public function deductStock(Loan $loan, bool $force = false): void
+    {
+        $loan->loadMissing('items.equipment', 'schedule');
+
+        if ($loan->stock_held) {
+            return;
+        }
+
+        if ($loan->isAlat() && ! $force && ! app(LoanSlotAvailabilityService::class)->windowHasStarted($loan)) {
+            return;
+        }
 
         foreach ($loan->items as $item) {
             $equipment = $item->equipment;
@@ -212,20 +262,24 @@ class LoanWorkflowService
 
             $equipment->decrement('available', $item->quantity);
         }
+
+        $loan->update(['stock_held' => true]);
     }
 
     public function restoreStock(Loan $loan): void
     {
-        $loan->load('items.equipment');
-        $equipmentIds = [];
+        $loan->loadMissing('items.equipment');
 
-        foreach ($loan->items as $item) {
-            $equipment = $item->equipment;
-            $equipment->increment('available', min($item->quantity, $equipment->stock - $equipment->available));
-            $equipmentIds[] = $equipment->id;
+        if ($loan->stock_held) {
+            foreach ($loan->items as $item) {
+                $equipment = $item->equipment;
+                $equipment->increment('available', min($item->quantity, $equipment->stock - $equipment->available));
+            }
+
+            $loan->update(['stock_held' => false]);
         }
 
-        app(LoanQueueService::class)->processQueueForEquipments($equipmentIds);
+        app(LoanQueueService::class)->processQueueAfterLoanItemsReleased($loan);
     }
 
     private function isInsufficientStockException(ValidationException $e): bool
@@ -250,7 +304,7 @@ class LoanWorkflowService
                     'items' => 'Barang tidak valid untuk jenis peminjaman ini.',
                 ]);
             }
-            if ($equipment->status !== 'tersedia') {
+            if (! $equipment->isAvailableForInventory()) {
                 throw ValidationException::withMessages([
                     'items' => "{$equipment->name} sedang tidak tersedia untuk dipinjam.",
                 ]);

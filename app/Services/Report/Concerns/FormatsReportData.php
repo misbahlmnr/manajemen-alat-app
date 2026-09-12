@@ -78,6 +78,8 @@ trait FormatsReportData
             'borrow_scope_label' => $loan->borrowLocationLabel(),
             'borrow_reason' => $loan->borrow_reason,
             'borrow_reason_label' => $loan->borrowReasonLabel(),
+            'queue_type_key' => $loan->queueTypeKey(),
+            'queue_type_label' => $loan->queueTypeLabel(),
             'is_catch_up' => $loan->isCatchUp(),
             'request_date_formatted' => $loan->request_date?->translatedFormat('d M Y') ?? '—',
             'borrowed_at_formatted' => $loan->borrowed_at?->translatedFormat('d M Y H:i') ?? '—',
@@ -293,9 +295,13 @@ trait FormatsReportData
     {
         $waiting = (clone $loanBase)->where('status', 'antrian')->count();
         $enteredQueue = (clone $loanBase)->whereNotNull('queued_at')->count();
-        $adminPriorityActive = (clone $loanBase)
+        $waitingPraktikum = (clone $loanBase)
             ->where('status', 'antrian')
-            ->where('queue_priority', '>', 0)
+            ->where('item_type', 'alat')
+            ->where('borrow_scope', '!=', 'bawa_pulang')
+            ->where(function ($q) {
+                $q->whereNull('borrow_reason')->orWhere('borrow_reason', 'reguler');
+            })
             ->count();
 
         $waitSamples = (clone $loanBase)
@@ -328,7 +334,7 @@ trait FormatsReportData
         return [
             'total_entered_queue' => $enteredQueue,
             'waiting' => $waiting,
-            'admin_priority_active' => $adminPriorityActive,
+            'waiting_praktikum' => $waitingPraktikum,
             'avg_wait_hours' => $avgWaitHours,
             'longest_queue_label' => $longestLabel,
             'longest_queue_hours' => $longestHours,
