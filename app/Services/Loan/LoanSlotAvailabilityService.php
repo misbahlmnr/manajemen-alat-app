@@ -54,9 +54,24 @@ class LoanSlotAvailabilityService
         }
 
         if ($scope === 'bawa_pulang') {
-            $start = Carbon::parse($date.' '.$close, $timezone);
+            $closeAt = Carbon::parse($date.' '.$close, $timezone);
+            $openAt = Carbon::parse($date.' '.$open, $timezone);
+            $today = PracticumSchedule::inSchoolTimezone()->toDateString();
+
+            if ($date === $today) {
+                $start = PracticumSchedule::inSchoolTimezone();
+                if ($start->lt($openAt)) {
+                    $start = $openAt->copy();
+                }
+                if ($start->gt($closeAt)) {
+                    $start = $closeAt->copy();
+                }
+            } else {
+                $start = $closeAt->copy();
+            }
+
             $dueAt = $this->parseDueAt($context['due_at'] ?? null, $timezone);
-            $end = $dueAt ?? $start->copy()->addDays($this->bawaPulangMaxDays());
+            $end = $dueAt ?? $closeAt->copy()->addDays($this->bawaPulangMaxDays());
 
             if ($end->lte($start)) {
                 $end = $start->copy()->addDays($this->bawaPulangMaxDays());
@@ -144,7 +159,9 @@ class LoanSlotAvailabilityService
                 'kind' => 'take_home',
                 'label' => "Kembali {$return}",
                 'field_label' => 'Bawa pulang',
-                'hint' => 'Diambil setelah jam mapel terakhir yang memakai alat ini selesai.',
+                'hint' => $loan->isBawaPulangLomba()
+                    ? 'Boleh diambil setelah disetujui dan kartu ditahan.'
+                    : 'Diambil setelah jam mapel terakhir yang memakai alat ini selesai.',
             ];
         }
 
@@ -233,6 +250,10 @@ class LoanSlotAvailabilityService
     public function handoverBlockedReason(Loan $loan, ?Carbon $at = null): ?string
     {
         if (! $loan->isAlat() || $loan->borrow_scope !== 'bawa_pulang') {
+            return null;
+        }
+
+        if ($loan->isBawaPulangLomba()) {
             return null;
         }
 

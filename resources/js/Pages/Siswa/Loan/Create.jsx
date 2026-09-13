@@ -1099,8 +1099,9 @@ export default function Create({
                                                         Bawa pulang lomba
                                                     </p>
                                                     <p className="text-xs text-muted-foreground">
-                                                        Ambil lomba setelah jam
-                                                        mapel selesai. Wajib
+                                                        Boleh diambil hari itu
+                                                        setelah disetujui dan
+                                                        kartu ditahan. Wajib
                                                         jaminan kartu.
                                                     </p>
                                                 </div>

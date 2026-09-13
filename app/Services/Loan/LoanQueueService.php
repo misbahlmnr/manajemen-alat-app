@@ -59,6 +59,113 @@ class LoanQueueService
     }
 
     /**
+     * Gusur loan diminta yang skornya lebih rendah jika slot tabrakan tidak muat.
+     *
+     * @param  array<int, array{equipment_id: mixed, quantity?: mixed}>  $items
+     * @param  array<string, mixed>  $context
+     * @return array<int, Loan>
+     */
+    public function preemptLowerPriorityDiminta(array $items, string $itemType, array $context, ?int $exceptLoanId = null): array
+    {
+        if ($itemType !== 'alat' || ! $this->hasStockShortage($items, $itemType, $context, $exceptLoanId)) {
+            return [];
+        }
+
+        $equipmentIds = collect($items)
+            ->map(fn (array $row) => (int) ($row['equipment_id'] ?? 0))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        if ($equipmentIds === []) {
+            return [];
+        }
+
+        $incomingScore = $this->scoreFromContext($context);
+        [$incomingStart, $incomingEnd] = $this->slots()->windowFromContext($context);
+
+        $candidates = Loan::query()
+            ->where('status', 'diminta')
+            ->where('item_type', 'alat')
+            ->when($exceptLoanId, fn ($q) => $q->whereKeyNot($exceptLoanId))
+            ->whereHas('items', fn ($q) => $q->whereIn('equipment_id', $equipmentIds))
+            ->with(['items', 'schedule'])
+            ->get()
+            ->filter(function (Loan $loan) use ($incomingScore, $incomingStart, $incomingEnd, $equipmentIds) {
+                if ($this->effectiveSortScore($loan) >= $incomingScore) {
+                    return false;
+                }
+
+                $sharesItem = $loan->items->contains(
+                    fn ($item) => in_array((int) $item->equipment_id, $equipmentIds, true)
+                );
+
+                if (! $sharesItem) {
+                    return false;
+                }
+
+                [$start, $end] = $this->slots()->windowFor($loan);
+
+                return $incomingStart->lt($end) && $start->lt($incomingEnd);
+            })
+            ->sort(function (Loan $a, Loan $b) {
+                $scoreDiff = $this->effectiveSortScore($a) <=> $this->effectiveSortScore($b);
+
+                if ($scoreDiff !== 0) {
+                    return $scoreDiff;
+                }
+
+                $timeDiff = ($b->created_at ?? now()) <=> ($a->created_at ?? now());
+
+                if ($timeDiff !== 0) {
+                    return $timeDiff;
+                }
+
+                return $b->id <=> $a->id;
+            })
+            ->values();
+
+        $demoted = [];
+
+        foreach ($candidates as $loan) {
+            if (! $this->hasStockShortage($items, $itemType, $context, $exceptLoanId)) {
+                break;
+            }
+
+            if ($this->demoteToQueue($loan)) {
+                $demoted[] = $loan->fresh();
+            }
+        }
+
+        return $demoted;
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     */
+    public function scoreFromContext(array $context): int
+    {
+        $itemType = $context['item_type'] ?? 'alat';
+
+        if ($itemType !== 'alat') {
+            return 0;
+        }
+
+        $scope = $context['borrow_scope'] ?? 'lab';
+        $reason = $context['borrow_reason'] ?? 'reguler';
+
+        $key = match (true) {
+            $scope === 'bawa_pulang' && $reason === 'lomba' => 'bawa_pulang_lomba',
+            $scope === 'bawa_pulang' => 'bawa_pulang_project',
+            $reason === 'lanjutan' => 'pribadi',
+            default => 'praktikum',
+        };
+
+        return (int) config("lab.queue.type_scores.{$key}", 0);
+    }
+
+    /**
      * @param  array<string, mixed>  $context
      */
     public function hasStockShortage(array $items, string $itemType = 'alat', array $context = [], ?int $exceptLoanId = null): bool
@@ -259,7 +366,9 @@ class LoanQueueService
             }
 
             if ($this->promoteFromQueue($loan, $actor, $exceptLoanIds)) {
-                $this->allocateLoanVirtually($loan, $virtualAvailability, $virtualIntervals);
+                if (! $loan->isAlat()) {
+                    $this->allocateLoanVirtually($loan, $virtualAvailability, $virtualIntervals);
+                }
                 $promoted[] = $loan->fresh();
             }
         }

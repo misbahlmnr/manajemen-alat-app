@@ -80,9 +80,9 @@ class LoanHandoverAndRoundRobinTest extends TestCase
         $this->assertSame(14, $slots->remaining($alat->fresh(), $morning[0], $morning[1]));
     }
 
-    public function test_lomba_handover_waits_until_last_praktikum_ends(): void
+    public function test_lomba_handover_is_allowed_during_praktikum(): void
     {
-        $this->travelTo(Carbon::parse('2026-09-09 10:00:00'));
+        $this->travelTo(Carbon::parse('2026-09-14 08:00:00'));
 
         $admin = $this->makeUser('admin', 'admin-handover');
         $guru = $this->makeUser('guru', 'guru-handover');
@@ -105,33 +105,90 @@ class LoanHandoverAndRoundRobinTest extends TestCase
             '2026-09-14 09:30:00',
             $slots->lastPraktikumEndFor($lomba->fresh())?->format('Y-m-d H:i:s'),
         );
-        $this->assertFalse($slots->canHandOver($lomba, Carbon::parse('2026-09-14 08:00:00')));
-        $this->assertTrue($slots->canHandOver($lomba, Carbon::parse('2026-09-14 09:30:00')));
+        $this->assertTrue($slots->canHandOver($lomba, Carbon::parse('2026-09-14 08:00:00')));
 
         $workflow->approve($lomba->fresh(), $admin);
         $this->holdCollateral($lomba->fresh(), $admin);
-
-        $this->travelTo(Carbon::parse('2026-09-14 08:00:00'));
-
-        try {
-            $workflow->markBorrowed($lomba->fresh(), $admin);
-            $this->fail('Serah terima lomba pagi seharusnya ditolak.');
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            $this->assertStringContainsString('09:30', $e->errors()['status'][0] ?? '');
-        }
 
         $this->actingAs($admin)
             ->get(route('admin.loans.show', $lomba))
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('loan.can_mark_borrowed', false)
-                ->where('loan.mark_borrowed_blocked_reason', fn ($reason) => str_contains((string) $reason, '09:30'))
+                ->where('loan.can_mark_borrowed', true)
             );
 
-        $this->travelTo(Carbon::parse('2026-09-14 09:30:00'));
         $workflow->markBorrowed($lomba->fresh(), $admin);
         $this->assertSame('dipinjam', $lomba->fresh()->status);
-        $this->assertSame($praktikum->status, 'diminta');
+        $this->assertSame('diminta', $praktikum->fresh()->status);
+    }
+
+    public function test_project_handover_waits_until_last_praktikum_ends(): void
+    {
+        $this->travelTo(Carbon::parse('2026-09-14 08:00:00'));
+
+        $admin = $this->makeUser('admin', 'admin-project-ho');
+        $guru = $this->makeUser('guru', 'guru-project-ho');
+        $alat = $this->makeEquipment(20);
+        $morning = $this->makeSchedule($guru, '2026-09-14', '07:00:00', '09:30:00', 'JDW-HO-PRJ');
+        $this->makeOccupyingLoan($alat, 6, 'lab', 'reguler', '2026-09-14', $morning->id);
+        $project = $this->makeOccupyingLoan(
+            $alat,
+            1,
+            'bawa_pulang',
+            'lanjutan',
+            '2026-09-14',
+            dueAt: Carbon::parse('2026-09-15 17:00:00'),
+        );
+
+        $slots = app(LoanSlotAvailabilityService::class);
+        $this->assertFalse($slots->canHandOver($project, Carbon::parse('2026-09-14 08:00:00')));
+        $this->assertTrue($slots->canHandOver($project, Carbon::parse('2026-09-14 09:30:00')));
+    }
+
+    public function test_lomba_preempts_lower_priority_diminta_pribadi(): void
+    {
+        $loans = $this->createDemoAntrianLoans();
+
+        $this->assertSame('diminta', $loans['patma']->status);
+        $this->assertSame('diminta', $loans['azki']->status);
+        $this->assertSame('antrian', $loans['santi']->status);
+        $this->assertSame('antrian', $loans['misbah']->status);
+        $this->assertSame('antrian', $loans['azka']->status);
+
+        $queue = app(LoanQueueService::class);
+        $this->assertSame(1, $queue->getQueuePosition($loans['santi']->fresh()));
+        $this->assertSame(2, $queue->getQueuePosition($loans['misbah']->fresh()));
+        $this->assertSame(3, $queue->getQueuePosition($loans['azka']->fresh()));
+    }
+
+    public function test_returning_praktikum_promotes_remaining_queue_that_fits(): void
+    {
+        $loans = $this->createDemoAntrianLoans();
+        $queue = app(LoanQueueService::class);
+
+        $loans['patma']->update(['status' => 'dikembalikan']);
+        $queue->processQueueAfterLoanItemsReleased($loans['patma']->fresh());
+
+        $this->assertSame('diminta', $loans['santi']->fresh()->status);
+        $this->assertSame('diminta', $loans['misbah']->fresh()->status);
+        $this->assertSame('diminta', $loans['azka']->fresh()->status);
+        $this->assertSame('diminta', $loans['azki']->fresh()->status);
+    }
+
+    public function test_returning_lomba_only_promotes_head_that_exactly_fits(): void
+    {
+        $loans = $this->createDemoAntrianLoans();
+        $queue = app(LoanQueueService::class);
+
+        $loans['azki']->update(['status' => 'dikembalikan']);
+        $queue->processQueueAfterLoanItemsReleased($loans['azki']->fresh());
+
+        $this->assertSame('diminta', $loans['santi']->fresh()->status);
+        $this->assertSame('antrian', $loans['misbah']->fresh()->status);
+        $this->assertSame('antrian', $loans['azka']->fresh()->status);
+        $this->assertSame('diminta', $loans['patma']->fresh()->status);
+        $this->assertSame(1, $queue->getQueuePosition($loans['misbah']->fresh()));
+        $this->assertSame(2, $queue->getQueuePosition($loans['azka']->fresh()));
     }
 
     public function test_handover_allowed_when_no_praktikum_uses_the_item(): void
@@ -266,6 +323,100 @@ class LoanHandoverAndRoundRobinTest extends TestCase
 
         $this->assertSame('antrian', $praktikumQueued->fresh()->status);
         $this->assertSame('diminta', $pribadiQueued->fresh()->status);
+    }
+
+    /**
+     * @return array{patma: Loan, santi: Loan, misbah: Loan, azka: Loan, azki: Loan}
+     */
+    private function createDemoAntrianLoans(): array
+    {
+        $this->travelTo(Carbon::parse('2026-09-14 08:00:00'));
+
+        $guru = $this->makeUser('guru', 'guru-preempt-'.Str::lower(Str::random(4)));
+        $alat = $this->makeEquipment(20);
+        $schedule = $this->makeWeeklySchedule($guru, 'senin', '07:00:00', '09:30:00');
+        $monday = '2026-09-14';
+        $suffix = Str::lower(Str::random(4));
+
+        $patma = $this->makeUser('siswa', 'siswa-patma-'.$suffix);
+        $santi = $this->makeUser('siswa', 'siswa-santi-'.$suffix);
+        $misbah = $this->makeUser('siswa', 'siswa-misbah-'.$suffix);
+        $azka = $this->makeUser('siswa', 'siswa-azka-'.$suffix);
+        $azki = $this->makeUser('siswa', 'siswa-azki-'.$suffix);
+
+        $this->actingAs($patma)->post(route('siswa.loans.store'), [
+            'supervisor_id' => $guru->id,
+            'practicum_schedule_id' => $schedule->id,
+            'item_type' => 'alat',
+            'request_date' => $monday,
+            'purpose' => 'Praktik',
+            'notes' => 'Praktik',
+            'borrow_scope' => 'lab',
+            'borrow_reason' => 'reguler',
+            'usage_room' => 'Ruang Assembly',
+            'due_at' => $monday.'T09:30',
+            'items' => [['equipment_id' => $alat->id, 'quantity' => 6]],
+        ])->assertRedirect();
+        $this->travel(1)->seconds();
+
+        $this->actingAs($santi)->post(route('siswa.loans.store'), [
+            'item_type' => 'alat',
+            'request_date' => $monday,
+            'purpose' => 'Pribadi',
+            'notes' => 'Pribadi',
+            'borrow_scope' => 'lab',
+            'borrow_reason' => 'lanjutan',
+            'usage_room' => 'Ruang Assembly',
+            'due_at' => $monday.'T17:00',
+            'items' => [['equipment_id' => $alat->id, 'quantity' => 14]],
+        ])->assertRedirect();
+        $this->travel(1)->seconds();
+
+        $this->actingAs($misbah)->post(route('siswa.loans.store'), [
+            'item_type' => 'alat',
+            'request_date' => $monday,
+            'purpose' => 'Pribadi',
+            'notes' => 'Pribadi',
+            'borrow_scope' => 'lab',
+            'borrow_reason' => 'lanjutan',
+            'usage_room' => 'Ruang Assembly',
+            'due_at' => $monday.'T17:00',
+            'items' => [['equipment_id' => $alat->id, 'quantity' => 1]],
+        ])->assertRedirect();
+        $this->travel(1)->seconds();
+
+        $this->actingAs($azka)->post(route('siswa.loans.store'), [
+            'item_type' => 'alat',
+            'request_date' => $monday,
+            'purpose' => 'Project',
+            'notes' => 'Project',
+            'borrow_scope' => 'bawa_pulang',
+            'borrow_reason' => 'lanjutan',
+            'collateral_agreed' => 1,
+            'due_at' => '2026-09-15T17:00',
+            'items' => [['equipment_id' => $alat->id, 'quantity' => 1]],
+        ])->assertRedirect();
+        $this->travel(1)->seconds();
+
+        $this->actingAs($azki)->post(route('siswa.loans.store'), [
+            'item_type' => 'alat',
+            'request_date' => $monday,
+            'purpose' => 'Lomba',
+            'notes' => 'Lomba',
+            'borrow_scope' => 'bawa_pulang',
+            'borrow_reason' => 'lomba',
+            'collateral_agreed' => 1,
+            'due_at' => '2026-09-15T17:00',
+            'items' => [['equipment_id' => $alat->id, 'quantity' => 1]],
+        ])->assertRedirect();
+
+        return [
+            'patma' => Loan::query()->where('borrower_id', $patma->id)->latest('id')->firstOrFail(),
+            'santi' => Loan::query()->where('borrower_id', $santi->id)->latest('id')->firstOrFail(),
+            'misbah' => Loan::query()->where('borrower_id', $misbah->id)->latest('id')->firstOrFail(),
+            'azka' => Loan::query()->where('borrower_id', $azka->id)->latest('id')->firstOrFail(),
+            'azki' => Loan::query()->where('borrower_id', $azki->id)->latest('id')->firstOrFail(),
+        ];
     }
 
     private function holdCollateral(Loan $loan, User $admin): void

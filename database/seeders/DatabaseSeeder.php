@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\User;
+use App\Support\AcademicYear;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
@@ -40,11 +41,11 @@ class DatabaseSeeder extends Seeder
         }
 
         $siswa = [
-            ['name' => 'Patmawati', 'username' => 'patmawati'],
-            ['name' => 'Santi', 'username' => 'santi'],
-            ['name' => 'Misbah', 'username' => 'misbah'],
-            ['name' => 'Azka', 'username' => 'azka'],
-            ['name' => 'Azki', 'username' => 'azki'],
+            ['name' => 'Patmawati', 'username' => 'patmawati', 'class' => 'XI TAV 1'],
+            ['name' => 'Santi', 'username' => 'santi', 'class' => 'XII TAV 1'],
+            ['name' => 'Misbah', 'username' => 'misbah', 'class' => 'XII TAV 1'],
+            ['name' => 'Azka', 'username' => 'azka', 'class' => 'XII TAV 3'],
+            ['name' => 'Azki', 'username' => 'azki', 'class' => 'XII TAV 3'],
         ];
 
         foreach ($siswa as $index => $murid) {
@@ -56,8 +57,8 @@ class DatabaseSeeder extends Seeder
                 'role' => 'siswa',
                 'status' => 'active',
                 'nisn' => sprintf('00100000%02d', $index + 1),
-                'class' => 'XI TAV 1',
-                'angkatan' => '2025/2026',
+                'class' => $murid['class'],
+                'angkatan' => AcademicYear::fromClass($murid['class']),
             ]);
         }
 

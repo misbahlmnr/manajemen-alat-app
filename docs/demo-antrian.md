@@ -1,6 +1,8 @@
 # Demo alur antrian peminjaman
 
-Reproduce manual untuk demo ke dospem. Semua memakai data seed sekarang: Toolset 20 unit, siswa `XI TAV 1`, password semua `password`.
+Reproduce manual untuk demo ke dospem. Toolset 20 unit, password semua `password`. Siswa seed: Patmawati XI TAV 1, Santi & Misbah XII TAV 1, Azka & Azki XII TAV 3.
+
+Hari demo: Minggu, 13 September 2026. Booking ke **Senin, 14 September 2026**.
 
 Hari demo: Minggu, 13 September 2026. Booking ke **Senin, 14 September 2026**.
 
@@ -10,15 +12,15 @@ Sebelum mulai: batalkan dulu pengajuan Toolset yang masih aktif (kalau ada), sup
 
 ## Akun yang dipakai
 
-| Peran | Login | Password |
-|---|---|---|
-| Admin | `admin` | `password` |
-| Guru | `maryadi` | `password` |
-| Siswa 1 (ketua praktik) | `patmawati` | `password` |
-| Siswa 2 (sisa slot) | `santi` | `password` |
-| Siswa 3 (antrian pribadi) | `misbah` | `password` |
-| Siswa 4 (project, prioritas paling belakang) | `azka` | `password` |
-| Siswa 5 (lomba, prioritas paling depan) | `azki` | `password` |
+| Peran                                        | Login       | Password   | Kelas     |
+| -------------------------------------------- | ----------- | ---------- | --------- |
+| Admin                                        | `admin`     | `password` | —         |
+| Guru                                         | `maryadi`   | `password` | —         |
+| Siswa 1 (ketua praktik)                      | `patmawati` | `password` | XI TAV 1  |
+| Siswa 2 (sisa slot)                          | `santi`     | `password` | XII TAV 1 |
+| Siswa 3 (antrian pribadi)                    | `misbah`    | `password` | XII TAV 1 |
+| Siswa 4 (project, prioritas paling belakang) | `azka`      | `password` | XII TAV 3 |
+| Siswa 5 (lomba, prioritas paling depan)      | `azki`      | `password` | XII TAV 3 |
 
 Barang: **Toolset** (20 / 20).
 
@@ -103,79 +105,73 @@ Logout.
 
 ---
 
-## 4. Lomba menyusul tetap loncat ke depan
+## 4. Lomba hari ini menggusur pribadi yang masih diminta
 
 Login `azki` → Ajukan alat:
 
 1. Tipe **Bawa pulang lomba**
-2. Tanggal **14 Sep 2026**
+2. Tanggal **14 Sep 2026** (hari yang sama dengan jam uji)
 3. **Toolset × 1**
 4. Centang jaminan kartu
 5. Kirim (paling akhir)
 
-Buka detail `azki`: **Antrian #1 · Bawa pulang lomba**.
+**Yang harus kelihatan:**
 
-Buka lagi `misbah`: mundur jadi **#2**. `azka` jadi **#3**.
+- Azki: **Menunggu Persetujuan** (bukan antrian)
+- Patmawati: tetap **Menunggu Persetujuan** (praktik 300, tidak digusur)
+- Santi: turun **Antrian #1 · Pribadi** (skor 200 berkorban)
+- Misbah: **Antrian #2 · Pribadi**
+- Azka: **Antrian #3 · Bawa pulang project**
 
 Login `admin` → Peminjaman → tab **Antrian**. Urutan harus:
 
-1. Azki — Bawa pulang lomba
+1. Santi — Pribadi
 2. Misbah — Pribadi
 3. Azka — Bawa pulang project
 
-Ke dospem: urutan dari **tipe**, bukan siapa yang klik duluan. Admin tidak bisa menggeser manual.
+Ke dospem: slot dihitung dari **jam pengajuan** (08:00), bukan 17:00. Skor 400 boleh menurunkan yang masih `diminta` skor lebih rendah. Yang sudah disetujui/dipinjam tidak digusur.
 
 ---
 
 ## 5. Admin tidak bisa setujui yang masih antrian
 
-Masih di admin, buka pengajuan **Misbah** atau **Azka** → **Setujui**.
+Masih di admin, buka pengajuan **Santi**, **Misbah**, atau **Azka** → **Setujui**.
 
 **Yang harus kelihatan:** ditolak, pesan masih antrian stok. Status tetap Antrian.
 
-Yang boleh disetujui sekarang hanya **Patmawati** dan **Santi**.
+Yang boleh disetujui sekarang: **Patmawati** dan **Azki**.
 
 ---
 
-## 6. Giliran jalan setelah barang kembali
+## 6. Serah terima lomba boleh pagi itu
 
-Masih admin, proses **Santi** sampai selesai (pribadi, tanpa kartu):
+Masih admin, proses **Azki**:
 
-1. **Setujui** → Disetujui
-2. **Tandai dipinjam**
-3. Proses pengembalian → inspeksi **Lengkap**
+1. **Setujui**
+2. Terima kartu pelajar (ditahan)
+3. **Tandai dipinjam** — boleh jam 08:00, **tidak** nunggu 09:30
 
-Setelah Santi selesai, cek tab **Antrian** / **Perlu diproses**:
+Ke dospem: lomba boleh diambil hari itu setelah disetujui + kartu. Project tetap nunggu jam mapel selesai.
 
-| Siswa | Sesudah Santi kembali |
-|---|---|
-| Azki (lomba) | naik jadi **Menunggu Persetujuan** (skor tertinggi + stok 1 longgar) |
-| Misbah | tetap antrian, posisi maju |
-| Azka | tetap antrian |
+Kalau Azki dikembalikan (inspeksi lengkap), Santi naik jadi **Menunggu Persetujuan** (giliran antrian #1). Misbah/Azka tetap antrian — sisa 20 − 6 Patmawati = 14, pas untuk Santi.
 
-Kalau yang naik Misbah dulu, berarti lomba belum muat di slot yang sama — tunjukkan ke dospem bahwa alokasi per jam, bukan “siapa antre nomor 1 otomatis dapat”. Yang penting: **bukan admin yang mengangkat**, sistem yang memproses antrian.
-
-Lanjut: setujui Azki → terima kartu dulu → **jangan** tandai dipinjam sebelum jam praktik Toolset selesai (09:30). Kalau dipaksa pagi-pagi, tombol serah terima terblokir sampai **09:30**.
-
-Ke dospem: lomba prioritas tinggi, tapi tidak boleh cabut Toolset dari kelas yang masih berlangsung.
+Kalau **Patmawati** yang dikembalikan (Azki masih pegang 1), sisa 19. Santi 14 naik, lalu Misbah 1 dan Azka 1 juga naik karena masih muat.
 
 ---
 
-## 7. Ajukan ulang masuk ekor
+## 7. Ajukan ulang masuk ekor (skor sama)
 
-Setelah Azki selesai pinjam dan dikembalikan, login `azki` lagi → ajukan **lomba Toolset × 1** sekali lagi.
-
-**Yang harus kelihatan:** masuk antrian **paling belakang**, di bawah Misbah/Azka yang belum kebagian. Tidak numpang prioritas lama.
+Kalau dua pengajuan **lomba** sama-sama antrian, yang dulu ajukan unggul. Setelah yang pegang barang mengembalikan, yang antre berikutnya naik. Yang baru saja selesai lalu ajukan lomba **lagi** masuk **paling belakang** di antara lomba — tidak numpang jatah lama.
 
 ---
 
 ## Urutan bicara ke dospem
 
 1. Admin buat jadwal dulu — siswa tidak bisa praktik lab tanpa mapel.
-2. Patmawati 6 unit → disetujui jalur normal.
+2. Patmawati 6 unit → menunggu persetujuan.
 3. Santi 14 unit sisa slot → masih lolos.
-4. Misbah kelebihan → antrian, tidak ditolak.
-5. Azki lomba menyusul → tetap #1.
-6. Admin tidak bisa “loncatkan” atau setujui paksa.
-7. Setelah barang kembali, antrian terangkat sendiri.
-8. Ajukan ulang = antre dari belakang.
+4. Misbah/Azka kelebihan → antrian, tidak ditolak.
+5. Azki lomba menyusul → **diminta**; Santi berkorban ke antrian #1.
+6. Admin tidak bisa setujui yang masih antrian; lomba boleh diserahkan pagi itu.
+7. Setelah lomba kembali, antrian terangkat sendiri (Santi dulu; Misbah/Azka tetap antri). Setelah praktik Patmawati kembali, Santi + Misbah + Azka naik semua.
+8. Ajukan ulang tipe yang sama = antre dari belakang.

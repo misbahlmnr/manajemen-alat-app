@@ -181,6 +181,62 @@ class LoanSlotAvailabilityServiceTest extends TestCase
         $this->assertSame(10, $this->slots->remaining($equipment, $nextWindow[0], $nextWindow[1]));
     }
 
+    public function test_same_day_lomba_from_now_occupies_ongoing_morning(): void
+    {
+        $this->travelTo(Carbon::parse('2026-09-14 08:00:00'));
+
+        $equipment = $this->makeEquipment(20);
+        $this->makeOccupyingLoan(
+            $equipment,
+            10,
+            'bawa_pulang',
+            'lomba',
+            '2026-09-14',
+            dueAt: Carbon::parse('2026-09-15 17:00:00'),
+        );
+
+        $guru = $this->makeUser('guru', 'guru-slot-now');
+        $morning = $this->makeSchedule($guru, '2026-09-14', '07:00:00', '09:30:00', 'JDW-NOW');
+        $morningWindow = $this->slots->windowFromContext([
+            'borrow_scope' => 'lab',
+            'borrow_reason' => 'reguler',
+            'request_date' => '2026-09-14',
+            'practicum_schedule_id' => $morning->id,
+        ], $morning);
+
+        $this->assertSame(10, $this->slots->remaining($equipment, $morningWindow[0], $morningWindow[1]));
+
+        [$start] = $this->slots->windowFromContext([
+            'borrow_scope' => 'bawa_pulang',
+            'borrow_reason' => 'lomba',
+            'request_date' => '2026-09-14',
+            'due_at' => '2026-09-15 17:00:00',
+        ]);
+        $this->assertSame('08:00:00', $start->format('H:i:s'));
+    }
+
+    public function test_same_day_full_slot_sends_lomba_to_queue_without_preempt(): void
+    {
+        $this->travelTo(Carbon::parse('2026-09-14 08:00:00'));
+
+        $equipment = $this->makeEquipment(20);
+        $guru = $this->makeUser('guru', 'guru-slot-full');
+        $morning = $this->makeSchedule($guru, '2026-09-14', '07:00:00', '09:30:00', 'JDW-FULL');
+        $this->makeOccupyingLoan($equipment, 6, 'lab', 'reguler', '2026-09-14', $morning->id);
+        $this->makeOccupyingLoan($equipment, 14, 'lab', 'lanjutan', '2026-09-14');
+
+        $this->assertSame('antrian', $this->queue->resolveInitialStatus(
+            [['equipment_id' => $equipment->id, 'quantity' => 1]],
+            'alat',
+            [
+                'borrow_scope' => 'bawa_pulang',
+                'borrow_reason' => 'lomba',
+                'request_date' => '2026-09-14',
+                'due_at' => '2026-09-15 17:00:00',
+            ],
+        ));
+    }
+
     public function test_approve_future_booking_does_not_deduct_available_until_slot_starts(): void
     {
         $this->travelTo(Carbon::parse('2026-09-09 10:00:00'));

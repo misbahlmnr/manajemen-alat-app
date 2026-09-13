@@ -313,11 +313,19 @@ class LoanController extends Controller
             $request->user()->id,
         );
 
+        $slotContext = $this->slotContextFromPayload($validated, $loan->item_type);
+        $this->queueService->preemptLowerPriorityDiminta(
+            $items,
+            $loan->item_type,
+            $slotContext,
+            $loan->id,
+        );
+
         $newStatus = in_array($loan->status, ['diminta', 'antrian'], true)
             ? $this->queueService->resolveInitialStatus(
                 $items,
                 $loan->item_type,
-                $this->slotContextFromPayload($validated, $loan->item_type),
+                $slotContext,
                 $loan->id,
             )
             : $loan->status;
@@ -866,10 +874,18 @@ class LoanController extends Controller
             $user->id,
         );
 
+        $slotContext = $this->slotContextFromPayload($validated);
+
+        $this->queueService->preemptLowerPriorityDiminta(
+            $items,
+            $validated['item_type'],
+            $slotContext,
+        );
+
         $initialStatus = $this->queueService->resolveInitialStatus(
             $items,
             $validated['item_type'],
-            $this->slotContextFromPayload($validated),
+            $slotContext,
         );
 
         $submission ??= Submission::createForBorrower($user, $validated);
