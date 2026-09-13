@@ -17,7 +17,7 @@ class EquipmentSeeder extends Seeder
                 ->where('name', 'Toolset')
                 ->where('item_type', 'alat')
                 ->value('code') ?? Equipment::generateCode('alat'),
-            'category' => 'Mesin & Perkakas',
+            'category' => 'Peralatan kerja bangku dan perakitan (assembly)',
             'item_type' => 'alat',
             'stock' => 20,
             'available' => 20,

@@ -18,7 +18,7 @@ class SupplySeeder extends Seeder
                 ->where('name', 'Transistor TIP 31C')
                 ->where('item_type', 'bahan')
                 ->value('code') ?? Equipment::generateCode('bahan'),
-            'category' => 'Komponen Aktif',
+            'category' => 'Komponen elektronika aktif',
             'stock' => 100,
             'available' => 100,
             'unit' => 'pcs',

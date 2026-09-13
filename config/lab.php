@@ -5,20 +5,19 @@ return [
     'lab_name' => env('LAB_NAME', 'Laboratorium Audio Video'),
 
     'equipment_categories' => [
-        'Alat Ukur & Pengujian',
-        'Mesin & Perkakas',
-        'Solder & Perakitan',
-        'Trainer Pembelajaran',
-        'Sistem Keamanan',
-        'Multimedia',
+        'Alat ukur & uji elektronika',
+        'Peralatan kerja bangku dan perakitan (assembly)',
+        'Peralatan perangkat pengolah suara',
+        'Peralatan sistem video dan dokumentasi',
     ],
 
     'supply_categories' => [
-        'Komponen Aktif',
-        'Komponen Pasif',
-        'PCB & Konektor',
-        'Kabel & Solder',
-        'Alat Bantu Habis Pakai',
+        'Komponen elektronika pasif',
+        'Komponen elektronika aktif',
+        'Pembuatan jalur rangkaian (PCB making)',
+        'Penyambung dan perekat (soldering material)',
+        'Kabel dan konektor audio video',
+        'Modul sistem audio video',
     ],
 
     'supply_units' => [

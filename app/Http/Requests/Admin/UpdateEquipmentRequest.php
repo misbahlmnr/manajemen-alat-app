@@ -20,7 +20,7 @@ class UpdateEquipmentRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'category' => ['required', 'string', 'max:100'],
+            'category' => ['required', 'string', 'max:100', Rule::in(config('lab.equipment_categories'))],
             'stock' => ['required', 'integer', 'min:1'],
             'available' => ['required', 'integer', 'min:0', 'lte:stock'],
             'qty_baik' => ['required', 'integer', 'min:0'],

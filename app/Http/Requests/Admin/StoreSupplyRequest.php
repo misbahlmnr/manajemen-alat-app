@@ -23,7 +23,7 @@ class StoreSupplyRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'category' => ['required', 'string', 'max:100'],
+            'category' => ['required', 'string', 'max:100', Rule::in(config('lab.supply_categories'))],
             'stock' => ['required', 'integer', 'min:0'],
             'available' => ['required', 'integer', 'min:0', 'lte:stock'],
             'unit' => ['required', Rule::in(config('lab.supply_units'))],
