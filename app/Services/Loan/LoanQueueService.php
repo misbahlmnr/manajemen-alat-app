@@ -631,6 +631,9 @@ class LoanQueueService
     /**
      * Sisa slot tidak boleh diambil yang belakang jika antrian di depan belum muat.
      *
+     * Cadangan dihitung dari jendela orang antrian itu sendiri, bukan sisa di
+     * jendela pengaju baru. Kalau kepala antrian belum muat, sisa dikunci.
+     *
      * @param  array<int, array{equipment_id: mixed, quantity?: mixed}>  $items
      * @param  array<string, mixed>  $context
      */
@@ -638,6 +641,7 @@ class LoanQueueService
     {
         [$incomingStart, $incomingEnd] = $this->slots()->windowFromContext($context);
         $incomingScore = $this->scoreFromContext($context);
+        $exceptLoanIds = $exceptLoanId ? [(int) $exceptLoanId] : [];
 
         foreach ($items as $row) {
             $equipmentId = (int) ($row['equipment_id'] ?? 0);
@@ -648,12 +652,9 @@ class LoanQueueService
                 continue;
             }
 
-            $remaining = $this->slots()->remaining(
-                $equipment,
-                $incomingStart,
-                $incomingEnd,
-                $exceptLoanId,
-            );
+            $virtualAvailability = $this->virtualAvailabilityMap();
+            $virtualIntervals = [];
+            $headDoesNotFit = false;
 
             foreach ($this->queuedLoansForEquipment($equipmentId) as $queued) {
                 if ($exceptLoanId && $queued->id === $exceptLoanId) {
@@ -670,17 +671,25 @@ class LoanQueueService
                     continue;
                 }
 
-                $qty = (int) $queued->items
-                    ->filter(fn ($item) => (int) $item->equipment_id === $equipmentId)
-                    ->sum('quantity');
-
-                if ($qty <= $remaining) {
-                    $remaining -= $qty;
-                } else {
-                    $remaining = 0;
+                if (! $this->canAllocateLoan($queued, $virtualAvailability, $virtualIntervals, $exceptLoanIds)) {
+                    $headDoesNotFit = true;
                     break;
                 }
+
+                $this->allocateLoanVirtually($queued, $virtualAvailability, $virtualIntervals);
             }
+
+            if ($headDoesNotFit) {
+                return true;
+            }
+
+            $remaining = $this->slots()->remaining(
+                $equipment,
+                $incomingStart,
+                $incomingEnd,
+                $exceptLoanId,
+                $virtualIntervals[$equipmentId] ?? [],
+            );
 
             if ($remaining < $needed) {
                 return true;
