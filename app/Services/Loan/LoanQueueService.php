@@ -170,11 +170,16 @@ class LoanQueueService
      */
     public function hasStockShortage(array $items, string $itemType = 'alat', array $context = [], ?int $exceptLoanId = null): bool
     {
-        return $this->slots()->hasShortage([
+        if ($this->slots()->hasShortage([
             ...$context,
             'item_type' => $itemType,
             'items' => $items,
-        ], $exceptLoanId);
+        ], $exceptLoanId)) {
+            return true;
+        }
+
+        return $itemType === 'alat'
+            && $this->queuedAheadBlocksDraft($items, $context, $exceptLoanId);
     }
 
     public function enqueue(Loan $loan, ?User $actor = null): void
@@ -362,7 +367,7 @@ class LoanQueueService
             }
 
             if (! $this->canAllocateLoan($loan, $virtualAvailability, $virtualIntervals, $exceptLoanIds)) {
-                continue;
+                break;
             }
 
             if ($this->promoteFromQueue($loan, $actor, $exceptLoanIds)) {
@@ -621,6 +626,68 @@ class LoanQueueService
         }
 
         return Carbon::parse($date.' '.$jamSelesai, PracticumSchedule::schoolTimezone());
+    }
+
+    /**
+     * Sisa slot tidak boleh diambil yang belakang jika antrian di depan belum muat.
+     *
+     * @param  array<int, array{equipment_id: mixed, quantity?: mixed}>  $items
+     * @param  array<string, mixed>  $context
+     */
+    private function queuedAheadBlocksDraft(array $items, array $context, ?int $exceptLoanId = null): bool
+    {
+        [$incomingStart, $incomingEnd] = $this->slots()->windowFromContext($context);
+        $incomingScore = $this->scoreFromContext($context);
+
+        foreach ($items as $row) {
+            $equipmentId = (int) ($row['equipment_id'] ?? 0);
+            $needed = (int) ($row['quantity'] ?? 0);
+            $equipment = $equipmentId ? Equipment::query()->find($equipmentId) : null;
+
+            if (! $equipment || $equipment->item_type !== 'alat' || $needed <= 0) {
+                continue;
+            }
+
+            $remaining = $this->slots()->remaining(
+                $equipment,
+                $incomingStart,
+                $incomingEnd,
+                $exceptLoanId,
+            );
+
+            foreach ($this->queuedLoansForEquipment($equipmentId) as $queued) {
+                if ($exceptLoanId && $queued->id === $exceptLoanId) {
+                    continue;
+                }
+
+                if ($incomingScore > $this->effectiveSortScore($queued)) {
+                    continue;
+                }
+
+                [$queuedStart, $queuedEnd] = $this->slots()->windowFor($queued);
+
+                if (! ($incomingStart->lt($queuedEnd) && $queuedStart->lt($incomingEnd))) {
+                    continue;
+                }
+
+                $qty = (int) $queued->items
+                    ->filter(fn ($item) => (int) $item->equipment_id === $equipmentId)
+                    ->sum('quantity');
+
+                if ($qty <= $remaining) {
+                    $remaining -= $qty;
+                } else {
+                    $remaining = 0;
+                    break;
+                }
+            }
+
+            if ($remaining < $needed) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

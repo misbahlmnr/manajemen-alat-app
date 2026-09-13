@@ -161,6 +161,105 @@ class LoanHandoverAndRoundRobinTest extends TestCase
         $this->assertSame(3, $queue->getQueuePosition($loans['azka']->fresh()));
     }
 
+    public function test_new_submit_cannot_take_leftover_while_queue_head_does_not_fit(): void
+    {
+        $this->travelTo(Carbon::parse('2026-09-14 08:00:00'));
+
+        $guru = $this->makeUser('guru', 'guru-leftover');
+        $alat = $this->makeEquipment(20);
+        $schedule = $this->makeWeeklySchedule($guru, 'senin', '07:00:00', '09:30:00');
+        $monday = '2026-09-14';
+
+        $patma = $this->makeUser('siswa', 'siswa-patma-lo');
+        $santi = $this->makeUser('siswa', 'siswa-santi-lo');
+        $misbah = $this->makeUser('siswa', 'siswa-misbah-lo');
+        $azki = $this->makeUser('siswa', 'siswa-azki-lo');
+        $azka = $this->makeUser('siswa', 'siswa-azka-lo');
+
+        $this->actingAs($patma)->post(route('siswa.loans.store'), [
+            'supervisor_id' => $guru->id,
+            'practicum_schedule_id' => $schedule->id,
+            'item_type' => 'alat',
+            'request_date' => $monday,
+            'purpose' => 'Praktik',
+            'notes' => 'Praktik',
+            'borrow_scope' => 'lab',
+            'borrow_reason' => 'reguler',
+            'usage_room' => 'Ruang Assembly',
+            'due_at' => $monday.'T09:30',
+            'items' => [['equipment_id' => $alat->id, 'quantity' => 6]],
+        ])->assertRedirect();
+        $this->travel(1)->seconds();
+
+        $this->actingAs($santi)->post(route('siswa.loans.store'), [
+            'item_type' => 'alat',
+            'request_date' => $monday,
+            'purpose' => 'Pribadi',
+            'notes' => 'Pribadi',
+            'borrow_scope' => 'lab',
+            'borrow_reason' => 'lanjutan',
+            'usage_room' => 'Ruang Assembly',
+            'due_at' => $monday.'T17:00',
+            'items' => [['equipment_id' => $alat->id, 'quantity' => 14]],
+        ])->assertRedirect();
+        $this->travel(1)->seconds();
+
+        $this->actingAs($misbah)->post(route('siswa.loans.store'), [
+            'item_type' => 'alat',
+            'request_date' => $monday,
+            'purpose' => 'Pribadi',
+            'notes' => 'Pribadi',
+            'borrow_scope' => 'lab',
+            'borrow_reason' => 'lanjutan',
+            'usage_room' => 'Ruang Assembly',
+            'due_at' => $monday.'T17:00',
+            'items' => [['equipment_id' => $alat->id, 'quantity' => 1]],
+        ])->assertRedirect();
+        $this->travel(1)->seconds();
+
+        $this->actingAs($azki)->post(route('siswa.loans.store'), [
+            'item_type' => 'alat',
+            'request_date' => $monday,
+            'purpose' => 'Lomba',
+            'notes' => 'Lomba',
+            'borrow_scope' => 'bawa_pulang',
+            'borrow_reason' => 'lomba',
+            'collateral_agreed' => 1,
+            'due_at' => '2026-09-15T17:00',
+            'items' => [['equipment_id' => $alat->id, 'quantity' => 1]],
+        ])->assertRedirect();
+        $this->travel(1)->seconds();
+
+        $this->actingAs($azka)->post(route('siswa.loans.store'), [
+            'item_type' => 'alat',
+            'request_date' => $monday,
+            'purpose' => 'Project',
+            'notes' => 'Project',
+            'borrow_scope' => 'bawa_pulang',
+            'borrow_reason' => 'lanjutan',
+            'collateral_agreed' => 1,
+            'due_at' => '2026-09-15T17:00',
+            'items' => [['equipment_id' => $alat->id, 'quantity' => 3]],
+        ])->assertRedirect();
+
+        $santiLoan = Loan::query()->where('borrower_id', $santi->id)->latest('id')->first();
+        $misbahLoan = Loan::query()->where('borrower_id', $misbah->id)->latest('id')->first();
+        $azkaLoan = Loan::query()->where('borrower_id', $azka->id)->latest('id')->first();
+        $azkiLoan = Loan::query()->where('borrower_id', $azki->id)->latest('id')->first();
+        $patmaLoan = Loan::query()->where('borrower_id', $patma->id)->latest('id')->first();
+
+        $this->assertSame('diminta', $patmaLoan?->status);
+        $this->assertSame('diminta', $azkiLoan?->status);
+        $this->assertSame('antrian', $santiLoan?->status);
+        $this->assertSame('antrian', $misbahLoan?->status);
+        $this->assertSame('antrian', $azkaLoan?->status);
+
+        $queue = app(LoanQueueService::class);
+        $this->assertSame(1, $queue->getQueuePosition($santiLoan->fresh()));
+        $this->assertSame(2, $queue->getQueuePosition($misbahLoan->fresh()));
+        $this->assertSame(3, $queue->getQueuePosition($azkaLoan->fresh()));
+    }
+
     public function test_returning_praktikum_promotes_remaining_queue_that_fits(): void
     {
         $loans = $this->createDemoAntrianLoans();
