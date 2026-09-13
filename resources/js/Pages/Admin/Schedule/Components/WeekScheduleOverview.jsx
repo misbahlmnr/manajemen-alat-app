@@ -1,5 +1,6 @@
 import SchedulePriorityBadge from "@/Components/SchedulePriorityBadge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/Components/ui/card";
+import { formatLocalDate, useAppClock } from "@/lib/appClock";
 import { Link } from "@inertiajs/react";
 import { CalendarDays } from "lucide-react";
 
@@ -13,8 +14,7 @@ const hariIndex = {
     sabtu: 5,
 };
 
-function getWeekDays() {
-    const now = new Date();
+function getWeekDays(now = new Date()) {
     const day = now.getDay();
     const diff = day === 0 ? -6 : 1 - day;
     const monday = new Date(now);
@@ -25,7 +25,7 @@ function getWeekDays() {
         const d = new Date(monday);
         d.setDate(monday.getDate() + i);
         return {
-            key: d.toISOString().slice(0, 10),
+            key: formatLocalDate(d),
             label: dayNames[i],
             date: d.getDate(),
             index: i,
@@ -37,7 +37,8 @@ export default function WeekScheduleOverview({
     schedules = [],
     scheduleShowRoute = "admin.schedules.show",
 }) {
-    const weekDays = getWeekDays();
+    const { now } = useAppClock();
+    const weekDays = getWeekDays(now);
     const byDayIndex = weekDays.reduce((acc, day) => {
         acc[day.index] = [];
         return acc;

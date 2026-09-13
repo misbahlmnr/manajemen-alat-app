@@ -2,6 +2,7 @@ import FlashMessage from "@/Components/FlashMessage";
 import DashboardContent from "@/Components/Layout/DashboardContent";
 import DashboardHeader from "@/Components/Layout/DashboardHeader";
 import DashboardSidebar from "@/Components/Layout/DashboardSidebar";
+import FakeClockBanner from "@/Components/Layout/FakeClockBanner";
 import { PageMetaProvider } from "@/Components/Layout/PageMetaContext";
 import useRealtimeNotifications from "@/hooks/useRealtimeNotifications";
 import useWebPush from "@/hooks/useWebPush";
@@ -42,6 +43,8 @@ export default function AppLayout({ children }) {
                         notifications={recentNotifications}
                         notificationsIndexUrl={notificationsIndexUrl}
                     />
+
+                    <FakeClockBanner />
 
                     <DashboardContent>
                         <div className="animate-fade-in">{children}</div>

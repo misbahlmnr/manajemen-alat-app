@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Services\Notification\NotificationPresenter;
+use App\Support\AppClock;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -38,6 +39,7 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $user,
             ],
+            'clock' => AppClock::share(),
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),

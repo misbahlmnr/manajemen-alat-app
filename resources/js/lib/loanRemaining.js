@@ -11,13 +11,13 @@ const ACTIVE_DUE_STATUSES = [
 /**
  * Hitung sisa atau keterlambatan relatif terhadap batas waktu (due_at).
  */
-export function getLoanRemaining(dueAtIso) {
+export function getLoanRemaining(dueAtIso, nowMs = Date.now()) {
     if (!dueAtIso) return null;
 
     const due = new Date(dueAtIso);
     if (Number.isNaN(due.getTime())) return null;
 
-    const diffMs = due.getTime() - Date.now();
+    const diffMs = due.getTime() - nowMs;
 
     if (diffMs <= 0) {
         const overdueMs = Math.abs(diffMs);

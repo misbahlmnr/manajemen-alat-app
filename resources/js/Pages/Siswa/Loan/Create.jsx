@@ -2,6 +2,7 @@ import AppLayout from "@/Layouts/AppLayout";
 import Checkbox from "@/Components/Checkbox";
 import InputError from "@/Components/InputError";
 import { paginatorTotal } from "@/lib/paginator";
+import { useAppClock } from "@/lib/appClock";
 import { cn } from "@/lib/utils";
 import { Head, Link, router, useForm } from "@inertiajs/react";
 import LoanCatalogTable from "./Components/LoanCatalogTable";
@@ -29,25 +30,19 @@ function formatScheduleTime(value) {
     return String(value).slice(0, 5);
 }
 
-function todayLocalDate() {
-    const d = new Date();
-    const pad = (value) => String(value).padStart(2, "0");
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-}
-
 function toDateTimeLocal(date, time) {
     const hhmm = formatScheduleTime(time) || "23:59";
     return `${date}T${hhmm}`;
 }
 
-function buildDueAt(requestDate, end) {
+function buildDueAt(requestDate, end, now = new Date()) {
     const raw = end ? `${requestDate}T${end}` : `${requestDate}T23:59`;
     const parsed = new Date(raw);
     if (Number.isNaN(parsed.getTime())) {
         return raw;
     }
 
-    const minDue = new Date(Date.now() + 60 * 60 * 1000);
+    const minDue = new Date(now.getTime() + 60 * 60 * 1000);
     const effective = parsed.getTime() < minDue.getTime() ? minDue : parsed;
     const pad = (value) => String(value).padStart(2, "0");
 
@@ -217,7 +212,8 @@ export default function Create({
     const schoolCloseTime = queueConfig.school_close_time || "17:00";
     const bawaPulangMaxDays = Number(queueConfig.bawa_pulang_max_days || 1);
     const bookingHorizonDays = Number(queueConfig.booking_horizon_days || 7);
-    const maxBookingDate = addDaysToDate(todayLocalDate(), bookingHorizonDays);
+    const { now: appNow, today } = useAppClock();
+    const maxBookingDate = addDaysToDate(today, bookingHorizonDays);
     const allSchedules =
         bookableSchedules.length > 0 ? bookableSchedules : todaySchedules;
 
@@ -461,7 +457,7 @@ export default function Create({
           : "pakai_di_lab";
 
     const setUsageLocation = (location) => {
-        const today = data.request_date || todayLocalDate();
+        const requestDate = data.request_date || today;
 
         if (location === "bawa_pulang_lomba" || location === "bawa_pulang_project") {
             setData((prev) => ({
@@ -474,7 +470,7 @@ export default function Create({
                 usage_room: "",
                 collateral_agreed: false,
                 due_at: addDaysDateTime(
-                    today,
+                    requestDate,
                     bawaPulangMaxDays,
                     schoolCloseTime,
                 ),
@@ -491,7 +487,7 @@ export default function Create({
                 supervisor_id: "",
                 usage_room: "",
                 collateral_agreed: false,
-                due_at: buildDueAt(today, schoolCloseTime),
+                due_at: buildDueAt(requestDate, schoolCloseTime, appNow),
             }));
             return;
         }
@@ -533,7 +529,7 @@ export default function Create({
             return;
         }
 
-        const requestDate = data.request_date || todayLocalDate();
+        const requestDate = data.request_date || today;
         const end = formatScheduleTime(s.jam_selesai);
         const dueAt = isBawaPulang
             ? addDaysDateTime(requestDate, bawaPulangMaxDays, schoolCloseTime)
@@ -556,17 +552,17 @@ export default function Create({
     const scheduleEndAt = selectedSchedule
         ? new Date(
               toDateTimeLocal(
-                  data.request_date || todayLocalDate(),
+                  data.request_date || today,
                   selectedSchedule.jam_selesai,
               ),
           )
         : null;
     const scheduleEnded = Boolean(
         isPakaiDiLab &&
-            data.request_date === todayLocalDate() &&
+            data.request_date === today &&
             scheduleEndAt &&
             !Number.isNaN(scheduleEndAt.getTime()) &&
-            scheduleEndAt.getTime() <= Date.now(),
+            scheduleEndAt.getTime() <= appNow.getTime(),
     );
 
     useEffect(() => {
@@ -574,7 +570,7 @@ export default function Create({
             return;
         }
 
-        const requestDate = data.request_date || todayLocalDate();
+        const requestDate = data.request_date || today;
         const dueAt = toDateTimeLocal(
             requestDate,
             selectedSchedule.jam_selesai,
@@ -601,8 +597,9 @@ export default function Create({
         }
 
         const dueAt = buildDueAt(
-            data.request_date || todayLocalDate(),
+            data.request_date || today,
             schoolCloseTime,
+            appNow,
         );
 
         if (data.due_at === dueAt) {
@@ -626,7 +623,7 @@ export default function Create({
         const payload = {
             item_type: itemType,
             request_date:
-                formData.request_date || todayLocalDate(),
+                formData.request_date || today,
             purpose,
             notes: formData.notes ?? "",
             items: cartItems.map((i) => ({
@@ -1163,7 +1160,7 @@ export default function Create({
                                         <input
                                             type="date"
                                             value={data.request_date}
-                                            min={todayLocalDate()}
+                                            min={today}
                                             max={maxBookingDate}
                                             onChange={(e) => {
                                                 const nextDate = e.target.value;

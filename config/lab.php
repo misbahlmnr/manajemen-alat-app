@@ -115,6 +115,10 @@ return [
 
     'school_timezone' => env('LAB_TIMEZONE', 'Asia/Jakarta'),
 
+    // Testing only. Set LAB_FAKE_NOW=2026-09-14 09:00:00 to pretend that datetime.
+    // Empty / unset = jam nyata. Restart PHP (and config:clear if cached) after changing.
+    'fake_now' => env('LAB_FAKE_NOW'),
+
     'queue' => [
         'lab_open_time' => env('LAB_OPEN_TIME', '07:00'),
         'school_close_time' => env('LAB_SCHOOL_CLOSE_TIME', '17:00'),

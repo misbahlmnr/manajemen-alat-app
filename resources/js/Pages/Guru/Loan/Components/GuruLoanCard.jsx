@@ -5,6 +5,7 @@ import {
     getLoanRemaining,
     shouldShowLoanDueCountdown,
 } from "@/lib/loanRemaining";
+import { useAppClock } from "@/lib/appClock";
 import { Link } from "@inertiajs/react";
 import {
     AlertTriangle,
@@ -20,9 +21,10 @@ import {
 const MAX_VISIBLE_ITEMS = 3;
 
 function DueCountdown({ loan, isHistory }) {
+    const { now } = useAppClock();
     if (!shouldShowLoanDueCountdown(loan, isHistory)) return null;
 
-    const remaining = getLoanRemaining(loan.due_at_iso);
+    const remaining = getLoanRemaining(loan.due_at_iso, now.getTime());
     if (remaining === null) return null;
 
     const isOverdue = remaining.overdue;

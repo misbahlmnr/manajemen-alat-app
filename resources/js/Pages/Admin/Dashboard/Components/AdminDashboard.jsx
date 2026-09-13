@@ -7,6 +7,7 @@ import {
     StatusDistributionChart,
 } from "@/Components/Dashboard/DashboardCharts";
 import LowStockList from "./LowStockList";
+import { useAppClock } from "@/lib/appClock";
 import {
     AlertTriangle,
     CalendarDays,
@@ -19,6 +20,7 @@ import {
 } from "lucide-react";
 
 export default function AdminDashboard({ loans, equipment, stats }) {
+    const { now } = useAppClock();
     const pendingAlat = loans.filter(
         (l) => l.status === "diminta" && l.itemType === "alat",
     );
@@ -36,7 +38,7 @@ export default function AdminDashboard({ loans, equipment, stats }) {
     });
     const alatLoans = loans.filter((l) => l.itemType === "alat");
 
-    const todayLabel = new Date().toLocaleDateString("id-ID", {
+    const todayLabel = now.toLocaleDateString("id-ID", {
         weekday: "long",
         day: "numeric",
         month: "long",

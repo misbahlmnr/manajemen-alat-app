@@ -1,9 +1,13 @@
 import BrandLogo from "@/Components/BrandLogo";
+import FakeClockBanner from "@/Components/Layout/FakeClockBanner";
 import { Link } from "@inertiajs/react";
 
 export default function GuestLayout({ children }) {
     return (
         <div className="flex min-h-screen flex-col items-center bg-background px-4 pt-8 sm:justify-center sm:pt-0">
+            <div className="fixed inset-x-0 top-0">
+                <FakeClockBanner />
+            </div>
             <div>
                 <Link
                     href="/"

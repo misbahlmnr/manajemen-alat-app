@@ -2,6 +2,7 @@ import AppLayout from "@/Layouts/AppLayout";
 import PageHeader from "@/Components/PageHeader";
 import { Button } from "@/Components/ui/button";
 import { Head, Link, useForm } from "@inertiajs/react";
+import { useAppClock } from "@/lib/appClock";
 import LoanForm from "./Components/LoanForm";
 
 export default function Create({
@@ -11,10 +12,11 @@ export default function Create({
     equipmentOptionsAlat,
     equipmentOptionsBahan,
 }) {
-    const today = new Date().toISOString().slice(0, 10);
-    const defaultDue = new Date();
+    const { today, now } = useAppClock();
+    const defaultDue = new Date(now);
     defaultDue.setDate(defaultDue.getDate() + 3);
-    const dueDefault = defaultDue.toISOString().slice(0, 16);
+    const pad = (value) => String(value).padStart(2, "0");
+    const dueDefault = `${defaultDue.getFullYear()}-${pad(defaultDue.getMonth() + 1)}-${pad(defaultDue.getDate())}T${pad(defaultDue.getHours())}:${pad(defaultDue.getMinutes())}`;
 
     const { data, setData, post, processing, errors } = useForm({
         borrower_id: "",
