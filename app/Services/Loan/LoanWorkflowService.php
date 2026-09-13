@@ -91,16 +91,12 @@ class LoanWorkflowService
         }
 
         DB::transaction(function () use ($loan, $reason, $actor) {
-            $wasApproved = $loan->status === 'disetujui';
-
             $loan->update([
                 'status' => 'ditolak',
                 'rejection_reason' => $reason,
             ]);
 
-            if ($wasApproved) {
-                $this->restoreStock($loan);
-            }
+            $this->restoreStock($loan);
 
             app(CollateralWorkflowService::class)->removePendingCollateralIfExists($loan->fresh());
 
@@ -181,15 +177,11 @@ class LoanWorkflowService
         }
 
         DB::transaction(function () use ($loan, $actor) {
-            $wasHoldingStock = in_array($loan->status, ['disetujui', 'dipinjam', 'terlambat', 'menunggu_inspeksi'], true);
-
             app(CollateralWorkflowService::class)->removePendingCollateralIfExists($loan);
 
             $loan->update(['status' => 'dibatalkan']);
 
-            if ($wasHoldingStock) {
-                $this->restoreStock($loan);
-            }
+            $this->restoreStock($loan);
 
             $this->logStatus($loan, 'dibatalkan', 'Peminjaman dibatalkan.', $actor);
         });

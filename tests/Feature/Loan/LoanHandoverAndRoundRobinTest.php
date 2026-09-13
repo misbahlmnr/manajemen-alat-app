@@ -191,6 +191,44 @@ class LoanHandoverAndRoundRobinTest extends TestCase
         $this->assertSame(2, $queue->getQueuePosition($loans['azka']->fresh()));
     }
 
+    public function test_cancelling_diminta_promotes_queued_loan_that_fits(): void
+    {
+        $this->travelTo(Carbon::parse('2026-09-14 10:00:00'));
+
+        $alat = $this->makeEquipment(20);
+        $patma = $this->makeOccupyingLoan($alat, 6, 'lab', 'lanjutan', '2026-09-14');
+        $santi = $this->makeOccupyingLoan($alat, 14, 'lab', 'lanjutan', '2026-09-14');
+        $misbah = $this->makeOccupyingLoan($alat, 1, 'lab', 'lanjutan', '2026-09-14', status: 'antrian');
+
+        $this->actingAs($santi->borrower)
+            ->post(route('siswa.loans.cancel', $santi))
+            ->assertRedirect();
+
+        $this->assertSame('dibatalkan', $santi->fresh()->status);
+        $this->assertSame('diminta', $misbah->fresh()->status);
+        $this->assertSame('diminta', $patma->fresh()->status);
+    }
+
+    public function test_rejecting_diminta_promotes_queued_loan_that_fits(): void
+    {
+        $this->travelTo(Carbon::parse('2026-09-14 10:00:00'));
+
+        $admin = $this->makeUser('admin', 'admin-reject-queue');
+        $alat = $this->makeEquipment(20);
+        $this->makeOccupyingLoan($alat, 6, 'lab', 'lanjutan', '2026-09-14');
+        $santi = $this->makeOccupyingLoan($alat, 14, 'lab', 'lanjutan', '2026-09-14');
+        $misbah = $this->makeOccupyingLoan($alat, 1, 'lab', 'lanjutan', '2026-09-14', status: 'antrian');
+
+        $this->actingAs($admin)
+            ->post(route('admin.loans.reject', $santi), [
+                'rejection_reason' => 'Tidak jadi dipakai.',
+            ])
+            ->assertRedirect();
+
+        $this->assertSame('ditolak', $santi->fresh()->status);
+        $this->assertSame('diminta', $misbah->fresh()->status);
+    }
+
     public function test_handover_allowed_when_no_praktikum_uses_the_item(): void
     {
         $this->travelTo(Carbon::parse('2026-09-14 08:00:00'));
