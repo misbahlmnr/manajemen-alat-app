@@ -1,6 +1,5 @@
 import AppLayout from "@/Layouts/AppLayout";
-import { Head } from "@inertiajs/react";
-import DeleteUserForm from "./Partials/DeleteUserForm";
+import { Head, usePage } from "@inertiajs/react";
 import UpdatePasswordForm from "./Partials/UpdatePasswordForm";
 import UpdateProfileInformationForm from "./Partials/UpdateProfileInformationForm";
 import {
@@ -12,6 +11,9 @@ import {
 } from "@/Components/ui/card";
 
 export default function Edit({ mustVerifyEmail, status }) {
+    const user = usePage().props.auth?.user;
+    const isSiswa = user?.role === "siswa";
+
     return (
         <AppLayout>
             <Head title="Profil" />
@@ -20,7 +22,9 @@ export default function Edit({ mustVerifyEmail, status }) {
                 <div>
                     <h1 className="section-title">Profil</h1>
                     <p className="mt-1 text-sm text-muted-foreground">
-                        Kelola informasi akun dan keamanan
+                        {isSiswa
+                            ? "Lihat data akun dan ganti kata sandi"
+                            : "Kelola informasi akun dan keamanan"}
                     </p>
                 </div>
             </div>
@@ -28,46 +32,68 @@ export default function Edit({ mustVerifyEmail, status }) {
             <div className="mx-auto max-w-3xl space-y-6">
                 <Card className="shadow-card border-border/50">
                     <CardHeader>
-                        <CardTitle>Informasi Profil</CardTitle>
+                        <CardTitle>Informasi akun</CardTitle>
                         <CardDescription>
-                            Perbarui nama dan alamat email akun Anda
+                            {isSiswa
+                                ? "Data siswa diubah oleh admin lab."
+                                : "Perbarui nama dan alamat email akun Anda"}
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <UpdateProfileInformationForm
-                            mustVerifyEmail={mustVerifyEmail}
-                            status={status}
-                            className="max-w-xl"
-                        />
+                        {isSiswa ? (
+                            <StudentIdentity user={user} />
+                        ) : (
+                            <UpdateProfileInformationForm
+                                mustVerifyEmail={mustVerifyEmail}
+                                status={status}
+                                className="max-w-xl"
+                            />
+                        )}
                     </CardContent>
                 </Card>
 
                 <Card className="shadow-card border-border/50">
                     <CardHeader>
-                        <CardTitle>Kata Sandi</CardTitle>
+                        <CardTitle>Kata sandi</CardTitle>
                         <CardDescription>
-                            Pastikan akun menggunakan kata sandi yang kuat
+                            Ganti kata sandi jika masih ingat yang lama. Jika
+                            lupa, hubungi admin lab.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
                         <UpdatePasswordForm className="max-w-xl" />
                     </CardContent>
                 </Card>
-
-                <Card className="shadow-card border-destructive/30">
-                    <CardHeader>
-                        <CardTitle className="text-destructive">
-                            Hapus Akun
-                        </CardTitle>
-                        <CardDescription>
-                            Tindakan ini tidak dapat dibatalkan
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <DeleteUserForm className="max-w-xl" />
-                    </CardContent>
-                </Card>
             </div>
         </AppLayout>
+    );
+}
+
+function StudentIdentity({ user }) {
+    const fields = [
+        ["Nama", user?.name],
+        ["Username", user?.username],
+        ["Email", user?.email],
+        ["NISN", user?.nisn],
+        ["Kelas", user?.class],
+        ["Angkatan", user?.angkatan],
+    ];
+
+    return (
+        <dl className="grid gap-4 sm:grid-cols-2">
+            {fields.map(([label, value]) => (
+                <div
+                    key={label}
+                    className="rounded-lg border bg-muted/50 p-4"
+                >
+                    <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        {label}
+                    </dt>
+                    <dd className="mt-2 text-sm font-medium text-foreground">
+                        {value || "—"}
+                    </dd>
+                </div>
+            ))}
+        </dl>
     );
 }

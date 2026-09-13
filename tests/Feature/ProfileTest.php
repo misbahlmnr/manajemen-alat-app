@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class ProfileTest extends TestCase
@@ -12,27 +13,28 @@ class ProfileTest extends TestCase
 
     public function test_profile_page_is_displayed(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create([
+            'role' => 'guru',
+            'nip' => 'GRU01',
+            'username' => 'guru-profile',
+        ]);
 
-        $response = $this
-            ->actingAs($user)
-            ->get('/profile');
-
-        $response->assertOk();
+        $this->actingAs($user)->get('/profile')->assertOk();
     }
 
-    public function test_profile_information_can_be_updated(): void
+    public function test_staff_profile_information_can_be_updated(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create([
+            'role' => 'guru',
+            'nip' => 'GRU01',
+            'username' => 'guru-profile',
+        ]);
 
-        $response = $this
-            ->actingAs($user)
+        $this->actingAs($user)
             ->patch('/profile', [
                 'name' => 'Test User',
                 'email' => 'test@example.com',
-            ]);
-
-        $response
+            ])
             ->assertSessionHasNoErrors()
             ->assertRedirect('/profile');
 
@@ -45,55 +47,101 @@ class ProfileTest extends TestCase
 
     public function test_email_verification_status_is_unchanged_when_the_email_address_is_unchanged(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create([
+            'role' => 'guru',
+            'nip' => 'GRU01',
+            'username' => 'guru-profile',
+        ]);
 
-        $response = $this
-            ->actingAs($user)
+        $this->actingAs($user)
             ->patch('/profile', [
                 'name' => 'Test User',
                 'email' => $user->email,
-            ]);
-
-        $response
+            ])
             ->assertSessionHasNoErrors()
             ->assertRedirect('/profile');
 
         $this->assertNotNull($user->refresh()->email_verified_at);
     }
 
-    public function test_user_can_delete_their_account(): void
+    public function test_siswa_cannot_update_profile_information(): void
     {
-        $user = User::factory()->create();
+        $siswa = User::factory()->create([
+            'role' => 'siswa',
+            'username' => 'siswa-profile',
+            'class' => 'XI TAV 1',
+            'angkatan' => '2025/2026',
+            'nisn' => '0012345678',
+        ]);
 
-        $response = $this
-            ->actingAs($user)
-            ->delete('/profile', [
-                'password' => 'password',
-            ]);
+        $this->actingAs($siswa)
+            ->patch('/profile', [
+                'name' => 'Nama Diubah',
+                'email' => 'baru@example.com',
+            ])
+            ->assertForbidden();
 
-        $response
-            ->assertSessionHasNoErrors()
-            ->assertRedirect('/');
-
-        $this->assertGuest();
-        $this->assertNull($user->fresh());
+        $siswa->refresh();
+        $this->assertNotSame('Nama Diubah', $siswa->name);
+        $this->assertNotSame('baru@example.com', $siswa->email);
     }
 
-    public function test_correct_password_must_be_provided_to_delete_account(): void
+    public function test_siswa_profile_shows_password_form_without_delete_account(): void
     {
-        $user = User::factory()->create();
+        $siswa = User::factory()->create([
+            'role' => 'siswa',
+            'username' => 'siswa-profile',
+            'class' => 'XI TAV 1',
+            'angkatan' => '2025/2026',
+            'nisn' => '0012345678',
+        ]);
 
-        $response = $this
-            ->actingAs($user)
+        $this->actingAs($siswa)
+            ->get('/profile')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Profile/Edit')
+            );
+    }
+
+    public function test_siswa_can_update_password(): void
+    {
+        $siswa = User::factory()->create([
+            'role' => 'siswa',
+            'username' => 'siswa-password',
+            'class' => 'XI TAV 1',
+            'angkatan' => '2025/2026',
+            'nisn' => '0012345678',
+        ]);
+
+        $this->actingAs($siswa)
             ->from('/profile')
-            ->delete('/profile', [
-                'password' => 'wrong-password',
-            ]);
-
-        $response
-            ->assertSessionHasErrors('password')
+            ->put('/password', [
+                'current_password' => 'password',
+                'password' => 'new-password',
+                'password_confirmation' => 'new-password',
+            ])
+            ->assertSessionHasNoErrors()
             ->assertRedirect('/profile');
 
+        $this->assertTrue(Hash::check('new-password', $siswa->refresh()->password));
+    }
+
+    public function test_user_cannot_delete_their_account_from_profile(): void
+    {
+        $user = User::factory()->create([
+            'role' => 'guru',
+            'nip' => 'GRU01',
+            'username' => 'guru-profile',
+        ]);
+
+        $this->actingAs($user)
+            ->delete('/profile', [
+                'password' => 'password',
+            ])
+            ->assertForbidden();
+
+        $this->assertAuthenticated();
         $this->assertNotNull($user->fresh());
     }
 }
