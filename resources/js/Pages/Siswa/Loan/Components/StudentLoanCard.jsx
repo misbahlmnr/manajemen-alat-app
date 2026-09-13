@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import {
     getLoanRemaining,
+    isLoanDueUrgent,
     shouldShowLoanDueCountdown,
 } from "@/lib/loanRemaining";
 import { useAppClock } from "@/lib/appClock";
@@ -28,7 +29,7 @@ function DueCountdown({ loan, isHistory }) {
     if (remaining === null) return null;
 
     const isOverdue = remaining.overdue;
-    const isUrgent = !isOverdue && remaining.value <= 2;
+    const isUrgent = isLoanDueUrgent(remaining);
 
     return (
         <span
