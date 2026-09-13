@@ -7,6 +7,7 @@ use App\Http\Requests\Admin\StorePracticumScheduleRequest;
 use App\Http\Requests\Admin\UpdatePracticumScheduleRequest;
 use App\Models\PracticumSchedule;
 use App\Models\User;
+use App\Support\ClassOptions;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -74,7 +75,7 @@ class PracticumScheduleController extends Controller
                 'hari' => $hari,
             ],
             'guruOptions' => $this->guruOptions(),
-            'kelasOptions' => config('lab.class_options'),
+            'kelasOptions' => ClassOptions::names(),
             'subjectOptions' => config('lab.practicum_subjects'),
             'dayOptions' => config('lab.schedule_days'),
             'typeOptions' => config('lab.schedule_types'),
@@ -87,7 +88,7 @@ class PracticumScheduleController extends Controller
 
         return Inertia::render('Admin/Schedule/Create', [
             'guruOptions' => $this->guruOptions(),
-            'kelasOptions' => config('lab.class_options'),
+            'kelasOptions' => ClassOptions::names(),
             'subjectOptions' => config('lab.practicum_subjects'),
             'dayOptions' => config('lab.schedule_days'),
             'typeOptions' => config('lab.schedule_types'),
@@ -126,7 +127,7 @@ class PracticumScheduleController extends Controller
         return Inertia::render('Admin/Schedule/Edit', [
             'schedule' => $this->formatSchedule($schedule),
             'guruOptions' => $this->guruOptions(),
-            'kelasOptions' => config('lab.class_options'),
+            'kelasOptions' => ClassOptions::names(),
             'subjectOptions' => config('lab.practicum_subjects'),
             'dayOptions' => config('lab.schedule_days'),
             'typeOptions' => config('lab.schedule_types'),

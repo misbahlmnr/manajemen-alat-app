@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\ClassOptionController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\EquipmentController;
 use App\Http\Controllers\Admin\LoanCollateralController;
@@ -45,6 +46,13 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
     Route::get('users/import', [UserController::class, 'importForm'])->name('users.import');
     Route::post('users/import', [UserController::class, 'import'])->name('users.import.store');
     Route::get('users/import/template', [UserController::class, 'downloadImportTemplate'])->name('users.import.template');
+    Route::get('users/class-options', [ClassOptionController::class, 'index'])->name('users.class-options');
+    Route::post('users/class-options', [ClassOptionController::class, 'store'])->name('users.class-options.store');
+    Route::post('users/class-options/angkatan', [ClassOptionController::class, 'storeAngkatan'])->name('users.class-options.angkatan.store');
+    Route::delete('users/class-options/angkatan/{angkatanOption}', [ClassOptionController::class, 'destroyAngkatan'])->name('users.class-options.angkatan.destroy');
+    Route::delete('users/class-options/{classOption}', [ClassOptionController::class, 'destroy'])->name('users.class-options.destroy');
+    Route::get('users/promote-year', [UserController::class, 'promoteYearPreview'])->name('users.promote-year');
+    Route::post('users/promote-year', [UserController::class, 'promoteYear'])->name('users.promote-year.store');
     Route::resource('users', UserController::class);
     Route::post('users/{user}/reset-password', [UserController::class, 'resetPassword'])
         ->name('users.reset-password');

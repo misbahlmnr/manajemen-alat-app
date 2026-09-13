@@ -19,7 +19,7 @@ import RoleBadge from "./Components/RoleBadge";
 import UserStatusBadge from "./Components/UserStatusBadge";
 import DeleteUserDialog from "./Components/DeleteUserDialog";
 
-export default function Show({ user }) {
+export default function Show({ user, scope }) {
     const authUser = usePage().props.auth?.user;
     const [resetOpen, setResetOpen] = useState(false);
     const [deleteOpen, setDeleteOpen] = useState(false);
@@ -63,7 +63,7 @@ export default function Show({ user }) {
             <div className="animate-fade-in mx-auto">
                 <div className="mb-6">
                     <Button variant="ghost" size="sm" asChild className="-ml-2">
-                        <Link href={route("admin.users.index")}>
+                        <Link href={route("admin.users.index", { scope: scope ?? (user.role === "siswa" ? "siswa" : "pengguna") })}>
                             <ArrowLeft className="mr-2 h-4 w-4" />
                             Kembali
                         </Link>
@@ -135,10 +135,16 @@ export default function Show({ user }) {
                                 value={user.identifier_label || "—"}
                             />
                             {user.role === "siswa" && (
-                                <InfoItem
-                                    label="Kelas"
-                                    value={user.class || "—"}
-                                />
+                                <>
+                                    <InfoItem
+                                        label="Kelas"
+                                        value={user.class || "—"}
+                                    />
+                                    <InfoItem
+                                        label="Angkatan"
+                                        value={user.angkatan || "—"}
+                                    />
+                                </>
                             )}
                             <InfoItem
                                 label="Terdaftar"

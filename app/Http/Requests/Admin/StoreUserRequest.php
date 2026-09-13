@@ -3,6 +3,8 @@
 namespace App\Http\Requests\Admin;
 
 use App\Models\User;
+use App\Support\AcademicYear;
+use App\Support\ClassOptions;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
@@ -26,7 +28,21 @@ class StoreUserRequest extends FormRequest
             'role' => ['required', Rule::in(['admin', 'guru', 'siswa'])],
             'status' => ['required', Rule::in(['active', 'inactive'])],
             'phone' => ['nullable', 'string', 'max:20'],
-            'class' => [Rule::requiredIf($role === 'siswa'), 'nullable', 'string', 'max:50'],
+            'class' => [
+                Rule::requiredIf($role === 'siswa'),
+                'nullable',
+                'string',
+                'max:50',
+                Rule::in(ClassOptions::namesAllowing()),
+            ],
+            'angkatan' => [
+                Rule::requiredIf($role === 'siswa'),
+                'nullable',
+                'string',
+                'max:9',
+                AcademicYear::assertValid(),
+                Rule::in(AcademicYear::namesAllowing()),
+            ],
             'nisn' => [Rule::requiredIf($role === 'siswa'), 'nullable', 'string', 'max:20', 'unique:users,nisn'],
             'nip' => [Rule::requiredIf(in_array($role, ['guru', 'admin'], true)), 'nullable', 'string', 'max:30'],
         ];
@@ -43,6 +59,7 @@ class StoreUserRequest extends FormRequest
             'status' => 'status',
             'phone' => 'telepon',
             'class' => 'kelas',
+            'angkatan' => 'angkatan',
             'nisn' => 'NISN',
             'nip' => 'NIP',
         ];

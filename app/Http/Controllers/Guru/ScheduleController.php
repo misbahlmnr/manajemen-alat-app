@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Guru;
 use App\Http\Controllers\Concerns\FormatsPracticumSchedule;
 use App\Http\Controllers\Controller;
 use App\Models\PracticumSchedule;
+use App\Support\ClassOptions;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -76,7 +77,7 @@ class ScheduleController extends Controller
                 'mata_kuliah' => $mataKuliah,
                 'hari' => $hari,
             ],
-            'kelasOptions' => config('lab.class_options'),
+            'kelasOptions' => ClassOptions::names(),
             'subjectOptions' => $subjectOptions,
             'dayOptions' => config('lab.schedule_days'),
             'typeOptions' => config('lab.schedule_types'),

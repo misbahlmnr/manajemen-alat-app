@@ -4,7 +4,12 @@ import { Button } from "@/Components/ui/button";
 import { Head, Link, useForm } from "@inertiajs/react";
 import UserForm from "./Components/UserForm";
 
-export default function Edit({ user, classOptions }) {
+export default function Edit({
+    user,
+    classOptions,
+    angkatanOptions = [],
+    scope = "siswa",
+}) {
     const { data, setData, put, processing, errors } = useForm({
         name: user.name ?? "",
         username: user.username ?? "",
@@ -15,6 +20,7 @@ export default function Edit({ user, classOptions }) {
         status: user.status ?? "active",
         phone: user.phone ?? "",
         class: user.class ?? "",
+        angkatan: user.angkatan ?? "",
         nisn: user.nisn ?? "",
         nip: user.nip ?? "",
     });
@@ -38,6 +44,8 @@ export default function Edit({ user, classOptions }) {
                         errors={errors}
                         processing={processing}
                         classOptions={classOptions}
+                        angkatanOptions={angkatanOptions}
+                        scope={scope}
                         isEdit
                     />
 

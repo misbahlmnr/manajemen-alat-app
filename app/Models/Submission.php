@@ -12,6 +12,7 @@ class Submission extends Model
     protected $fillable = [
         'code',
         'borrower_id',
+        'borrower_class',
         'supervisor_id',
         'purpose',
         'notes',
@@ -33,6 +34,13 @@ class Submission extends Model
     public function borrower(): BelongsTo
     {
         return $this->belongsTo(User::class, 'borrower_id');
+    }
+
+    public function borrowerClassLabel(): ?string
+    {
+        return filled($this->borrower_class)
+            ? $this->borrower_class
+            : $this->borrower?->class;
     }
 
     public function supervisor(): BelongsTo
@@ -80,6 +88,7 @@ class Submission extends Model
         return static::query()->create([
             'code' => static::generateCode(),
             'borrower_id' => $borrower->id,
+            'borrower_class' => $borrower->class,
             'supervisor_id' => $payload['supervisor_id'] ?? null,
             'purpose' => $payload['purpose'] ?? $payload['notes'] ?? 'Pengajuan',
             'notes' => $payload['notes'] ?? null,

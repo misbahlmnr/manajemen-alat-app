@@ -7,7 +7,12 @@ use App\Http\Requests\Admin\ImportUsersRequest;
 use App\Http\Requests\Admin\StoreUserRequest;
 use App\Http\Requests\Admin\UpdateUserRequest;
 use App\Models\User;
+use App\Services\User\PromoteAcademicYearException;
+use App\Services\User\PromoteAcademicYearService;
 use App\Services\User\UserImportService;
+use App\Support\AcademicYear;
+use App\Support\ClassOptions;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -17,14 +22,31 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class UserController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request, PromoteAcademicYearService $promoteService): Response|RedirectResponse
     {
         $this->authorize('viewAny', User::class);
 
+        $scope = $request->string('scope')->toString();
+
+        if (! in_array($scope, ['siswa', 'pengguna'], true)) {
+            return redirect()->route('admin.users.index', ['scope' => 'siswa']);
+        }
+
         $search = $request->string('search')->trim();
-        $role = $request->string('role')->toString() ?: 'all';
+        $status = $request->string('status')->toString() ?: 'all';
+        $class = $request->string('class')->toString() ?: 'all';
+        $angkatan = $request->string('angkatan')->toString() ?: 'all';
+        $staffRole = $request->string('staff_role')->toString() ?: 'all';
 
         $users = User::query()
+            ->when($scope === 'siswa', fn ($query) => $query->where('role', 'siswa'))
+            ->when($scope === 'pengguna', function ($query) use ($staffRole) {
+                $query->whereIn('role', ['admin', 'guru']);
+
+                if (in_array($staffRole, ['admin', 'guru'], true)) {
+                    $query->where('role', $staffRole);
+                }
+            })
             ->when($search->isNotEmpty(), function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
@@ -34,35 +56,76 @@ class UserController extends Controller
                         ->orWhere('nip', 'like', "%{$search}%");
                 });
             })
-            ->when($role !== 'all', fn ($query) => $query->where('role', $role))
+            ->when($status !== 'all', fn ($query) => $query->where('status', $status))
+            ->when($scope === 'siswa' && $class !== 'all', fn ($query) => $query->where('class', $class))
+            ->when($scope === 'siswa' && $angkatan !== 'all', fn ($query) => $query->where('angkatan', $angkatan))
             ->latest()
             ->paginate(10)
             ->withQueryString()
             ->through(fn (User $user) => $this->formatUser($user));
 
-        $counts = [
-            'all' => User::count(),
-            'siswa' => User::where('role', 'siswa')->count(),
-            'guru' => User::where('role', 'guru')->count(),
-            'admin' => User::where('role', 'admin')->count(),
-        ];
-
         return Inertia::render('Admin/User/Index', [
             'users' => $users,
+            'scope' => $scope,
             'filters' => [
                 'search' => $search->toString(),
-                'role' => $role,
+                'status' => $status,
+                'class' => $class,
+                'angkatan' => $angkatan,
+                'staff_role' => $staffRole,
             ],
-            'roleCounts' => $counts,
+            'classOptions' => $scope === 'siswa' ? ClassOptions::names() : [],
+            'angkatanOptions' => $scope === 'siswa' ? AcademicYear::options() : [],
+            'promotePreview' => $scope === 'siswa' ? $promoteService->preview() : null,
         ]);
     }
 
-    public function create(): Response
+    public function promoteYearPreview(PromoteAcademicYearService $promoteService): JsonResponse
+    {
+        $this->authorize('viewAny', User::class);
+
+        return response()->json($promoteService->preview());
+    }
+
+    public function promoteYear(PromoteAcademicYearService $promoteService): RedirectResponse
     {
         $this->authorize('create', User::class);
 
+        try {
+            $totals = $promoteService->promote();
+        } catch (PromoteAcademicYearException $exception) {
+            return back()->with('error', $exception->getMessage());
+        }
+
+        $parts = [];
+
+        if ($totals['graduate'] > 0) {
+            $parts[] = "{$totals['graduate']} siswa diluluskan";
+        }
+
+        if ($totals['promote'] > 0) {
+            $parts[] = "{$totals['promote']} siswa naik kelas";
+        }
+
+        $message = $parts === []
+            ? 'Tahun ajaran dinaikkan.'
+            : 'Tahun ajaran dinaikkan: '.implode(', ', $parts).'.';
+
+        return redirect()
+            ->route('admin.users.index', ['scope' => 'siswa'])
+            ->with('success', $message);
+    }
+
+    public function create(Request $request): Response
+    {
+        $this->authorize('create', User::class);
+
+        $scope = $this->listScope($request->string('scope')->toString() ?: 'siswa');
+
         return Inertia::render('Admin/User/Create', [
-            'classOptions' => config('lab.class_options'),
+            'scope' => $scope,
+            'classOptions' => ClassOptions::names(),
+            'angkatanOptions' => AcademicYear::options(),
         ]);
     }
 
@@ -71,10 +134,11 @@ class UserController extends Controller
         $this->authorize('create', User::class);
 
         return Inertia::render('Admin/User/Import', [
-            'classOptions' => config('lab.class_options'),
+            'classOptions' => ClassOptions::names(),
             'defaultPasswordHint' => (string) config('lab.user_import.default_password', 'Password123'),
             'importErrors' => session('import_errors', []),
             'importSummary' => session('import_summary'),
+            'scope' => 'siswa',
         ]);
     }
 
@@ -113,7 +177,7 @@ class UserController extends Controller
         }
 
         return redirect()
-            ->route('admin.users.index')
+            ->route('admin.users.index', ['scope' => 'siswa'])
             ->with('success', "{$result->imported} pengguna berhasil diimpor.");
     }
 
@@ -134,17 +198,18 @@ class UserController extends Controller
         if ($data['role'] !== 'siswa') {
             $data['class'] = null;
             $data['nisn'] = null;
+            $data['angkatan'] = null;
         }
 
         if (! in_array($data['role'], ['guru', 'admin'], true)) {
             $data['nip'] = null;
         }
 
-        User::create($data);
+        $user = User::create($data);
 
         return redirect()
-            ->route('admin.users.index')
-            ->with('success', 'Pengguna berhasil ditambahkan.');
+            ->route('admin.users.index', ['scope' => $this->scopeFor($user)])
+            ->with('success', $user->role === 'siswa' ? 'Siswa berhasil ditambahkan.' : 'Pengguna berhasil ditambahkan.');
     }
 
     public function show(User $user): Response
@@ -153,6 +218,7 @@ class UserController extends Controller
 
         return Inertia::render('Admin/User/Show', [
             'user' => $this->formatUser($user),
+            'scope' => $this->scopeFor($user),
         ]);
     }
 
@@ -162,7 +228,9 @@ class UserController extends Controller
 
         return Inertia::render('Admin/User/Edit', [
             'user' => $this->formatUser($user),
-            'classOptions' => config('lab.class_options'),
+            'scope' => $this->scopeFor($user),
+            'classOptions' => ClassOptions::names(),
+            'angkatanOptions' => AcademicYear::options($user->angkatan),
         ]);
     }
 
@@ -179,6 +247,7 @@ class UserController extends Controller
         if ($data['role'] !== 'siswa') {
             $data['class'] = null;
             $data['nisn'] = null;
+            $data['angkatan'] = null;
         }
 
         if (! in_array($data['role'], ['guru', 'admin'], true)) {
@@ -196,11 +265,12 @@ class UserController extends Controller
     {
         $this->authorize('delete', $user);
 
+        $scope = $this->scopeFor($user);
         $user->delete();
 
         return redirect()
-            ->route('admin.users.index')
-            ->with('success', 'Pengguna berhasil dihapus.');
+            ->route('admin.users.index', ['scope' => $scope])
+            ->with('success', $scope === 'siswa' ? 'Siswa berhasil dihapus.' : 'Pengguna berhasil dihapus.');
     }
 
     public function resetPassword(Request $request, User $user): RedirectResponse
@@ -229,6 +299,7 @@ class UserController extends Controller
             'status' => $user->status ?? 'active',
             'phone' => $user->phone,
             'class' => $user->class,
+            'angkatan' => $user->angkatan,
             'nisn' => $user->nisn,
             'nip' => $user->nip,
             'identifier_label' => $user->identifier_label,
@@ -236,5 +307,15 @@ class UserController extends Controller
             'created_at_formatted' => $user->created_at?->translatedFormat('d M Y'),
             'updated_at_formatted' => $user->updated_at?->translatedFormat('d M Y H:i'),
         ];
+    }
+
+    private function listScope(string $scope): string
+    {
+        return in_array($scope, ['siswa', 'pengguna'], true) ? $scope : 'siswa';
+    }
+
+    private function scopeFor(User $user): string
+    {
+        return $user->role === 'siswa' ? 'siswa' : 'pengguna';
     }
 }

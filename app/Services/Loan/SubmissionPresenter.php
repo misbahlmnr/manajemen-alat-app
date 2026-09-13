@@ -36,7 +36,7 @@ class SubmissionPresenter
             'borrower_id' => $submission->borrower_id,
             'borrower_name' => $submission->borrower?->name,
             'borrower_role' => $submission->borrower?->role,
-            'borrower_class' => $submission->borrower?->class,
+            'borrower_class' => $submission->borrowerClassLabel(),
             'supervisor_id' => $submission->supervisor_id,
             'supervisor_name' => $submission->supervisor?->name,
             'purpose' => $submission->purpose,

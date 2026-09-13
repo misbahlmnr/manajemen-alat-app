@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use App\Models\User;
+use App\Support\ClassOptions;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -35,7 +36,14 @@ class StorePracticumScheduleRequest extends FormRequest
         return [
             'title' => ['required', 'string', 'max:255'],
             'mata_kuliah' => ['required', 'string', 'max:100'],
-            'kelas' => ['required', 'string', 'max:50'],
+            'kelas' => [
+                'required',
+                'string',
+                'max:50',
+                Rule::in(ClassOptions::namesAllowing([
+                    $this->route('schedule')?->kelas,
+                ])),
+            ],
             'type' => ['required', Rule::in(['mingguan', 'khusus'])],
             'hari' => [
                 Rule::requiredIf($type === 'mingguan'),

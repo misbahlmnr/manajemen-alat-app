@@ -11,6 +11,7 @@ use App\Models\Loan;
 use App\Models\LoanCollateral;
 use App\Models\User;
 use App\Services\Loan\CollateralWorkflowService;
+use App\Support\ClassOptions;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -71,7 +72,7 @@ class LoanCollateralController extends Controller
                 'date_to' => $dateTo,
             ],
             'studentOptions' => $this->studentOptions(),
-            'kelasOptions' => config('lab.class_options'),
+            'kelasOptions' => ClassOptions::names(),
             'statusOptions' => config('lab.collateral_statuses'),
         ]);
     }
@@ -213,7 +214,7 @@ class LoanCollateralController extends Controller
         return [
             'loanOptions' => $loans->map(fn (Loan $l) => [
                 'id' => $l->id,
-                'label' => "{$l->code} — {$l->borrower?->name} ({$l->borrower?->class})",
+                'label' => "{$l->code} — {$l->borrower?->name} ({$l->borrowerClassLabel()})",
                 'borrower_id' => $l->borrower_id,
                 'borrower_nisn' => $l->borrower?->nisn,
             ])->values()->all(),

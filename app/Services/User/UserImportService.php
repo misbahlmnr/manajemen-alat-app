@@ -3,6 +3,8 @@
 namespace App\Services\User;
 
 use App\Models\User;
+use App\Support\AcademicYear;
+use App\Support\ClassOptions;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -28,6 +30,8 @@ class UserImportService
         'nip' => 'nip',
         'kelas' => 'class',
         'class' => 'class',
+        'angkatan' => 'angkatan',
+        'tahun_masuk' => 'angkatan',
         'password' => 'password',
         'kata_sandi' => 'password',
     ];
@@ -195,6 +199,15 @@ class UserImportService
 
             $seenEmails[$row['email']] = $rowNumber;
 
+            if ($role === 'siswa' && filled($row['angkatan'] ?? null)) {
+                AcademicYear::ensure((string) $row['angkatan']);
+            }
+
+            if ($role === 'siswa' && blank($row['angkatan'] ?? null)) {
+                $row['angkatan'] = AcademicYear::fromClass($row['class'] ?? null);
+                AcademicYear::ensure((string) $row['angkatan']);
+            }
+
             $password = $row['password'] ?? null;
             unset($row['password']);
 
@@ -225,6 +238,7 @@ class UserImportService
             if ($validated['role'] !== 'siswa') {
                 $validated['class'] = null;
                 $validated['nisn'] = null;
+                $validated['angkatan'] = null;
             }
 
             if (! in_array($validated['role'], ['guru', 'admin'], true)) {
@@ -243,7 +257,7 @@ class UserImportService
      */
     private function rulesForRow(string $role, ?string $password): array
     {
-        $classOptions = config('lab.class_options', []);
+        $classOptions = ClassOptions::names();
 
         $rules = [
             'name' => ['required', 'string', 'max:255'],
@@ -252,6 +266,14 @@ class UserImportService
             'status' => ['required', Rule::in(['active', 'inactive'])],
             'phone' => ['nullable', 'string', 'max:20'],
             'class' => [Rule::requiredIf($role === 'siswa'), 'nullable', 'string', 'max:50', Rule::in($classOptions)],
+            'angkatan' => [
+                Rule::requiredIf($role === 'siswa'),
+                'nullable',
+                'string',
+                'max:9',
+                AcademicYear::assertValid(),
+                Rule::in(AcademicYear::names()),
+            ],
             'nisn' => [Rule::requiredIf($role === 'siswa'), 'nullable', 'string', 'max:20', 'unique:users,nisn'],
             'nip' => [Rule::requiredIf(in_array($role, ['guru', 'admin'], true)), 'nullable', 'string', 'max:30'],
         ];
@@ -275,6 +297,7 @@ class UserImportService
             'status' => 'status',
             'phone' => 'telepon',
             'class' => 'kelas',
+            'angkatan' => 'angkatan',
             'nisn' => 'NISN',
             'nip' => 'NIP',
             'password' => 'kata sandi',
@@ -316,6 +339,7 @@ class UserImportService
             'nisn',
             'nip',
             'kelas',
+            'angkatan',
             'password',
         ];
 
@@ -330,6 +354,7 @@ class UserImportService
                 '0051234567',
                 '',
                 'XII TAV 1',
+                '2024/2025',
                 '',
             ],
             [
@@ -342,13 +367,14 @@ class UserImportService
                 '198501152010011001',
                 '',
                 '',
+                '',
             ],
         ], null, 'A2');
 
         $referenceSheet = $spreadsheet->createSheet();
-        $referenceSheet->setTitle('Referensi Kelas');
+        $referenceSheet->setTitle('Referensi');
         $referenceSheet->setCellValue('A1', 'Kelas Valid');
-        $classOptions = config('lab.class_options', []);
+        $classOptions = ClassOptions::names();
 
         foreach ($classOptions as $index => $class) {
             $referenceSheet->setCellValue('A'.($index + 2), $class);
@@ -358,6 +384,10 @@ class UserImportService
         $referenceSheet->fromArray([['siswa'], ['guru'], ['admin']], null, 'C2');
         $referenceSheet->setCellValue('E1', 'Status Valid');
         $referenceSheet->fromArray([['active'], ['inactive']], null, 'E2');
+        $referenceSheet->setCellValue('G1', 'Angkatan Valid');
+        foreach (AcademicYear::names() as $index => $year) {
+            $referenceSheet->setCellValue('G'.($index + 2), $year);
+        }
 
         $writer = new Xlsx($spreadsheet);
 

@@ -12,7 +12,9 @@ export default function UserForm({
     errors,
     processing,
     classOptions = [],
+    angkatanOptions = [],
     isEdit = false,
+    scope = "siswa",
 }) {
     const [showPassword, setShowPassword] = useState(false);
     const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
@@ -79,16 +81,22 @@ export default function UserForm({
 
                     <div className="space-y-2">
                         <Label htmlFor="role">Role *</Label>
-                        <Select
-                            id="role"
-                            value={data.role}
-                            onChange={(e) => setData("role", e.target.value)}
-                            disabled={processing}
-                        >
-                            <option value="siswa">Siswa</option>
-                            <option value="guru">Guru</option>
-                            <option value="admin">Admin</option>
-                        </Select>
+                        {scope === "siswa" ? (
+                            <>
+                                <Input id="role" value="Siswa" disabled />
+                                <input type="hidden" name="role" value="siswa" />
+                            </>
+                        ) : (
+                            <Select
+                                id="role"
+                                value={data.role}
+                                onChange={(e) => setData("role", e.target.value)}
+                                disabled={processing}
+                            >
+                                <option value="guru">Guru</option>
+                                <option value="admin">Admin</option>
+                            </Select>
+                        )}
                         <InputError message={errors.role} />
                     </div>
 
@@ -141,6 +149,25 @@ export default function UserForm({
                                 ))}
                             </Select>
                             <InputError message={errors.class} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="angkatan">Angkatan *</Label>
+                            <Select
+                                id="angkatan"
+                                value={data.angkatan ?? ""}
+                                onChange={(e) =>
+                                    setData("angkatan", e.target.value)
+                                }
+                                disabled={processing}
+                            >
+                                <option value="">Pilih angkatan</option>
+                                {angkatanOptions.map((year) => (
+                                    <option key={year} value={year}>
+                                        {year}
+                                    </option>
+                                ))}
+                            </Select>
+                            <InputError message={errors.angkatan} />
                         </div>
                     </CardContent>
                 </Card>

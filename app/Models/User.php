@@ -24,6 +24,7 @@ class User extends Authenticatable
         'nisn',
         'nip',
         'class',
+        'angkatan',
     ];
 
     protected $hidden = [

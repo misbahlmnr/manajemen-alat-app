@@ -5,12 +5,14 @@ import TableRowActions from "@/Components/TableRowActions";
 import { useMemo } from "react";
 import RoleBadge from "./RoleBadge";
 
-export default function UserTable({ users, pagination, onDelete }) {
+export default function UserTable({ users, pagination, onDelete, scope = "siswa" }) {
+    const isSiswa = scope === "siswa";
+
     const columns = useMemo(
         () => [
             {
                 id: "user",
-                header: "Pengguna",
+                header: isSiswa ? "Siswa" : "Staf",
                 accessorFn: (row) => row.name,
                 cell: ({ row }) => {
                     const user = row.original;
@@ -36,24 +38,36 @@ export default function UserTable({ users, pagination, onDelete }) {
                     <span className="text-muted-foreground">{getValue()}</span>
                 ),
             },
-            {
-                accessorKey: "role",
-                header: "Role",
-                cell: ({ getValue }) => <RoleBadge role={getValue()} />,
-            },
-            {
-                accessorKey: "class",
-                header: "Kelas",
-                cell: ({ row }) => {
-                    const user = row.original;
-
-                    return (
-                        <span className="text-muted-foreground">
-                            {user.role === "siswa" ? user.class || "—" : "—"}
-                        </span>
-                    );
-                },
-            },
+            ...(!isSiswa
+                ? [
+                      {
+                          accessorKey: "role",
+                          header: "Role",
+                          cell: ({ getValue }) => (
+                              <RoleBadge role={getValue()} />
+                          ),
+                      },
+                  ]
+                : [
+                      {
+                          accessorKey: "class",
+                          header: "Kelas",
+                          cell: ({ getValue }) => (
+                              <span className="text-muted-foreground">
+                                  {getValue() || "—"}
+                              </span>
+                          ),
+                      },
+                      {
+                          accessorKey: "angkatan",
+                          header: "Angkatan",
+                          cell: ({ getValue }) => (
+                              <span className="text-muted-foreground">
+                                  {getValue() || "—"}
+                              </span>
+                          ),
+                      },
+                  ]),
             {
                 accessorKey: "status",
                 header: "Status",
@@ -83,7 +97,7 @@ export default function UserTable({ users, pagination, onDelete }) {
                 },
             },
         ],
-        [onDelete],
+        [onDelete, isSiswa],
     );
 
     return (
@@ -93,7 +107,11 @@ export default function UserTable({ users, pagination, onDelete }) {
             pagination={pagination}
             getRowId={(row) => String(row.id)}
             initialSorting={[{ id: "created_at_formatted", desc: true }]}
-            emptyState="Tidak ada pengguna ditemukan"
+            emptyState={
+                isSiswa
+                    ? "Tidak ada siswa ditemukan"
+                    : "Tidak ada staf ditemukan"
+            }
         />
     );
 }

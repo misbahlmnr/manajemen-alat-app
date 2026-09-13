@@ -31,6 +31,7 @@ return [
     ],
 
     'class_options' => [
+        // Seed/fallback saja. Opsi aktif dikelola admin di Siswa → Opsi kelas & angkatan.
         'X TE 1',
         'X TE 2',
         'X TE 3',
@@ -41,6 +42,10 @@ return [
         'XII TAV 1',
         'XII TAV 2',
         'XII TAV 3',
+    ],
+
+    'academic_year' => [
+        'current_start' => (int) env('LAB_ACADEMIC_YEAR_START', 2026),
     ],
 
     'jurusan_default' => 'Audio Video',

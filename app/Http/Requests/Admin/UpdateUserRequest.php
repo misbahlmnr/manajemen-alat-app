@@ -3,6 +3,8 @@
 namespace App\Http\Requests\Admin;
 
 use App\Models\User;
+use App\Support\AcademicYear;
+use App\Support\ClassOptions;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
@@ -27,7 +29,21 @@ class UpdateUserRequest extends FormRequest
             'role' => ['required', Rule::in(['admin', 'guru', 'siswa'])],
             'status' => ['required', Rule::in(['active', 'inactive'])],
             'phone' => ['nullable', 'string', 'max:20'],
-            'class' => [Rule::requiredIf($role === 'siswa'), 'nullable', 'string', 'max:50'],
+            'class' => [
+                Rule::requiredIf($role === 'siswa'),
+                'nullable',
+                'string',
+                'max:50',
+                Rule::in(ClassOptions::namesAllowing([$user?->class])),
+            ],
+            'angkatan' => [
+                Rule::requiredIf($role === 'siswa'),
+                'nullable',
+                'string',
+                'max:9',
+                AcademicYear::assertValid(),
+                Rule::in(AcademicYear::namesAllowing([$user?->angkatan])),
+            ],
             'nisn' => [
                 Rule::requiredIf($role === 'siswa'),
                 'nullable',

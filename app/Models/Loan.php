@@ -29,6 +29,7 @@ class Loan extends Model
         'submission_id',
         'loan_group_id',
         'borrower_id',
+        'borrower_class',
         'supervisor_id',
         'practicum_schedule_id',
         'item_type',
@@ -72,6 +73,13 @@ class Loan extends Model
     public function borrower(): BelongsTo
     {
         return $this->belongsTo(User::class, 'borrower_id');
+    }
+
+    public function borrowerClassLabel(): ?string
+    {
+        return filled($this->borrower_class)
+            ? $this->borrower_class
+            : $this->borrower?->class;
     }
 
     public function supervisor(): BelongsTo

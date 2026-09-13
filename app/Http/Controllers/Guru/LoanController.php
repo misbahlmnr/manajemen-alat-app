@@ -9,6 +9,7 @@ use App\Services\Loan\LoanQueueService;
 use App\Services\Loan\LoanSlotAvailabilityService;
 use App\Services\Loan\LoanWorkflowService;
 use App\Services\Loan\SubmissionPresenter;
+use App\Support\ClassOptions;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -59,7 +60,13 @@ class LoanController extends Controller
                 });
             })
             ->when($status !== 'all', fn ($q) => $q->whereAggregateStatus($status))
-            ->when($kelas !== 'all', fn ($q) => $q->whereHas('borrower', fn ($b) => $b->where('class', $kelas)))
+            ->when($kelas !== 'all', fn ($q) => $q->where(function ($inner) use ($kelas) {
+                $inner->where('borrower_class', $kelas)
+                    ->orWhere(function ($fallback) use ($kelas) {
+                        $fallback->whereNull('borrower_class')
+                            ->whereHas('borrower', fn ($b) => $b->where('class', $kelas));
+                    });
+            }))
             ->when($dateFrom !== '', fn ($q) => $q->whereDate('request_date', '>=', $dateFrom))
             ->when($dateTo !== '', fn ($q) => $q->whereDate('request_date', '<=', $dateTo))
             ->latest();
@@ -83,7 +90,7 @@ class LoanController extends Controller
                 'date_from' => $dateFrom,
                 'date_to' => $dateTo,
             ],
-            'kelasOptions' => config('lab.class_options'),
+            'kelasOptions' => ClassOptions::names(),
             'statusOptions' => config('lab.submission_statuses'),
         ]);
     }
@@ -191,7 +198,7 @@ class LoanController extends Controller
                 : [],
             'borrower_id' => $loan->borrower_id,
             'borrower_name' => $loan->borrower?->name,
-            'borrower_class' => $loan->borrower?->class,
+            'borrower_class' => $loan->borrowerClassLabel(),
             'supervisor_id' => $loan->supervisor_id,
             'supervisor_name' => $loan->supervisor?->name,
             'practicum_schedule_id' => $loan->practicum_schedule_id,

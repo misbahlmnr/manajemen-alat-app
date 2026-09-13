@@ -57,10 +57,13 @@ class DatabaseSeeder extends Seeder
                 'status' => 'active',
                 'nisn' => sprintf('00100000%02d', $index + 1),
                 'class' => 'XI TAV 1',
+                'angkatan' => '2025/2026',
             ]);
         }
 
         $this->call([
+            ClassOptionSeeder::class,
+            AngkatanOptionSeeder::class,
             EquipmentSeeder::class,
             SupplySeeder::class,
         ]);

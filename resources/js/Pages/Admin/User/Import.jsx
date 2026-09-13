@@ -44,7 +44,7 @@ export default function Import({
                     subtitle="Unggah file Excel untuk menambahkan banyak pengguna sekaligus."
                 >
                     <Button variant="outline" asChild>
-                        <Link href={route("admin.users.index")}>
+                        <Link href={route("admin.users.index", { scope: "siswa" })}>
                             <ArrowLeft className="mr-2 h-4 w-4" />
                             Kembali
                         </Link>

@@ -66,7 +66,7 @@ trait FormatsReportData
             'id' => $loan->id,
             'code' => $loan->code,
             'borrower_name' => $loan->borrower?->name ?? '—',
-            'borrower_class' => $loan->borrower?->class ?? '—',
+            'borrower_class' => $loan->borrowerClassLabel() ?? '—',
             'supervisor_name' => $loan->supervisor?->name ?? '—',
             'schedule_title' => $loan->schedule?->title,
             'items_summary' => $itemsSummary,
