@@ -270,7 +270,7 @@ class LoanSlotAvailabilityServiceTest extends TestCase
         $praktikum = $this->makeOccupyingLoan($equipment, 6, 'lab', 'reguler', '2026-09-14', $morning->id);
 
         $this->assertSame('07:00–09:30', $this->slots->slotLabel($praktikum));
-        $this->assertSame('Praktik lab', $praktikum->queueTypeLabel());
+        $this->assertSame('Praktek Lab', $praktikum->queueTypeLabel());
 
         $pribadi = $this->makeOccupyingLoan($equipment, 1, 'lab', 'lanjutan', '2026-09-14');
         $this->assertSame('Pakai di lab sampai jam 17:00', $this->slots->slotLabel($pribadi));
@@ -286,7 +286,7 @@ class LoanSlotAvailabilityServiceTest extends TestCase
             dueAt: Carbon::parse('2026-09-15 17:00:00'),
         );
         $this->assertSame('Kembali 15 Sep 17:00', $this->slots->slotLabel($lomba));
-        $this->assertSame('Bawa pulang lomba', $lomba->queueTypeLabel());
+        $this->assertSame('Lomba', $lomba->queueTypeLabel());
     }
 
     private function makeOccupyingLoan(

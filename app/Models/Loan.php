@@ -185,10 +185,10 @@ class Loan extends Model
         }
 
         return match ($this->queueTypeKey()) {
-            'bawa_pulang_lomba' => 'Bawa pulang lomba',
-            'praktikum' => 'Praktik lab',
+            'bawa_pulang_lomba' => 'Lomba',
+            'praktikum' => 'Praktek Lab',
             'pribadi' => 'Pribadi',
-            'bawa_pulang_project' => 'Bawa pulang project',
+            'bawa_pulang_project' => 'Bawa pulang',
             default => 'Antrian',
         };
     }
@@ -213,7 +213,7 @@ class Loan extends Model
             return 'Bawa pulang';
         }
 
-        return 'Praktik lab';
+        return 'Praktek Lab';
     }
 
     public function borrowLocationLabel(): string

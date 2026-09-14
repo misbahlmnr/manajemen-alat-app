@@ -95,14 +95,14 @@ return [
     ],
 
     'borrow_reasons' => [
-        'reguler' => 'Praktik lab',
+        'reguler' => 'Praktek Lab',
         'lanjutan' => 'Pribadi',
-        'lomba' => 'Bawa pulang lomba',
+        'lomba' => 'Lomba',
     ],
 
     'bawa_pulang_categories' => [
-        'lomba' => 'Bawa pulang lomba',
-        'lanjutan' => 'Bawa pulang project',
+        'lomba' => 'Lomba',
+        'lanjutan' => 'Bawa pulang',
     ],
 
     'lab_room_options' => [

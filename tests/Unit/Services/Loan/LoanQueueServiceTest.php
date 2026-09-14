@@ -68,10 +68,10 @@ class LoanQueueServiceTest extends TestCase
             [$lomba->id, $praktikum->id, $pribadi->id, $project->id],
             $ordered->pluck('id')->all(),
         );
-        $this->assertSame('Bawa pulang lomba', $lomba->queueTypeLabel());
-        $this->assertSame('Praktik lab', $praktikum->queueTypeLabel());
+        $this->assertSame('Lomba', $lomba->queueTypeLabel());
+        $this->assertSame('Praktek Lab', $praktikum->queueTypeLabel());
         $this->assertSame('Pribadi', $pribadi->queueTypeLabel());
-        $this->assertSame('Bawa pulang project', $project->queueTypeLabel());
+        $this->assertSame('Bawa pulang', $project->queueTypeLabel());
     }
 
     public function test_praktikum_queue_prefers_closest_schedule(): void

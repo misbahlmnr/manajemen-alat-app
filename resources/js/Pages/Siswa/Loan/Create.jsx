@@ -1024,7 +1024,7 @@ export default function Create({
                                                 />
                                                 <div className="text-sm">
                                                     <p className="font-medium">
-                                                        Praktik lab
+                                                        Praktek Lab
                                                     </p>
                                                     <p className="text-xs text-muted-foreground">
                                                         Praktikum sesuai jadwal
@@ -1096,7 +1096,7 @@ export default function Create({
                                                 />
                                                 <div className="text-sm">
                                                     <p className="font-medium">
-                                                        Bawa pulang lomba
+                                                        Lomba
                                                     </p>
                                                     <p className="text-xs text-muted-foreground">
                                                         Boleh diambil hari itu
@@ -1133,7 +1133,7 @@ export default function Create({
                                                 />
                                                 <div className="text-sm">
                                                     <p className="font-medium">
-                                                        Bawa pulang project
+                                                        Bawa pulang
                                                     </p>
                                                     <p className="text-xs text-muted-foreground">
                                                         Prioritas paling
