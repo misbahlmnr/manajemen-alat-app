@@ -6,51 +6,73 @@ import { Button } from "@/Components/ui/button";
 import { cn } from "@/lib/utils";
 import { useMemo } from "react";
 
-function StockIndicator({ item, isBahan, usageWindowLabel }) {
-    const warehouse = Number(item.available ?? 0);
-    const capacity = isBahan ? item.stock : (item.qty_baik ?? item.stock);
-    const slotLeft = Number(item.slot_remaining ?? warehouse);
-    const unit = item.unit ?? "";
-    const low = isBahan && item.is_low_stock;
-    const warehouseEmpty = warehouse <= 0;
-    const slotFull = !isBahan && Boolean(usageWindowLabel) && slotLeft <= 0;
+function warehouseStock(item, isBahan) {
+    const remain = Number(item.available ?? 0);
+    const capacity = Number(isBahan ? item.stock : (item.qty_baik ?? item.stock) ?? 0);
 
-    const className = warehouseEmpty
+    return { remain, capacity };
+}
+
+function slotStock(item) {
+    const remain = Number(item.slot_remaining ?? item.available ?? 0);
+    const capacity = Number(item.qty_baik ?? item.stock ?? 0);
+
+    return { remain, capacity };
+}
+
+function StockBadge({ remain, capacity, unit, empty, low }) {
+    const className = empty
         ? "bg-amber-500/10 text-amber-800"
         : low
           ? "bg-warning/10 text-warning"
           : "bg-success/10 text-success";
 
     return (
+        <span
+            className={cn(
+                "inline-block rounded px-2 py-0.5 text-xs font-medium",
+                className,
+            )}
+        >
+            {unit ? `Stok: ${remain} ${unit}`.trim() : `${remain} / ${capacity}`}
+        </span>
+    );
+}
+
+function SlotBadge({ item, usageWindowLabel }) {
+    if (!usageWindowLabel) {
+        return (
+            <p className="text-xs text-muted-foreground">
+                Pilih tanggal dan tipe dulu
+            </p>
+        );
+    }
+
+    const { remain, capacity } = slotStock(item);
+    const full = remain <= 0;
+
+    return (
         <div className="space-y-1">
             <span
                 className={cn(
                     "inline-block rounded px-2 py-0.5 text-xs font-medium",
-                    className,
+                    full
+                        ? "bg-amber-500/10 text-amber-800"
+                        : "bg-primary/10 text-primary",
                 )}
             >
-                {isBahan
-                    ? `Stok: ${warehouse} ${unit}`.trim()
-                    : `Stok gudang: ${warehouse} / ${capacity}`}
+                {full ? "Penuh" : `Sisa ${remain} / ${capacity}`}
             </span>
-            {!isBahan && usageWindowLabel && (
-                <p
-                    className={cn(
-                        "text-xs",
-                        slotFull ? "text-amber-800" : "text-muted-foreground",
-                    )}
-                >
-                    {slotFull
-                        ? `Jam ${usageWindowLabel} penuh · antrean`
-                        : `Sisa ${slotLeft} untuk jam ${usageWindowLabel}`}
-                </p>
-            )}
-            {isBahan && warehouseEmpty && (
-                <p className="text-xs text-amber-800">Antrean dibuka</p>
-            )}
-            {low && !warehouseEmpty && (
-                <p className="text-xs text-warning">Stok menipis</p>
-            )}
+            <p
+                className={cn(
+                    "text-xs",
+                    full ? "text-amber-800" : "text-muted-foreground",
+                )}
+            >
+                {full
+                    ? `${usageWindowLabel} sudah terpesan · antrean`
+                    : `Jam ${usageWindowLabel}`}
+            </p>
         </div>
     );
 }
@@ -60,7 +82,9 @@ function CatalogMobileCard({ item, isBahan, cart, onAdd, maxQty, usageWindowLabe
     const remain = maxQty(item);
     const disabled =
         remain <= 0 || (inCart && inCart.quantity >= remain);
-    const ctaLabel = "Tambah";
+    const { remain: warehouseRemain, capacity } = warehouseStock(item, isBahan);
+    const warehouseEmpty = warehouseRemain <= 0;
+    const low = isBahan && item.is_low_stock;
 
     return (
         <div className="rounded-[8px] border border-border/60 bg-card p-4 shadow-sm">
@@ -89,22 +113,43 @@ function CatalogMobileCard({ item, isBahan, cart, onAdd, maxQty, usageWindowLabe
                     </span>
                 )}
             </div>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <StockIndicator
-                    item={item}
-                    isBahan={isBahan}
-                    usageWindowLabel={usageWindowLabel}
-                />
-                <Button
-                    type="button"
-                    size="sm"
-                    disabled={disabled}
-                    className="w-full sm:w-auto"
-                    onClick={() => onAdd(item)}
-                >
-                    {ctaLabel}
-                </Button>
+            <div className="mb-3 grid grid-cols-2 gap-3">
+                <div>
+                    <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        Stok
+                    </p>
+                    <StockBadge
+                        remain={warehouseRemain}
+                        capacity={capacity}
+                        unit={isBahan ? (item.unit ?? "") : null}
+                        empty={warehouseEmpty}
+                        low={low}
+                    />
+                    {isBahan && warehouseEmpty && (
+                        <p className="mt-1 text-xs text-amber-800">Antrean dibuka</p>
+                    )}
+                    {low && !warehouseEmpty && (
+                        <p className="mt-1 text-xs text-warning">Stok menipis</p>
+                    )}
+                </div>
+                {!isBahan && (
+                    <div>
+                        <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                            Jam pemakaian
+                        </p>
+                        <SlotBadge item={item} usageWindowLabel={usageWindowLabel} />
+                    </div>
+                )}
             </div>
+            <Button
+                type="button"
+                size="sm"
+                disabled={disabled}
+                className="w-full"
+                onClick={() => onAdd(item)}
+            >
+                Tambah
+            </Button>
         </div>
     );
 }
@@ -157,16 +202,48 @@ export default function LoanCatalogTable({
             },
             {
                 id: "stock",
-                header: "Ketersediaan",
+                header: "Stok",
                 enableSorting: false,
-                cell: ({ row }) => (
-                    <StockIndicator
-                        item={row.original}
-                        isBahan={isBahan}
-                        usageWindowLabel={usageWindowLabel}
-                    />
-                ),
+                cell: ({ row }) => {
+                    const item = row.original;
+                    const { remain, capacity } = warehouseStock(item, isBahan);
+                    const empty = remain <= 0;
+                    const low = isBahan && item.is_low_stock;
+
+                    return (
+                        <div className="space-y-1">
+                            <StockBadge
+                                remain={remain}
+                                capacity={capacity}
+                                unit={isBahan ? (item.unit ?? "") : null}
+                                empty={empty}
+                                low={low}
+                            />
+                            {isBahan && empty && (
+                                <p className="text-xs text-amber-800">Antrean dibuka</p>
+                            )}
+                            {low && !empty && (
+                                <p className="text-xs text-warning">Stok menipis</p>
+                            )}
+                        </div>
+                    );
+                },
             },
+            ...(!isBahan
+                ? [
+                      {
+                          id: "slot",
+                          header: "Jam pemakaian",
+                          enableSorting: false,
+                          cell: ({ row }) => (
+                              <SlotBadge
+                                  item={row.original}
+                                  usageWindowLabel={usageWindowLabel}
+                              />
+                          ),
+                      },
+                  ]
+                : []),
             {
                 id: "in_cart",
                 header: "Keranjang",
@@ -203,7 +280,6 @@ export default function LoanCatalogTable({
                     const disabled =
                         remain <= 0 ||
                         (inCart && inCart.quantity >= remain);
-                    const ctaLabel = "Tambah";
 
                     return (
                         <Button
@@ -212,7 +288,7 @@ export default function LoanCatalogTable({
                             disabled={disabled}
                             onClick={() => onAdd(item)}
                         >
-                            {ctaLabel}
+                            Tambah
                         </Button>
                     );
                 },
@@ -258,7 +334,7 @@ export default function LoanCatalogTable({
                     data={items ?? []}
                     columns={columns}
                     pagination={pagination}
-                    tableClassName="min-w-[700px]"
+                    tableClassName={isBahan ? "min-w-[700px]" : "min-w-[860px]"}
                     getRowId={(row) => String(row.id)}
                     emptyState={
                         isBahan

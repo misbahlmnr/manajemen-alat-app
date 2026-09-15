@@ -200,16 +200,15 @@ function CartLine({ item, maxQty, onUpdateQty, processing, usageWindowLabel }) {
                     </span>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                    Stok gudang: {warehouseStock}{" "}
-                    {item.equipment.unit ?? "unit"}
+                    Stok: {warehouseStock} {item.equipment.unit ?? "unit"}
                     {!isBahan && usageWindowLabel
-                        ? ` · sisa ${Math.max(slotLeft, 0)} untuk jam ${usageWindowLabel}`
-                        : ` · Max: ${maxQty(item.equipment)}`}
+                        ? ` · jam ${usageWindowLabel}: sisa ${Math.max(slotLeft, 0)}`
+                        : ""}
                 </p>
                 {willQueue && (
                     <p className="mt-1 text-xs text-amber-800">
                         {usageWindowLabel
-                            ? `Jam ${usageWindowLabel} sudah terpesan penuh. Pengajuan masuk antrean.`
+                            ? `Jam ${usageWindowLabel} sudah terpesan. Pengajuan masuk antrean.`
                             : "Pengajuan akan masuk antrean apabila stok belum mencukupi."}
                     </p>
                 )}
@@ -981,7 +980,7 @@ export default function Create({
                             {catalogIsBahan ? "bahan" : "alat"} tersedia
                             {searchQuery ? " untuk pencarian ini" : ""}
                             {!catalogIsBahan
-                                ? ". Stok gudang = barang fisik. Sisa jam = yang belum dipesan di jam pemakaian yang kamu pilih."
+                                ? ". Stok = barang di gudang. Jam pemakaian = sisa di jam yang kamu pilih."
                                 : ""}
                         </p>
                         {catalogTotal > 0 ? (
