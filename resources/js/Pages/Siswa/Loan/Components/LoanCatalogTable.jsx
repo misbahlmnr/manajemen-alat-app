@@ -6,15 +6,16 @@ import { Button } from "@/Components/ui/button";
 import { cn } from "@/lib/utils";
 import { useMemo } from "react";
 
-function StockIndicator({ item, isBahan }) {
-    const remain = isBahan
-        ? item.available
-        : (item.slot_remaining ?? item.available);
+function StockIndicator({ item, isBahan, usageWindowLabel }) {
+    const warehouse = Number(item.available ?? 0);
     const capacity = isBahan ? item.stock : (item.qty_baik ?? item.stock);
+    const slotLeft = Number(item.slot_remaining ?? warehouse);
+    const unit = item.unit ?? "";
     const low = isBahan && item.is_low_stock;
-    const queueOpen = remain <= 0;
+    const warehouseEmpty = warehouse <= 0;
+    const slotFull = !isBahan && Boolean(usageWindowLabel) && slotLeft <= 0;
 
-    const className = queueOpen
+    const className = warehouseEmpty
         ? "bg-amber-500/10 text-amber-800"
         : low
           ? "bg-warning/10 text-warning"
@@ -29,20 +30,32 @@ function StockIndicator({ item, isBahan }) {
                 )}
             >
                 {isBahan
-                    ? `Stok: ${remain} ${item.unit ?? ""}`
-                    : `Sisa jam ini: ${remain} / ${capacity}`}
+                    ? `Stok: ${warehouse} ${unit}`.trim()
+                    : `Stok gudang: ${warehouse} / ${capacity}`}
             </span>
-            {queueOpen && (
+            {!isBahan && usageWindowLabel && (
+                <p
+                    className={cn(
+                        "text-xs",
+                        slotFull ? "text-amber-800" : "text-muted-foreground",
+                    )}
+                >
+                    {slotFull
+                        ? `Jam ${usageWindowLabel} penuh · antrean`
+                        : `Sisa ${slotLeft} untuk jam ${usageWindowLabel}`}
+                </p>
+            )}
+            {isBahan && warehouseEmpty && (
                 <p className="text-xs text-amber-800">Antrean dibuka</p>
             )}
-            {low && !queueOpen && (
+            {low && !warehouseEmpty && (
                 <p className="text-xs text-warning">Stok menipis</p>
             )}
         </div>
     );
 }
 
-function CatalogMobileCard({ item, isBahan, cart, onAdd, maxQty }) {
+function CatalogMobileCard({ item, isBahan, cart, onAdd, maxQty, usageWindowLabel }) {
     const inCart = cart.find((i) => i.equipment.id === item.id);
     const remain = maxQty(item);
     const disabled =
@@ -77,7 +90,11 @@ function CatalogMobileCard({ item, isBahan, cart, onAdd, maxQty }) {
                 )}
             </div>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <StockIndicator item={item} isBahan={isBahan} />
+                <StockIndicator
+                    item={item}
+                    isBahan={isBahan}
+                    usageWindowLabel={usageWindowLabel}
+                />
                 <Button
                     type="button"
                     size="sm"
@@ -99,6 +116,7 @@ export default function LoanCatalogTable({
     cart,
     onAdd,
     maxQty,
+    usageWindowLabel = null,
 }) {
     const normalizedPagination = normalizePaginator(pagination);
 
@@ -142,7 +160,11 @@ export default function LoanCatalogTable({
                 header: "Ketersediaan",
                 enableSorting: false,
                 cell: ({ row }) => (
-                    <StockIndicator item={row.original} isBahan={isBahan} />
+                    <StockIndicator
+                        item={row.original}
+                        isBahan={isBahan}
+                        usageWindowLabel={usageWindowLabel}
+                    />
                 ),
             },
             {
@@ -196,7 +218,7 @@ export default function LoanCatalogTable({
                 },
             },
         ],
-        [isBahan, cart, onAdd, maxQty],
+        [isBahan, cart, onAdd, maxQty, usageWindowLabel],
     );
 
     if (!items?.length) {
@@ -220,6 +242,7 @@ export default function LoanCatalogTable({
                         cart={cart}
                         onAdd={onAdd}
                         maxQty={maxQty}
+                        usageWindowLabel={usageWindowLabel}
                     />
                 ))}
                 {normalizedPagination && (

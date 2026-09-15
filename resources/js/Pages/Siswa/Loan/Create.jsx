@@ -30,6 +30,67 @@ function formatScheduleTime(value) {
     return String(value).slice(0, 5);
 }
 
+function dueAtWindowLabel(dueAt, requestDate) {
+    if (!dueAt) {
+        return null;
+    }
+
+    const normalized = String(dueAt).replace("T", " ");
+    const [datePart, timePart] = normalized.split(" ");
+    const time = formatScheduleTime(timePart);
+
+    if (!time) {
+        return null;
+    }
+
+    if (datePart && requestDate && datePart !== requestDate) {
+        const [, month, day] = datePart.split("-");
+        const months = [
+            "Jan", "Feb", "Mar", "Apr", "Mei", "Jun",
+            "Jul", "Agu", "Sep", "Okt", "Nov", "Des",
+        ];
+        const monthLabel = months[Number(month) - 1] ?? month;
+
+        return `sampai ${Number(day)} ${monthLabel} ${time}`;
+    }
+
+    return `sampai ${time}`;
+}
+
+function buildUsageWindowLabel({
+    isBahan,
+    usageLocation,
+    selectedSchedule,
+    labOpenTime,
+    schoolCloseTime,
+    requestDate,
+    dueAt,
+}) {
+    if (isBahan || !requestDate) {
+        return null;
+    }
+
+    if (usageLocation === "pakai_di_lab") {
+        if (!selectedSchedule) {
+            return null;
+        }
+
+        const start = formatScheduleTime(selectedSchedule.jam_mulai);
+        const end = formatScheduleTime(selectedSchedule.jam_selesai);
+
+        return start && end ? `${start}–${end}` : null;
+    }
+
+    if (usageLocation === "pribadi") {
+        return `${formatScheduleTime(labOpenTime) || "07:00"}–${formatScheduleTime(schoolCloseTime) || "17:00"}`;
+    }
+
+    return (
+        dueAtWindowLabel(dueAt, requestDate) ??
+        `sampai ${formatScheduleTime(schoolCloseTime) || "17:00"}`
+    );
+}
+
 function toDateTimeLocal(date, time) {
     const hhmm = formatScheduleTime(time) || "23:59";
     return `${date}T${hhmm}`;
@@ -110,14 +171,15 @@ function itemTypeOf(eq, fallback) {
         : fallback;
 }
 
-function CartLine({ item, maxQty, onUpdateQty, processing }) {
+function CartLine({ item, maxQty, onUpdateQty, processing, usageWindowLabel }) {
     const isBahan = item.item_type === "bahan";
-    const availableNow = Number(
+    const slotLeft = Number(
         isBahan
             ? (item.equipment.available ?? 0)
             : (item.equipment.slot_remaining ?? item.equipment.available ?? 0),
     );
-    const willQueue = item.quantity > availableNow;
+    const warehouseStock = Number(item.equipment.available ?? 0);
+    const willQueue = item.quantity > slotLeft;
 
     return (
         <div className="flex flex-col gap-2 rounded-lg bg-secondary/50 p-3 sm:flex-row sm:items-center">
@@ -138,15 +200,17 @@ function CartLine({ item, maxQty, onUpdateQty, processing }) {
                     </span>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                    {isBahan ? "Tersedia saat ini" : "Sisa di jam ini"}:{" "}
-                    {availableNow}{" "}
-                    {item.equipment.unit ?? "unit"} · Max:{" "}
-                    {maxQty(item.equipment)}
+                    Stok gudang: {warehouseStock}{" "}
+                    {item.equipment.unit ?? "unit"}
+                    {!isBahan && usageWindowLabel
+                        ? ` · sisa ${Math.max(slotLeft, 0)} untuk jam ${usageWindowLabel}`
+                        : ` · Max: ${maxQty(item.equipment)}`}
                 </p>
                 {willQueue && (
                     <p className="mt-1 text-xs text-amber-800">
-                        Pengajuan akan masuk antrean apabila stok belum
-                        mencukupi.
+                        {usageWindowLabel
+                            ? `Jam ${usageWindowLabel} sudah terpesan penuh. Pengajuan masuk antrean.`
+                            : "Pengajuan akan masuk antrean apabila stok belum mencukupi."}
                     </p>
                 )}
             </div>
@@ -210,6 +274,7 @@ export default function Create({
         loanType === "bahan" || loan?.item_type === "bahan" ? "bahan" : "alat";
     const [catalogTab, setCatalogTab] = useState(resolvedType);
     const schoolCloseTime = queueConfig.school_close_time || "17:00";
+    const labOpenTime = queueConfig.lab_open_time || "07:00";
     const bawaPulangMaxDays = Number(queueConfig.bawa_pulang_max_days || 1);
     const bookingHorizonDays = Number(queueConfig.booking_horizon_days || 7);
     const { now: appNow, today } = useAppClock();
@@ -510,6 +575,27 @@ export default function Create({
                 (s) => String(s.id) === String(data.practicum_schedule_id),
             ),
         [scheduleList, data.practicum_schedule_id],
+    );
+
+    const usageWindowLabel = useMemo(
+        () =>
+            buildUsageWindowLabel({
+                isBahan: false,
+                usageLocation,
+                selectedSchedule,
+                labOpenTime,
+                schoolCloseTime,
+                requestDate: data.request_date,
+                dueAt: data.due_at,
+            }),
+        [
+            usageLocation,
+            selectedSchedule,
+            labOpenTime,
+            schoolCloseTime,
+            data.request_date,
+            data.due_at,
+        ],
     );
 
     const applySchedule = (scheduleId) => {
@@ -895,7 +981,7 @@ export default function Create({
                             {catalogIsBahan ? "bahan" : "alat"} tersedia
                             {searchQuery ? " untuk pencarian ini" : ""}
                             {!catalogIsBahan
-                                ? " · sisa mengikuti tanggal dan jenis peminjaman yang dipilih"
+                                ? ". Stok gudang = barang fisik. Sisa jam = yang belum dipesan di jam pemakaian yang kamu pilih."
                                 : ""}
                         </p>
                         {catalogTotal > 0 ? (
@@ -906,6 +992,9 @@ export default function Create({
                                 cart={cart}
                                 onAdd={addToCart}
                                 maxQty={maxQty}
+                                usageWindowLabel={
+                                    catalogIsBahan ? null : usageWindowLabel
+                                }
                             />
                         ) : (
                             <p className="rounded-[8px] border border-dashed border-border py-10 text-center text-sm text-muted-foreground">
@@ -959,6 +1048,7 @@ export default function Create({
                                                     maxQty={maxQty}
                                                     onUpdateQty={updateQty}
                                                     processing={busy}
+                                                    usageWindowLabel={usageWindowLabel}
                                                 />
                                             ))}
                                         </div>
