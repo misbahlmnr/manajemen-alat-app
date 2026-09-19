@@ -12,12 +12,14 @@ import { useEffect, useRef } from "react";
 import EquipmentCatalogTable from "./Components/EquipmentCatalogTable";
 
 export default function Index({ equipment, filters, categories }) {
+    const today = new Date().toISOString().slice(0, 10);
     const { data, setData } = useForm({
         search: filters.search ?? "",
         category: filters.category ?? "all",
         status: filters.status ?? "all",
         condition: filters.condition ?? "all",
         availability: filters.availability ?? "all",
+        request_date: filters.request_date ?? today,
     });
 
     const isFirstRender = useRef(true);
@@ -43,6 +45,7 @@ export default function Index({ equipment, filters, categories }) {
         data.status,
         data.condition,
         data.availability,
+        data.request_date,
     ]);
 
     const list = equipment.data ?? [];
@@ -55,14 +58,14 @@ export default function Index({ equipment, filters, categories }) {
             <div className="animate-fade-in w-full min-w-0">
                 <PageHeader
                     title="Alat Lab"
-                    subtitle="Jelajahi peralatan yang bisa diajukan untuk praktikum"
+                    subtitle="Ketersediaan mengikuti tanggal pengajuan — sama seperti halaman Ajukan"
                 />
 
                 <FilterToolbar
                     title="Cari & filter"
-                    description={`${total} alat sesuai filter aktif`}
+                    description={`${total} alat · ketersediaan untuk ${data.request_date || today}`}
                 >
-                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
                         <div className="relative sm:col-span-2">
                             <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
@@ -74,6 +77,14 @@ export default function Index({ equipment, filters, categories }) {
                                 className="pl-10"
                             />
                         </div>
+                        <Input
+                            type="date"
+                            value={data.request_date}
+                            onChange={(e) =>
+                                setData("request_date", e.target.value)
+                            }
+                            title="Tanggal pengajuan"
+                        />
                         <Select
                             value={data.category}
                             onChange={(e) =>
@@ -97,25 +108,23 @@ export default function Index({ equipment, filters, categories }) {
                             <option value="tersedia">Tersedia</option>
                             <option value="dipinjam">Sebagian Dipinjam</option>
                             <option value="habis">
-                                Stok kosong · antrean dibuka
+                                Habis · antrean dibuka
                             </option>
                             <option value="rusak">Dalam Perbaikan</option>
                             <option value="tidak_tersedia">Tidak Tersedia</option>
                         </Select>
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:col-span-1 lg:grid-cols-1">
-                            <Select
-                                value={data.status}
-                                onChange={(e) =>
-                                    setData("status", e.target.value)
-                                }
-                            >
-                                <option value="all">Semua status</option>
-                                <option value="tersedia">Tersedia</option>
-                                <option value="tidak_tersedia">
-                                    Tidak Tersedia
-                                </option>
-                            </Select>
-                        </div>
+                        <Select
+                            value={data.status}
+                            onChange={(e) =>
+                                setData("status", e.target.value)
+                            }
+                        >
+                            <option value="all">Semua status</option>
+                            <option value="tersedia">Aktif</option>
+                            <option value="tidak_tersedia">
+                                Nonaktif
+                            </option>
+                        </Select>
                     </div>
                 </FilterToolbar>
 
@@ -139,6 +148,7 @@ export default function Index({ equipment, filters, categories }) {
                                         status: "all",
                                         condition: "all",
                                         availability: "all",
+                                        request_date: today,
                                     });
                                 }}
                             >

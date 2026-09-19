@@ -886,8 +886,8 @@ export default function Create({
                     <Info className="mt-0.5 h-4 w-4 flex-shrink-0" />
                     <p>
                         {catalogIsBahan
-                            ? "Katalog bahan habis pakai. Tidak perlu dikembalikan. Stok berkurang setelah disetujui."
-                            : "Katalog alat. Harus dikembalikan sebelum batas waktu."}{" "}
+                            ? "Katalog bahan habis pakai. Tidak perlu dikembalikan. Jumlah tersedia berkurang setelah disetujui."
+                            : "Katalog alat. Angka ketersediaan mengikuti tanggal/jadwal yang dipilih. Harus dikembalikan sebelum batas waktu."}{" "}
                         {!isEdit &&
                             "Tambah ke keranjang, pindah kategori jika perlu, lalu ajukan sekali."}
                     </p>
@@ -1145,8 +1145,8 @@ export default function Create({
                                             <Alert variant="warning">
                                                 <Info className="h-4 w-4" />
                                                 <AlertTitle>
-                                                    Stok salah satu alat sedang
-                                                    habis.
+                                                    Salah satu alat belum dapat
+                                                    diajukan.
                                                 </AlertTitle>
                                                 <AlertDescription className="space-y-1">
                                                     <p>
@@ -1156,7 +1156,7 @@ export default function Create({
                                                     <p>
                                                         Permintaan Anda akan
                                                         masuk antrean dan
-                                                        diproses setelah stok
+                                                        diproses setelah unit
                                                         tersedia.
                                                     </p>
                                                 </AlertDescription>

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Siswa;
 
 use App\Http\Controllers\Controller;
 use App\Models\Supply;
+use App\Services\Loan\LoanSlotAvailabilityService;
 use App\Support\EquipmentFormatter;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -11,6 +12,10 @@ use Inertia\Response;
 
 class SupplyController extends Controller
 {
+    public function __construct(
+        private LoanSlotAvailabilityService $slots,
+    ) {}
+
     public function index(Request $request): Response
     {
         $this->authorize('viewAny', Supply::class);
@@ -64,10 +69,18 @@ class SupplyController extends Controller
 
     private function formatSupply(Supply $supply, bool $detailed = false): array
     {
-        $queueOpen = $supply->isAvailableForInventory() && $supply->available <= 0;
+        // Bahan: sama dengan Ajukan — remainingForDraft mengembalikan equipment.available.
+        $requestable = $this->slots->remainingForDraft($supply, [
+            'item_type' => 'bahan',
+            'request_date' => now()->toDateString(),
+        ]);
+
+        $queueOpen = $supply->isAvailableForInventory() && $requestable <= 0;
 
         return [
             ...EquipmentFormatter::format($supply, $detailed),
+            'slot_remaining' => $requestable,
+            'available' => $requestable,
             'can_request' => $supply->isAvailableForInventory(),
             'queue_open' => $queueOpen,
             'cta_label' => $queueOpen ? 'Ajukan' : 'Tambah',

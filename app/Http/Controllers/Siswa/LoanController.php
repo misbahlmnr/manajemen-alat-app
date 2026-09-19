@@ -15,6 +15,7 @@ use App\Services\Loan\CollateralWorkflowService;
 use App\Services\Loan\LoanQueueService;
 use App\Services\Loan\LoanSlotAvailabilityService;
 use App\Services\Loan\LoanWorkflowService;
+use App\Services\Loan\StudentLoanSubmissionService;
 use App\Services\Loan\SubmissionPresenter;
 use App\Services\Notification\LabNotificationService;
 use Illuminate\Http\JsonResponse;
@@ -32,6 +33,7 @@ class LoanController extends Controller
         private CollateralWorkflowService $collateralWorkflow,
         private LoanQueueService $queueService,
         private LoanSlotAvailabilityService $slotAvailability,
+        private StudentLoanSubmissionService $studentLoans,
         private SubmissionPresenter $submissions,
     ) {}
 
@@ -122,12 +124,12 @@ class LoanController extends Controller
             'defaults' => [
                 'item_type' => $type,
                 'loan_type' => 'praktikum',
-                'request_date' => now()->toDateString(),
+                'request_date' => $request->input('request_date') ?: now()->toDateString(),
                 'borrow_scope' => 'lab',
                 'borrow_reason' => 'reguler',
                 'group_member_count' => '',
                 'supervisor_id' => '',
-                'practicum_schedule_id' => '',
+                'practicum_schedule_id' => $request->input('practicum_schedule_id') ?: '',
                 'due_at' => '',
                 'purpose' => '',
                 'notes' => '',
@@ -686,29 +688,9 @@ class LoanController extends Controller
         ];
     }
 
-    /**
-     * @param  array<string, mixed>  $payload
-     * @return array<string, mixed>
-     */
     private function slotContextFromPayload(array $payload, ?string $itemType = null): array
     {
-        $type = $itemType ?? ($payload['item_type'] ?? 'alat');
-
-        return [
-            'item_type' => $type,
-            'loan_type' => $payload['loan_type']
-                ?? ($type === 'alat'
-                    ? Loan::resolveTypeFromLegacy(
-                        $payload['borrow_scope'] ?? null,
-                        $payload['borrow_reason'] ?? null,
-                    )
-                    : null),
-            'borrow_scope' => $payload['borrow_scope'] ?? 'lab',
-            'borrow_reason' => $payload['borrow_reason'] ?? 'reguler',
-            'request_date' => $payload['request_date'] ?? now()->toDateString(),
-            'practicum_schedule_id' => $payload['practicum_schedule_id'] ?? null,
-            'due_at' => $payload['due_at'] ?? null,
-        ];
+        return $this->studentLoans->slotContextFromPayload($payload, $itemType);
     }
 
     private function formatLoan(Loan $loan, bool $detailed = false): array
@@ -879,90 +861,7 @@ class LoanController extends Controller
      */
     public function createStudentLoan(array $validated, User $user, ?string $loanGroupId = null, ?Submission $submission = null): Loan
     {
-        $items = $validated['items'];
-        unset($validated['items'], $validated['collateral_agreed']);
-
-        $loanType = $validated['loan_type']
-            ?? ($validated['item_type'] === 'alat'
-                ? Loan::resolveTypeFromLegacy(
-                    $validated['borrow_scope'] ?? null,
-                    $validated['borrow_reason'] ?? null,
-                )
-                : 'praktikum');
-
-        if ($loanType === 'lomba') {
-            throw \Illuminate\Validation\ValidationException::withMessages([
-                'loan_type' => 'Peminjaman lomba dibuat oleh admin melalui Event Lomba.',
-            ]);
-        }
-
-        $legacy = Loan::legacyFieldsForType($loanType);
-        $validated['loan_type'] = $loanType;
-        if ($validated['item_type'] === 'alat') {
-            $validated['borrow_scope'] = $legacy['borrow_scope'];
-            $validated['borrow_reason'] = $legacy['borrow_reason'];
-        }
-
-        $this->queueService->validateItemsForSubmit(
-            $items,
-            $validated['item_type'],
-            $user->id,
-            $loanType,
-        );
-
-        $slotContext = $this->slotContextFromPayload($validated);
-
-        $initialStatus = $this->queueService->resolveInitialStatus(
-            $items,
-            $validated['item_type'],
-            $slotContext,
-        );
-
-        $submission ??= Submission::createForBorrower($user, $validated);
-
-        $loan = Loan::create([
-            ...$validated,
-            'loan_group_id' => $loanGroupId,
-            'submission_id' => $submission->id,
-            'borrower_id' => $user->id,
-            'borrower_class' => $user->class,
-            'code' => Loan::generateCode(),
-            'status' => $initialStatus,
-            'queued_at' => $initialStatus === 'antrian' ? now() : null,
-            'loan_type' => $loanType,
-            'borrow_scope' => $validated['item_type'] === 'alat'
-                ? ($validated['borrow_scope'] ?? 'lab')
-                : 'lab',
-            'borrow_reason' => $validated['item_type'] === 'alat'
-                ? ($validated['borrow_reason'] ?? 'reguler')
-                : null,
-            'group_member_count' => $loanType === 'praktikum'
-                ? ($validated['group_member_count'] ?? null)
-                : null,
-            'usage_room' => $validated['usage_room'] ?? null,
-            'due_at' => $validated['item_type'] === 'alat' ? ($validated['due_at'] ?? null) : null,
-        ]);
-        $loan->setRelation('submission', $submission);
-
-        $this->syncItems($loan, $items);
-
-        if ($loan->isAlat()) {
-            $this->queueService->applyDueAtForLoan($loan);
-        }
-
-        if ($initialStatus === 'antrian') {
-            $this->queueService->enqueue($loan->fresh(), $user);
-        } else {
-            $this->workflow->logStatus($loan, 'diminta', 'Pengajuan peminjaman dibuat oleh siswa.', $user);
-        }
-
-        if ($loan->requiresCollateral()) {
-            $this->collateralWorkflow->registerPendingCollateral($loan->fresh());
-        }
-
-        app(LabNotificationService::class)->loanSubmitted($loan->fresh(['borrower', 'supervisor', 'items.equipment', 'submission']));
-
-        return $loan->fresh();
+        return $this->studentLoans->create($validated, $user, $loanGroupId, $submission);
     }
 
     /**

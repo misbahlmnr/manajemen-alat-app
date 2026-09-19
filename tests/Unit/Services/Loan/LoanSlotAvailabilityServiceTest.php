@@ -208,7 +208,7 @@ class LoanSlotAvailabilityServiceTest extends TestCase
         $this->assertSame(10, $this->slots->remaining($equipment, $nextWindow[0], $nextWindow[1]));
     }
 
-    public function test_same_day_lomba_from_now_occupies_ongoing_morning(): void
+    public function test_same_day_bawa_pulang_starts_at_school_close_not_now(): void
     {
         $this->travelTo(Carbon::parse('2026-09-14 08:00:00'));
 
@@ -217,7 +217,7 @@ class LoanSlotAvailabilityServiceTest extends TestCase
             $equipment,
             10,
             'bawa_pulang',
-            'lomba',
+            'lanjutan',
             '2026-09-14',
             dueAt: Carbon::parse('2026-09-15 17:00:00'),
         );
@@ -232,27 +232,34 @@ class LoanSlotAvailabilityServiceTest extends TestCase
             'practicum_schedule_id' => $morning->id,
         ], $morning);
 
-        $this->assertSame(10, $this->slots->remaining($equipment, $morningWindow[0], $morningWindow[1]));
+        // Bawa Pulang mulai jam pulang sekolah → tidak makan slot praktik pagi.
+        $this->assertSame(20, $this->slots->remaining($equipment, $morningWindow[0], $morningWindow[1]));
 
         [$start] = $this->slots->windowFromContext([
-            'loan_type' => 'lomba',
+            'loan_type' => 'bawa_pulang',
             'borrow_scope' => 'bawa_pulang',
-            'borrow_reason' => 'lomba',
+            'borrow_reason' => 'lanjutan',
             'request_date' => '2026-09-14',
             'due_at' => '2026-09-15 17:00:00',
         ]);
-        $this->assertSame('08:00:00', $start->format('H:i:s'));
+        $this->assertSame('17:00:00', $start->format('H:i:s'));
+        $this->assertSame('2026-09-14', $start->toDateString());
     }
 
-    public function test_full_slot_rejects_lomba_without_queue(): void
+    public function test_full_after_school_slot_rejects_lomba_without_queue(): void
     {
         $this->travelTo(Carbon::parse('2026-09-14 08:00:00'));
 
         $equipment = $this->makeEquipment(20);
-        $guru = $this->makeUser('guru', 'guru-slot-full');
-        $morning = $this->makeSchedule($guru, '2026-09-14', '07:00:00', '09:30:00', 'JDW-FULL');
-        $this->makeOccupyingLoan($equipment, 6, 'lab', 'reguler', '2026-09-14', $morning->id);
-        $this->makeOccupyingLoan($equipment, 14, 'lab', 'lanjutan', '2026-09-14');
+        // Loan take-home lain yang sudah mengisi penuh jendela setelah jam pulang.
+        $this->makeOccupyingLoan(
+            $equipment,
+            20,
+            'bawa_pulang',
+            'lanjutan',
+            '2026-09-14',
+            dueAt: Carbon::parse('2026-09-15 17:00:00'),
+        );
 
         $this->expectException(ValidationException::class);
 

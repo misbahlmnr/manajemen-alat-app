@@ -2,9 +2,30 @@ import DataTable from "@/Components/DataTable";
 import AvailabilityBadge from "@/Components/AvailabilityBadge";
 import ConditionBreakdown from "@/Components/ConditionBreakdown";
 import EquipmentImage from "@/Components/Equipment/EquipmentImage";
+import { Badge } from "@/Components/ui/badge";
 import { Button } from "@/Components/ui/button";
 import { Link } from "@inertiajs/react";
 import { Eye, FileText } from "lucide-react";
+
+function AvailabilityCell({ item }) {
+    const remain = Number(item.slot_remaining ?? item.available ?? 0);
+    const capacity = Number(item.qty_baik ?? item.stock ?? 0);
+    const unit = item.unit || "unit";
+    const outOfStock = remain <= 0;
+
+    return (
+        <div className="space-y-1.5">
+            <Badge variant={outOfStock ? "destructive" : "success"}>
+                {outOfStock ? "Tidak tersedia" : "Tersedia"}
+            </Badge>
+            <p className="text-xs text-muted-foreground tabular-nums">
+                {capacity > 0
+                    ? `${remain} dari ${capacity} ${unit}`
+                    : `${remain} ${unit}`}
+            </p>
+        </div>
+    );
+}
 
 export default function EquipmentCatalogTable({ items, pagination }) {
     const columns = [
@@ -49,19 +70,9 @@ export default function EquipmentCatalogTable({ items, pagination }) {
         },
         {
             id: "available",
-            header: "Stok Tersedia",
+            header: "Ketersediaan",
             accessorFn: (row) => row.available,
-            cell: ({ row }) => (
-                <span className="tabular-nums" title="Unit di lab / total stok">
-                    <span className="font-medium text-foreground">
-                        {row.original.available}
-                    </span>
-                    <span className="text-muted-foreground">
-                        {" "}
-                        / {row.original.stock}
-                    </span>
-                </span>
-            ),
+            cell: ({ row }) => <AvailabilityCell item={row.original} />,
         },
         {
             id: "condition",
@@ -75,7 +86,7 @@ export default function EquipmentCatalogTable({ items, pagination }) {
         },
         {
             id: "availability",
-            header: "Ketersediaan",
+            header: "Status",
             accessorFn: (row) => row.availability_label,
             enableSorting: false,
             cell: ({ row }) => (

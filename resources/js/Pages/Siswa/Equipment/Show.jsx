@@ -42,15 +42,17 @@ export default function Show({ equipment }) {
                 </PageHeader>
 
                 {equipment.status === "tersedia" &&
-                    Number(equipment.available) <= 0 && (
+                    Number(equipment.slot_remaining ?? equipment.available) <=
+                        0 && (
                         <div className="mb-6 rounded-[8px] border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm text-amber-900">
                             <p className="font-medium">
-                                Semua unit sedang dipinjam.
+                                Tidak ada unit yang dapat diajukan pada tanggal
+                                ini.
                             </p>
                             <p className="mt-1 text-amber-900/80">
-                                Pengajuan baru tetap dapat dilakukan dan akan
-                                masuk antrian menurut tipe peminjaman, lalu
-                                waktu masuk antrian.
+                                Pengajuan pribadi tetap dapat dilakukan dan akan
+                                masuk antrean. Praktik Lab membutuhkan slot yang
+                                masih tersedia.
                             </p>
                         </div>
                     )}
@@ -130,25 +132,35 @@ export default function Show({ equipment }) {
 
                         <Card className="rounded-[10px] border-border/60 shadow-card">
                             <CardHeader>
-                                <CardTitle>Stok & Ketersediaan</CardTitle>
+                                <CardTitle>Ketersediaan</CardTitle>
                                 <CardDescription>
-                                    Hanya unit kondisi baik yang dapat dipinjam
+                                    Unit yang masih dapat diajukan
+                                    {equipment.availability_date
+                                        ? ` pada ${equipment.availability_date}`
+                                        : ""}{" "}
+                                    (sama dengan halaman Ajukan)
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <div className="grid gap-4 sm:grid-cols-3">
                                     <StockStat
-                                        label="Baik tersedia"
-                                        value={equipment.available}
+                                        label="Tersedia"
+                                        value={
+                                            equipment.slot_remaining ??
+                                            equipment.available
+                                        }
                                         highlight
                                     />
                                     <StockStat
-                                        label="Baik dipinjam"
+                                        label="Sudah diajukan / dipakai"
                                         value={equipment.borrowed}
                                     />
                                     <StockStat
-                                        label="Total stok"
-                                        value={equipment.stock}
+                                        label="Total unit"
+                                        value={
+                                            equipment.qty_baik ??
+                                            equipment.stock
+                                        }
                                     />
                                 </div>
                             </CardContent>

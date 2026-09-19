@@ -58,21 +58,9 @@ class LoanSlotAvailabilityService
         }
 
         if (in_array($loanType, ['bawa_pulang', 'lomba'], true)) {
+            // Selalu mulai dari jam pulang sekolah agar tidak overlap dengan Praktik Lab hari yang sama.
             $closeAt = Carbon::parse($date.' '.$close, $timezone);
-            $openAt = Carbon::parse($date.' '.$open, $timezone);
-            $today = PracticumSchedule::inSchoolTimezone()->toDateString();
-
-            if ($date === $today) {
-                $start = PracticumSchedule::inSchoolTimezone();
-                if ($start->lt($openAt)) {
-                    $start = $openAt->copy();
-                }
-                if ($start->gt($closeAt)) {
-                    $start = $closeAt->copy();
-                }
-            } else {
-                $start = $closeAt->copy();
-            }
+            $start = $closeAt->copy();
 
             $dueAt = $this->parseDueAt($context['due_at'] ?? null, $timezone);
             $end = $dueAt ?? $closeAt->copy()->addDays($this->bawaPulangMaxDays());

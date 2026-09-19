@@ -17,25 +17,20 @@ function StockIndicator({ item, isBahan }) {
     const low = isBahan && item.is_low_stock;
     const outOfStock = remain <= 0;
 
-    if (outOfStock) {
-        return (
-            <div className="max-w-[220px] space-y-1.5">
-                <Badge variant="destructive">Tidak tersedia</Badge>
-                <p className="text-xs text-muted-foreground">
-                    0 {unit} tersedia
-                    {capacity > 0 ? ` dari ${capacity}` : ""}
-                </p>
-            </div>
-        );
-    }
+    const detail = isBahan
+        ? `${remain} ${unit}`
+        : capacity > 0
+          ? `${remain} dari ${capacity} ${unit}`
+          : `${remain} ${unit}`;
 
     return (
-        <div className="space-y-1.5">
-            <Badge variant="success">Tersedia</Badge>
+        <div className="max-w-[220px] space-y-1.5">
+            <Badge variant={outOfStock ? "destructive" : "success"}>
+                {outOfStock ? "Tidak tersedia" : "Tersedia"}
+            </Badge>
             <p className="text-xs text-muted-foreground">
-                {remain} {unit} tersedia
-                {!isBahan && capacity > 0 ? ` dari ${capacity}` : ""}
-                {low ? " · Stok menipis" : ""}
+                {detail}
+                {low && !outOfStock ? " · Menipis" : ""}
             </p>
         </div>
     );
