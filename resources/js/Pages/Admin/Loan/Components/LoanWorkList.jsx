@@ -4,7 +4,6 @@ import LoanWorkCard from "./LoanWorkCard";
 export default function LoanWorkList({
     items,
     pagination,
-    onReject,
     onReturn,
     onInspect,
 }) {
@@ -15,7 +14,6 @@ export default function LoanWorkList({
                     <LoanWorkCard
                         key={submission.id ?? submission.code}
                         submission={submission}
-                        onReject={onReject}
                         onReturn={onReturn}
                         onInspect={onInspect}
                     />

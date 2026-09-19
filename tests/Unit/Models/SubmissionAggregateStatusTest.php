@@ -32,11 +32,12 @@ class SubmissionAggregateStatusTest extends TestCase
     {
         [$submission, $alat, $bahan] = $this->makePackageSubmission();
         $alat->update(['status' => 'antrian', 'queued_at' => now()]);
-        $bahan->update(['status' => 'disetujui']);
+        $bahan->update(['status' => 'menunggu_alat']);
 
         $this->assertSame('antrian', $submission->fresh()->load('loans')->aggregateStatus());
+        $this->assertTrue($submission->fresh()->load('loans')->hasBlockingTool());
         $this->assertStringContainsString('Alat: Antrian', $submission->fresh()->load('loans')->statusSummary());
-        $this->assertStringContainsString('Bahan: Disetujui', $submission->fresh()->load('loans')->statusSummary());
+        $this->assertStringContainsString('Bahan: Menunggu Alat', $submission->fresh()->load('loans')->statusSummary());
     }
 
     public function test_mixed_progress_is_diproses(): void
@@ -86,7 +87,7 @@ class SubmissionAggregateStatusTest extends TestCase
 
         [$queued, $queuedAlat, $queuedBahan] = $this->makePackageSubmission('queue');
         $queuedAlat->update(['status' => 'antrian', 'queued_at' => now()]);
-        $queuedBahan->update(['status' => 'disetujui']);
+        $queuedBahan->update(['status' => 'menunggu_alat']);
 
         [$done, $doneAlat, $doneBahan] = $this->makePackageSubmission('done');
         $doneAlat->update(['status' => 'dikembalikan']);

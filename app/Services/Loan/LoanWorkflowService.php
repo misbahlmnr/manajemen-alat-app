@@ -97,7 +97,7 @@ class LoanWorkflowService
 
     public function reject(Loan $loan, string $reason, User $actor): void
     {
-        if (! in_array($loan->status, ['diminta', 'antrian', 'disetujui'], true)) {
+        if (! in_array($loan->status, ['diminta', 'antrian', 'menunggu_alat', 'disetujui'], true)) {
             throw ValidationException::withMessages([
                 'status' => 'Pengajuan ini tidak dapat ditolak.',
             ]);
@@ -107,6 +107,7 @@ class LoanWorkflowService
             $loan->update([
                 'status' => 'ditolak',
                 'rejection_reason' => $reason,
+                'queued_at' => null,
             ]);
 
             $this->restoreStock($loan);

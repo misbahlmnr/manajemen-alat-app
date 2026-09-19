@@ -12,6 +12,7 @@ use App\Services\Loan\LoanQueueService;
 use App\Services\Loan\LoanSlotAvailabilityService;
 use App\Services\Loan\LoanWorkflowService;
 use App\Services\Loan\SubmissionPresenter;
+use App\Services\Loan\SubmissionWorkflowService;
 use App\Support\ClassOptions;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -25,6 +26,7 @@ class LoanController extends Controller
         private LoanQueueService $queueService,
         private LoanSlotAvailabilityService $slotAvailability,
         private SubmissionPresenter $submissions,
+        private SubmissionWorkflowService $submissionWorkflow,
     ) {}
 
     public function index(Request $request): Response
@@ -182,6 +184,15 @@ class LoanController extends Controller
     public function approve(Loan $loan): RedirectResponse
     {
         $this->authorize('approve', $loan);
+
+        if ($loan->submission_id) {
+            $submission = $loan->submission()->with('loans.items.equipment')->firstOrFail();
+            $this->authorize('approve', $submission);
+            $this->submissionWorkflow->approve($submission, request()->user());
+
+            return back()->with('success', 'Pengajuan berhasil disetujui.');
+        }
+
         $this->workflow->approve($loan, request()->user());
 
         return back()->with('success', 'Peminjaman berhasil disetujui.');
@@ -190,9 +201,45 @@ class LoanController extends Controller
     public function reject(RejectLoanRequest $request, Loan $loan): RedirectResponse
     {
         $this->authorize('reject', $loan);
+
+        if ($loan->submission_id) {
+            $submission = $loan->submission()->with('loans')->firstOrFail();
+            $this->authorize('reject', $submission);
+            $this->submissionWorkflow->reject(
+                $submission,
+                $request->validated('rejection_reason'),
+                $request->user(),
+            );
+
+            return back()->with('success', 'Pengajuan ditolak.');
+        }
+
         $this->workflow->reject($loan, $request->validated('rejection_reason'), $request->user());
 
         return back()->with('success', 'Peminjaman ditolak.');
+    }
+
+    public function approveSubmission(Submission $submission): RedirectResponse
+    {
+        $this->authorize('approve', $submission);
+        $this->submissionWorkflow->approve(
+            $submission->load('loans.items.equipment'),
+            request()->user(),
+        );
+
+        return back()->with('success', 'Pengajuan berhasil disetujui.');
+    }
+
+    public function rejectSubmission(RejectLoanRequest $request, Submission $submission): RedirectResponse
+    {
+        $this->authorize('reject', $submission);
+        $this->submissionWorkflow->reject(
+            $submission->load('loans'),
+            $request->validated('rejection_reason'),
+            $request->user(),
+        );
+
+        return back()->with('success', 'Pengajuan ditolak.');
     }
 
     public function markBorrowed(Loan $loan): RedirectResponse
@@ -360,8 +407,8 @@ class LoanController extends Controller
             'items_summary' => $itemsSummary ?: '—',
             'items' => $items,
             'created_at_formatted' => $loan->created_at?->translatedFormat('d M Y'),
-            'can_approve' => $loan->status === 'diminta',
-            'can_reject' => in_array($loan->status, ['diminta', 'antrian', 'disetujui'], true),
+            'can_approve' => false,
+            'can_reject' => false,
             'can_mark_borrowed' => $approvedAlat && $markBorrowedBlockedReason === null,
             'mark_borrowed_blocked_reason' => $markBorrowedBlockedReason,
             'can_return' => $loan->isAlat() && in_array($loan->status, ['dipinjam', 'terlambat'], true),

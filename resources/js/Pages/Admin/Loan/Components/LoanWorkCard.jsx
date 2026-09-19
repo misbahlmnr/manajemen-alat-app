@@ -6,7 +6,6 @@ import { Link, router } from "@inertiajs/react";
 import {
     BookOpen,
     Calendar,
-    Check,
     Clock,
     CreditCard,
     Eye,
@@ -14,7 +13,6 @@ import {
     PackageCheck,
     RotateCcw,
     SearchCheck,
-    X,
 } from "lucide-react";
 
 const LOAN_TYPE_STYLE = {
@@ -183,6 +181,9 @@ function InsightLine({ members }) {
         } else if (loan.status === "antrian") {
             parts.push("Dalam antrean");
         }
+        if (loan.status === "menunggu_alat") {
+            parts.push("Menunggu Alat");
+        }
         if (loan.queue_waiting_stock) {
             parts.push(loan.queue_status_label || "Menunggu stok");
         }
@@ -220,14 +221,14 @@ function InsightLine({ members }) {
     );
 }
 
-function CardActions({ members, onReject, onReturn, onInspect }) {
-    const approveLoan = members.find((m) => m.can_approve);
-    const rejectLoan = members.find((m) => m.can_reject);
+function CardActions({ submission, members, onReturn, onInspect }) {
     const handoverLoan = members.find((m) => m.can_mark_borrowed);
     const cardLoan = members.find((m) => m.can_receive_card);
     const inspectLoan = members.find((m) => m.can_inspect);
     const returnLoan = members.find((m) => m.can_return);
-    const detailId = members[0]?.id;
+    const detailHref =
+        submission.show_url ||
+        route("admin.loans.submission", submission.code);
 
     const post = (routeName, id) => {
         router.post(route(routeName, id), {}, { preserveScroll: true });
@@ -235,40 +236,17 @@ function CardActions({ members, onReject, onReturn, onInspect }) {
 
     return (
         <div className="flex flex-wrap items-center justify-end gap-2.5">
-            {detailId ? (
-                <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 border-border bg-white px-3 text-foreground shadow-none hover:bg-muted/60"
-                    asChild
-                >
-                    <Link href={route("admin.loans.show", detailId)}>
-                        <Eye className="mr-1.5 h-3.5 w-3.5" />
-                        Detail
-                    </Link>
-                </Button>
-            ) : null}
-            {rejectLoan ? (
-                <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 border-red-300 bg-white px-3 text-red-600 shadow-none hover:bg-red-50 hover:text-red-700"
-                    onClick={() => onReject(rejectLoan)}
-                >
-                    <X className="mr-1.5 h-3.5 w-3.5" />
-                    Tolak
-                </Button>
-            ) : null}
-            {approveLoan ? (
-                <Button
-                    size="sm"
-                    className="h-8 bg-emerald-600 px-3 text-white hover:bg-emerald-700"
-                    onClick={() => post("admin.loans.approve", approveLoan.id)}
-                >
-                    <Check className="mr-1.5 h-3.5 w-3.5" />
-                    Setujui
-                </Button>
-            ) : null}
+            <Button
+                size="sm"
+                variant="outline"
+                className="h-8 border-border bg-white px-3 text-foreground shadow-none hover:bg-muted/60"
+                asChild
+            >
+                <Link href={detailHref}>
+                    <Eye className="mr-1.5 h-3.5 w-3.5" />
+                    Detail
+                </Link>
+            </Button>
             {handoverLoan ? (
                 <Button
                     size="sm"
@@ -323,7 +301,6 @@ function CardActions({ members, onReject, onReturn, onInspect }) {
 
 export default function LoanWorkCard({
     submission,
-    onReject,
     onReturn,
     onInspect,
 }) {
@@ -407,8 +384,8 @@ export default function LoanWorkCard({
             {members.length > 0 ? (
                 <div className="mt-2.5 border-t border-border/50 pt-2">
                     <CardActions
+                        submission={submission}
                         members={members}
-                        onReject={onReject}
                         onReturn={onReturn}
                         onInspect={onInspect}
                     />

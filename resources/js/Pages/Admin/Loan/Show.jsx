@@ -5,17 +5,14 @@ import { Button } from "@/Components/ui/button";
 import { Head, Link, router } from "@inertiajs/react";
 import {
     ArrowLeft,
-    Check,
     CheckCircle,
     CreditCard,
     PackageCheck,
     RotateCcw,
     Trash2,
-    X,
 } from "lucide-react";
 import { useState } from "react";
 import DeleteLoanDialog from "./Components/DeleteLoanDialog";
-import RejectLoanDialog from "./Components/RejectLoanDialog";
 import ReturnLoanDialog from "./Components/ReturnLoanDialog";
 import InspectReturnDialog from "../Collateral/Components/InspectReturnDialog";
 import ReceiveCardDialog from "../Collateral/Components/ReceiveCardDialog";
@@ -56,12 +53,10 @@ function SectionCard({ title, children, className = "" }) {
 
 export default function Show({ loan }) {
     const [deleteOpen, setDeleteOpen] = useState(false);
-    const [rejectOpen, setRejectOpen] = useState(false);
     const [returnOpen, setReturnOpen] = useState(false);
     const [inspectOpen, setInspectOpen] = useState(false);
     const [inspecting, setInspecting] = useState(false);
     const [deleting, setDeleting] = useState(false);
-    const [rejecting, setRejecting] = useState(false);
     const [returning, setReturning] = useState(false);
     const [receiveOpen, setReceiveOpen] = useState(false);
     const [receiving, setReceiving] = useState(false);
@@ -74,20 +69,6 @@ export default function Show({ loan }) {
     const handleDelete = () => {
         setDeleting(true);
         router.delete(route("admin.loans.destroy", loan.id));
-    };
-
-    const handleReject = (reason) => {
-        setRejecting(true);
-        router.post(
-            route("admin.loans.reject", loan.id),
-            { rejection_reason: reason },
-            {
-                onFinish: () => {
-                    setRejecting(false);
-                    setRejectOpen(false);
-                },
-            },
-        );
     };
 
     const handleReturn = (note) => {
@@ -154,8 +135,6 @@ export default function Show({ loan }) {
     );
 
     const hasStickyActions =
-        loan.can_approve ||
-        loan.can_reject ||
         loan.can_mark_borrowed ||
         loan.mark_borrowed_blocked_reason ||
         loan.can_inspect ||
@@ -492,30 +471,8 @@ export default function Show({ loan }) {
             {hasStickyActions ? (
                 <div className="sticky bottom-0 z-20 mt-6 border-t border-[#E5E7EB] bg-white/95 py-3 backdrop-blur supports-[backdrop-filter]:bg-white/80 sm:rounded-t-xl sm:border sm:border-[#E5E7EB] sm:px-4 sm:shadow-sm">
                     <div className="flex flex-wrap items-center justify-end gap-2.5">
-                        {loan.can_reject ? (
-                            <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-9 border-red-300 bg-white px-4 text-red-600 shadow-none hover:bg-red-50 hover:text-red-700"
-                                onClick={() => setRejectOpen(true)}
-                            >
-                                <X className="mr-1.5 h-3.5 w-3.5" />
-                                Tolak
-                            </Button>
-                        ) : null}
-                        {loan.can_approve ? (
-                            <Button
-                                size="sm"
-                                className="h-9 bg-emerald-600 px-4 text-white hover:bg-emerald-700"
-                                onClick={() => post("admin.loans.approve")}
-                            >
-                                <Check className="mr-1.5 h-3.5 w-3.5" />
-                                Setujui
-                            </Button>
-                        ) : null}
-                        {(loan.can_mark_borrowed ||
-                            loan.mark_borrowed_blocked_reason) &&
-                        !loan.can_approve ? (
+                        {loan.can_mark_borrowed ||
+                        loan.mark_borrowed_blocked_reason ? (
                             <Button
                                 size="sm"
                                 className="h-9 px-4"
@@ -564,7 +521,7 @@ export default function Show({ loan }) {
                                 Kembalikan Kartu
                             </Button>
                         ) : null}
-                        {loan.can_receive_card && !loan.can_approve ? (
+                        {loan.can_receive_card ? (
                             <Button
                                 size="sm"
                                 variant="outline"
@@ -586,13 +543,6 @@ export default function Show({ loan }) {
                 itemName={loan.code}
                 onConfirm={handleDelete}
                 loading={deleting}
-            />
-            <RejectLoanDialog
-                open={rejectOpen}
-                onOpenChange={setRejectOpen}
-                itemName={loan.code}
-                onConfirm={handleReject}
-                loading={rejecting}
             />
             <ReturnLoanDialog
                 open={returnOpen}

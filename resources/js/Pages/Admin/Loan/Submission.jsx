@@ -142,11 +142,8 @@ export default function Submission({ submission }) {
     const alat = submission.alat;
     const bahan = submission.bahan;
     const primary = alat ?? bahan;
-    const members = (submission.package_members ?? submission.loans ?? []).filter(
-        Boolean,
-    );
-    const approveLoan = members.find((m) => m.can_approve);
-    const rejectLoan = members.find((m) => m.can_reject);
+    const canApprove = Boolean(submission.can_approve);
+    const canReject = Boolean(submission.can_reject);
 
     const typeKey = primary?.loan_type || primary?.queue_type_key;
     const typeLabel =
@@ -188,15 +185,15 @@ export default function Submission({ submission }) {
                     </Button>
 
                     <div className="flex flex-wrap items-center gap-2.5">
-                        {approveLoan ? (
+                        {canApprove ? (
                             <Button
                                 size="sm"
                                 className="h-8 bg-emerald-600 text-white hover:bg-emerald-700"
                                 onClick={() =>
                                     router.post(
                                         route(
-                                            "admin.loans.approve",
-                                            approveLoan.id,
+                                            "admin.loans.submission.approve",
+                                            submission.code,
                                         ),
                                         {},
                                         { preserveScroll: true },
@@ -207,7 +204,7 @@ export default function Submission({ submission }) {
                                 Setujui
                             </Button>
                         ) : null}
-                        {rejectLoan ? (
+                        {canReject ? (
                             <Button
                                 size="sm"
                                 variant="outline"
@@ -317,10 +314,13 @@ export default function Submission({ submission }) {
                 itemName={submission.code}
                 loading={rejectLoading}
                 onConfirm={(reason) => {
-                    if (!rejectLoan) return;
+                    if (!canReject) return;
                     setRejectLoading(true);
                     router.post(
-                        route("admin.loans.reject", rejectLoan.id),
+                        route(
+                            "admin.loans.submission.reject",
+                            submission.code,
+                        ),
                         { rejection_reason: reason },
                         {
                             preserveScroll: true,

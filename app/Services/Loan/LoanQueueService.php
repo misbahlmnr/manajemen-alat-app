@@ -5,6 +5,7 @@ namespace App\Services\Loan;
 use App\Models\Equipment;
 use App\Models\Loan;
 use App\Models\PracticumSchedule;
+use App\Models\Submission;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -235,6 +236,80 @@ class LoanQueueService
         return ! $this->slots()->hasShortage($loan, $exceptLoanIds, $includePending);
     }
 
+    /**
+     * When alat is blocking, bahan stays menunggu_alat; otherwise unlock to diminta/antrian.
+     */
+    public function syncBahanGateForSubmission(Submission $submission, ?User $actor = null): void
+    {
+        $submission->loadMissing('loans.items.equipment');
+
+        if ($submission->hasBlockingTool()) {
+            foreach ($submission->loans as $loan) {
+                if ($loan->item_type !== 'bahan') {
+                    continue;
+                }
+                if (! in_array($loan->status, ['diminta', 'antrian'], true)) {
+                    continue;
+                }
+
+                $loan->update([
+                    'status' => 'menunggu_alat',
+                    'queued_at' => null,
+                ]);
+
+                $this->workflow()->logStatus(
+                    $loan,
+                    'menunggu_alat',
+                    'Menunggu alat tersedia pada pengajuan yang sama.',
+                    $actor,
+                );
+            }
+
+            return;
+        }
+
+        foreach ($submission->loans as $loan) {
+            if ($loan->item_type !== 'bahan' || $loan->status !== 'menunggu_alat') {
+                continue;
+            }
+
+            $items = $loan->items->map(fn ($item) => [
+                'equipment_id' => $item->equipment_id,
+                'quantity' => $item->quantity,
+            ])->all();
+
+            $nextStatus = $this->resolveInitialStatus(
+                $items,
+                'bahan',
+                [
+                    'loan_type' => $loan->loan_type ?? 'praktikum',
+                    'item_type' => 'bahan',
+                    'request_date' => $loan->request_date?->format('Y-m-d'),
+                ],
+                $loan->id,
+            );
+
+            if ($nextStatus === 'antrian') {
+                $loan->update([
+                    'status' => 'antrian',
+                    'queued_at' => $loan->queued_at ?? now(),
+                ]);
+                $this->enqueue($loan->fresh(), $actor);
+            } else {
+                $loan->update([
+                    'status' => 'diminta',
+                    'queued_at' => null,
+                ]);
+                $this->workflow()->logStatus(
+                    $loan,
+                    'diminta',
+                    'Alat siap — bahan siap ditinjau admin.',
+                    $actor,
+                );
+            }
+        }
+    }
+
     public function promoteFromQueue(Loan $loan, ?User $actor = null, int|array|null $exceptLoanIds = null): bool
     {
         if ($loan->status !== 'antrian' || ! $this->allItemsAvailable($loan, $exceptLoanIds)) {
@@ -251,6 +326,13 @@ class LoanQueueService
         );
 
         app(\App\Services\Notification\LabNotificationService::class)->loanPromotedFromQueue($loan->fresh());
+
+        if ($loan->isAlat() && $loan->submission_id) {
+            $this->syncBahanGateForSubmission(
+                $loan->submission()->with('loans.items.equipment')->first() ?? $loan->submission,
+                $actor,
+            );
+        }
 
         return true;
     }
@@ -272,6 +354,13 @@ class LoanQueueService
 
         $this->enqueue($loan->fresh(), $actor);
         app(\App\Services\Notification\LabNotificationService::class)->loanMovedToQueue($loan->fresh());
+
+        if ($loan->isAlat() && $loan->submission_id) {
+            $this->syncBahanGateForSubmission(
+                Submission::query()->with('loans.items.equipment')->find($loan->submission_id) ?? $loan->submission,
+                $actor,
+            );
+        }
 
         return true;
     }

@@ -7,6 +7,10 @@ use App\Models\Submission;
 
 class SubmissionPresenter
 {
+    public function __construct(
+        private SubmissionDecisionService $decisions,
+    ) {}
+
     /**
      * @param  callable(Loan): array  $loanFormatter
      * @return array<string, mixed>
@@ -46,6 +50,9 @@ class SubmissionPresenter
             'created_at_formatted' => $submission->created_at?->translatedFormat('d M Y'),
             'status' => $submission->aggregateStatus(),
             'status_summary' => $submission->statusSummary(),
+            'has_blocking_tool' => $submission->hasBlockingTool(),
+            'can_approve' => $this->decisions->canApprove($submission),
+            'can_reject' => $this->decisions->canReject($submission),
             'alat_count' => $submission->alatItemCount(),
             'bahan_count' => $submission->bahanItemCount(),
             'has_alat' => (bool) $alat,

@@ -66,6 +66,7 @@ return [
     'loan_statuses' => [
         'diminta' => 'Menunggu Persetujuan',
         'antrian' => 'Antrian',
+        'menunggu_alat' => 'Menunggu Alat',
         'disetujui' => 'Disetujui',
         'ditolak' => 'Ditolak',
         'dipinjam' => 'Dipinjam',

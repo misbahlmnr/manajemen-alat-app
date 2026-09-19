@@ -26,6 +26,16 @@ class Submission extends Model
         ];
     }
 
+    /**
+     * Tool loan statuses that block the whole submission (extension point).
+     *
+     * @return list<string>
+     */
+    public static function blockingToolStatuses(): array
+    {
+        return ['antrian'];
+    }
+
     public function getRouteKeyName(): string
     {
         return 'code';
@@ -55,12 +65,12 @@ class Submission extends Model
 
     public function alatLoan(): ?Loan
     {
-        return $this->loans->firstWhere('item_type', 'alat');
+        return $this->loansCollection()->firstWhere('item_type', 'alat');
     }
 
     public function bahanLoan(): ?Loan
     {
-        return $this->loans->firstWhere('item_type', 'bahan');
+        return $this->loansCollection()->firstWhere('item_type', 'bahan');
     }
 
     public static function generateCode(): string
@@ -96,25 +106,69 @@ class Submission extends Model
         ]);
     }
 
+    /**
+     * True when any alat loan is in a blocking status (queue, future maintenance, etc.).
+     */
+    public function hasBlockingTool(): bool
+    {
+        return $this->loansCollection()
+            ->contains(fn (Loan $loan) => $loan->item_type === 'alat'
+                && in_array($loan->status, static::blockingToolStatuses(), true));
+    }
+
+    public function isCompleted(): bool
+    {
+        $loans = $this->loansCollection();
+
+        return $loans->isNotEmpty()
+            && $loans->every(fn (Loan $loan) => $this->loanIsFinishedForSubmission($loan));
+    }
+
+    public function isRejected(): bool
+    {
+        $loans = $this->loansCollection();
+
+        return $loans->isNotEmpty()
+            && $loans->every(fn (Loan $loan) => $loan->status === 'ditolak');
+    }
+
+    public function isCancelled(): bool
+    {
+        $loans = $this->loansCollection();
+
+        return $loans->isNotEmpty()
+            && $loans->every(fn (Loan $loan) => in_array($loan->status, ['dibatalkan', 'ditolak'], true));
+    }
+
+    /**
+     * UI-only aggregate label. Must not drive workflow guards.
+     */
     public function aggregateStatus(): string
     {
-        /** @var Collection<int, Loan> $loans */
-        $loans = $this->relationLoaded('loans') ? $this->loans : $this->loans()->get();
+        $loans = $this->loansCollection();
 
         if ($loans->isEmpty()) {
             return 'diminta';
         }
 
-        // Prioritas: Antrian > Dibatalkan > Selesai > Menunggu > Diproses
-        if ($loans->contains(fn (Loan $loan) => $loan->status === 'antrian')) {
+        if ($this->hasBlockingTool()
+            || $loans->contains(fn (Loan $loan) => $loan->status === 'antrian')) {
             return 'antrian';
+        }
+
+        if ($this->isCancelled() && ! $this->isRejected()) {
+            return 'dibatalkan';
+        }
+
+        if ($this->isRejected()) {
+            return 'dibatalkan';
         }
 
         if ($loans->every(fn (Loan $loan) => in_array($loan->status, ['dibatalkan', 'ditolak'], true))) {
             return 'dibatalkan';
         }
 
-        if ($loans->every(fn (Loan $loan) => $this->loanIsFinishedForSubmission($loan))) {
+        if ($this->isCompleted()) {
             return 'selesai';
         }
 
@@ -127,9 +181,7 @@ class Submission extends Model
 
     public function statusSummary(): string
     {
-        /** @var Collection<int, Loan> $loans */
-        $loans = $this->relationLoaded('loans') ? $this->loans : $this->loans()->get();
-
+        $loans = $this->loansCollection();
         $parts = [];
 
         foreach (['alat', 'bahan'] as $itemType) {
@@ -146,12 +198,15 @@ class Submission extends Model
     }
 
     /**
-     * Filter submission list by aggregated progress status (not raw loan status).
+     * Filter submission list by aggregated progress status (UI / archive only).
      */
     public function scopeWhereAggregateStatus($query, string $status)
     {
         return match ($status) {
-            'antrian' => $query->whereHas('loans', fn ($q) => $q->where('status', 'antrian')),
+            'antrian' => $query->where(function ($q) {
+                $q->whereHasBlockingTool()
+                    ->orWhereHas('loans', fn ($l) => $l->where('status', 'antrian'));
+            }),
             'diminta' => $query
                 ->whereHas('loans')
                 ->whereDoesntHave('loans', fn ($q) => $q->where('status', '!=', 'diminta')),
@@ -160,6 +215,7 @@ class Submission extends Model
                 ->whereDoesntHave('loans', fn ($q) => $q->whereNotIn('status', ['dibatalkan', 'ditolak'])),
             'selesai' => $query
                 ->whereHas('loans')
+                ->whereDoesntHaveBlockingTool()
                 ->whereDoesntHave('loans', fn ($q) => $q->where('status', 'antrian'))
                 ->whereDoesntHave('loans', function ($q) {
                     $q->where(function ($inner) {
@@ -174,6 +230,7 @@ class Submission extends Model
                 }),
             'diproses' => $query
                 ->whereHas('loans')
+                ->whereDoesntHaveBlockingTool()
                 ->whereDoesntHave('loans', fn ($q) => $q->where('status', 'antrian'))
                 ->whereHas('loans', fn ($q) => $q->where('status', '!=', 'diminta'))
                 ->whereHas('loans', fn ($q) => $q->whereNotIn('status', ['dibatalkan', 'ditolak']))
@@ -184,7 +241,7 @@ class Submission extends Model
                                 ->where('status', '!=', 'dikembalikan');
                         })->orWhere(function ($bahan) {
                             $bahan->where('item_type', 'bahan')
-                                ->whereNotIn('status', ['dipinjam', 'dikembalikan']);
+                                ->whereNotIn('status', ['dipinjam', 'dikembalikan', 'menunggu_alat']);
                         });
                     });
                 }),
@@ -192,19 +249,40 @@ class Submission extends Model
         };
     }
 
+    public function scopeWhereHasBlockingTool($query)
+    {
+        return $query->whereHas('loans', function ($q) {
+            $q->where('item_type', 'alat')
+                ->whereIn('status', static::blockingToolStatuses());
+        });
+    }
+
+    public function scopeWhereDoesntHaveBlockingTool($query)
+    {
+        return $query->whereDoesntHave('loans', function ($q) {
+            $q->where('item_type', 'alat')
+                ->whereIn('status', static::blockingToolStatuses());
+        });
+    }
+
     public function scopeNeedsAdminAction($query)
     {
-        return $query->whereHas('loans', fn ($q) => $q->whereIn('status', [
-            'diminta',
-            'disetujui',
-            'menunggu_inspeksi',
-            'terlambat',
-        ]));
+        return $query
+            ->whereDoesntHaveBlockingTool()
+            ->whereHas('loans', fn ($q) => $q->whereIn('status', [
+                'diminta',
+                'disetujui',
+                'menunggu_inspeksi',
+                'terlambat',
+            ]));
     }
 
     public function scopeInLoanQueue($query)
     {
-        return $query->whereHas('loans', fn ($q) => $q->where('status', 'antrian'));
+        return $query->where(function ($q) {
+            $q->whereHasBlockingTool()
+                ->orWhereHas('loans', fn ($l) => $l->where('status', 'antrian'));
+        });
     }
 
     public function scopeBookedOn($query, string $date)
@@ -241,11 +319,20 @@ class Submission extends Model
             return match ($loan->status) {
                 'dipinjam' => 'Diambil',
                 'dikembalikan' => 'Selesai',
+                'menunggu_alat' => 'Menunggu Alat',
                 default => config("lab.loan_statuses.{$loan->status}", $loan->status),
             };
         }
 
         return config("lab.loan_statuses.{$loan->status}", $loan->status);
+    }
+
+    /**
+     * @return Collection<int, Loan>
+     */
+    private function loansCollection(): Collection
+    {
+        return $this->relationLoaded('loans') ? $this->loans : $this->loans()->get();
     }
 
     public function alatItemCount(): int

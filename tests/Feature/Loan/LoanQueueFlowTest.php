@@ -41,6 +41,89 @@ class LoanQueueFlowTest extends TestCase
         $this->assertStringNotContainsString('Round Robin', session('success'));
     }
 
+    public function test_package_with_queued_alat_sets_bahan_menunggu_alat(): void
+    {
+        $siswa = $this->makeUser('siswa', 'siswa-gate');
+        $guru = $this->makeUser('guru', 'guru-gate');
+        $admin = $this->makeUser('admin', 'admin-gate');
+        $alat = $this->makeEquipment('alat', available: 0);
+        $bahan = $this->makeEquipment('bahan', available: 10);
+        $today = now()->toDateString();
+
+        $response = $this->actingAs($siswa)->post(route('siswa.loans.store-package'), [
+            'alat' => [
+                'supervisor_id' => $guru->id,
+                'item_type' => 'alat',
+                'loan_type' => 'pribadi',
+                'request_date' => $today,
+                'purpose' => 'Paket pribadi',
+                'notes' => 'Paket pribadi',
+                'borrow_scope' => 'lab',
+                'borrow_reason' => 'lanjutan',
+                'usage_room' => 'Ruang Assembly',
+                'due_at' => now()->setTime(17, 0)->format('Y-m-d\TH:i'),
+                'items' => [
+                    ['equipment_id' => $alat->id, 'quantity' => 1],
+                ],
+            ],
+            'bahan' => [
+                'item_type' => 'bahan',
+                'request_date' => $today,
+                'purpose' => 'Paket pribadi',
+                'notes' => 'Paket pribadi',
+                'items' => [
+                    ['equipment_id' => $bahan->id, 'quantity' => 1],
+                ],
+            ],
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $response->assertRedirect();
+
+        $loans = Loan::query()
+            ->where('borrower_id', $siswa->id)
+            ->with('submission')
+            ->orderBy('item_type')
+            ->get();
+
+        $alatLoan = $loans->firstWhere('item_type', 'alat');
+        $bahanLoan = $loans->firstWhere('item_type', 'bahan');
+        $submission = $alatLoan->submission;
+
+        $this->assertSame('antrian', $alatLoan->status);
+        $this->assertSame('menunggu_alat', $bahanLoan->status);
+        $this->assertTrue($submission->fresh()->load('loans')->hasBlockingTool());
+
+        $this->actingAs($admin)
+            ->get(route('admin.loans.index', ['scope' => 'action']))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('tabCounts.action', 0)
+            );
+
+        $this->actingAs($admin)
+            ->get(route('admin.loans.index', ['scope' => 'queue']))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->has('loans.data', 1)
+                ->where('loans.data.0.code', $submission->code)
+            );
+
+        $alat->update(['available' => 5, 'qty_baik' => 5, 'stock' => 5]);
+        app(\App\Services\Loan\LoanQueueService::class)
+            ->processQueueForEquipment($alat->id, $admin);
+
+        $this->assertSame('diminta', $alatLoan->fresh()->status);
+        $this->assertSame('diminta', $bahanLoan->fresh()->status);
+
+        $this->actingAs($admin)
+            ->post(route('admin.loans.submission.approve', $submission))
+            ->assertRedirect();
+
+        $this->assertSame('disetujui', $alatLoan->fresh()->status);
+        $this->assertSame('dipinjam', $bahanLoan->fresh()->status);
+    }
+
     public function test_siswa_can_submit_package_alat_and_bahan(): void
     {
         $siswa = $this->makeUser('siswa', 'siswa-pkg2');

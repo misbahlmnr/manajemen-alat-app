@@ -60,6 +60,8 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
     Route::resource('supplies', SupplyController::class);
     Route::resource('schedules', PracticumScheduleController::class);
     Route::get('loans/pengajuan/{submission}', [LoanController::class, 'showSubmission'])->name('loans.submission');
+    Route::post('loans/pengajuan/{submission}/approve', [LoanController::class, 'approveSubmission'])->name('loans.submission.approve');
+    Route::post('loans/pengajuan/{submission}/reject', [LoanController::class, 'rejectSubmission'])->name('loans.submission.reject');
     Route::resource('loans', LoanController::class)->except(['create', 'store', 'edit', 'update']);
     Route::post('loans/{loan}/approve', [LoanController::class, 'approve'])->name('loans.approve');
     Route::post('loans/{loan}/reject', [LoanController::class, 'reject'])->name('loans.reject');

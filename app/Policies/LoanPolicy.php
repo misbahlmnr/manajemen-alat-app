@@ -34,7 +34,7 @@ class LoanPolicy
     {
         return $user->isSiswa()
             && $loan->borrower_id === $user->id
-            && in_array($loan->status, ['diminta', 'antrian', 'disetujui'], true);
+            && in_array($loan->status, ['diminta', 'antrian', 'menunggu_alat', 'disetujui'], true);
     }
 
     public function delete(User $user, Loan $loan): bool
@@ -73,7 +73,7 @@ class LoanPolicy
     {
         return $user->isSiswa()
             && $loan->borrower_id === $user->id
-            && in_array($loan->status, ['diminta', 'antrian', 'disetujui'], true);
+            && in_array($loan->status, ['diminta', 'antrian', 'menunggu_alat', 'disetujui'], true);
     }
 
     public function requestReturn(User $user, Loan $loan): bool

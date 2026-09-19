@@ -109,6 +109,13 @@ class StudentLoanSubmissionService
             $loan->fresh(['borrower', 'supervisor', 'items.equipment', 'submission']),
         );
 
+        if ($loan->submission_id) {
+            $submission = $loan->submission()->with('loans.items.equipment')->first();
+            if ($submission) {
+                $this->queue->syncBahanGateForSubmission($submission, $user);
+            }
+        }
+
         return $loan->fresh();
     }
 

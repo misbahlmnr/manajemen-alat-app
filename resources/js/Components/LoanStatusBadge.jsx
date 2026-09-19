@@ -30,6 +30,7 @@ const tone = {
 const loanConfig = {
     diminta: { label: "Menunggu Persetujuan", ...tone.pending },
     antrian: { label: "Antrian", ...tone.warning },
+    menunggu_alat: { label: "Menunggu Alat", ...tone.neutral },
     disetujui: { label: "Disetujui", ...tone.success },
     ditolak: { label: "Ditolak", ...tone.danger },
     dipinjam: { label: "Dipinjam", ...tone.active },

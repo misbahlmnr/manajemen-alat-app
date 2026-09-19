@@ -18,7 +18,6 @@ import { useEffect, useRef, useState } from "react";
 import InspectReturnDialog from "../Collateral/Components/InspectReturnDialog";
 import LoanTable from "./Components/LoanTable";
 import LoanWorkList from "./Components/LoanWorkList";
-import RejectLoanDialog from "./Components/RejectLoanDialog";
 import ReturnLoanDialog from "./Components/ReturnLoanDialog";
 
 const SCOPE_TABS = [
@@ -78,10 +77,8 @@ export default function Index({
                 filters.date_to,
         ),
     );
-    const [rejectTarget, setRejectTarget] = useState(null);
     const [returnTarget, setReturnTarget] = useState(null);
     const [inspectTarget, setInspectTarget] = useState(null);
-    const [rejecting, setRejecting] = useState(false);
     const [returning, setReturning] = useState(false);
     const [inspecting, setInspecting] = useState(false);
 
@@ -136,22 +133,6 @@ export default function Index({
                 kelas: data.kelas,
             },
             { preserveState: false, replace: true },
-        );
-    };
-
-    const handleReject = (reason) => {
-        if (!rejectTarget) return;
-        setRejecting(true);
-        router.post(
-            route("admin.loans.reject", rejectTarget.id),
-            { rejection_reason: reason },
-            {
-                preserveScroll: true,
-                onFinish: () => {
-                    setRejecting(false);
-                    setRejectTarget(null);
-                },
-            },
         );
     };
 
@@ -339,7 +320,6 @@ export default function Index({
                         <LoanWorkList
                             items={list}
                             pagination={loans}
-                            onReject={setRejectTarget}
                             onReturn={setReturnTarget}
                             onInspect={setInspectTarget}
                         />
@@ -353,15 +333,6 @@ export default function Index({
                 )}
             </div>
 
-            <RejectLoanDialog
-                open={Boolean(rejectTarget)}
-                onOpenChange={(open) => {
-                    if (!open) setRejectTarget(null);
-                }}
-                itemName={rejectTarget?.code}
-                onConfirm={handleReject}
-                loading={rejecting}
-            />
             <ReturnLoanDialog
                 open={Boolean(returnTarget)}
                 onOpenChange={(open) => {
