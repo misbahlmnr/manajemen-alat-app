@@ -82,7 +82,6 @@ class LoanSeeder extends Seeder
             $submissions->create([
                 'item_type' => 'alat',
                 'loan_type' => 'pribadi',
-                'supervisor_id' => $maryadi->id,
                 'request_date' => $praktikDate->toDateString(),
                 'purpose' => 'Peminjaman pribadi',
                 'notes' => 'Latihan mandiri di lab.',
