@@ -9,8 +9,8 @@ export default function LoanWorkList({
     onInspect,
 }) {
     return (
-        <div className="space-y-3">
-            <div className="mx-auto w-full max-w-4xl space-y-3">
+        <div className="space-y-2">
+            <div className="mx-auto w-full max-w-3xl space-y-2">
                 {(items ?? []).map((submission) => (
                     <LoanWorkCard
                         key={submission.id ?? submission.code}
@@ -21,7 +21,7 @@ export default function LoanWorkList({
                     />
                 ))}
             </div>
-            <div className="mx-auto w-full max-w-4xl">
+            <div className="mx-auto w-full max-w-3xl">
                 <DataPagination pagination={pagination} />
             </div>
         </div>
