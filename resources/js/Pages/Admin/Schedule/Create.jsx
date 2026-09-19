@@ -6,13 +6,17 @@ import ScheduleForm from "./Components/ScheduleForm";
 
 export default function Create({
     guruOptions,
+    siswaOptions = [],
+    equipmentOptions = [],
     kelasOptions,
     subjectOptions,
     dayOptions,
     typeOptions,
+    kindOptions = {},
     labRoomOptions = [],
 }) {
     const { data, setData, post, processing, errors } = useForm({
+        schedule_kind: "praktikum",
         title: "",
         mata_kuliah: "",
         kelas: "",
@@ -23,6 +27,9 @@ export default function Create({
         jam_selesai: "10:00",
         ruangan: "",
         guru_id: "",
+        penanggung_jawab_id: "",
+        participant_ids: [],
+        items: [],
         priority: "normal",
         notes: "",
     });
@@ -34,12 +41,12 @@ export default function Create({
 
     return (
         <AppLayout>
-            <Head title="Tambah Jadwal Praktikum" />
+            <Head title="Tambah Jadwal" />
 
             <div className="animate-fade-in mx-auto max-w-3xl">
                 <PageHeader
                     title="Tambah Jadwal"
-                    subtitle="Buat jadwal mingguan atau acara khusus untuk kelas TAV."
+                    subtitle="Buat jadwal praktik lab atau event lomba."
                 />
 
                 <form onSubmit={submit} className="space-y-6">
@@ -49,10 +56,13 @@ export default function Create({
                         errors={errors}
                         processing={processing}
                         guruOptions={guruOptions}
+                        siswaOptions={siswaOptions}
+                        equipmentOptions={equipmentOptions}
                         kelasOptions={kelasOptions}
                         subjectOptions={subjectOptions}
                         dayOptions={dayOptions}
                         typeOptions={typeOptions}
+                        kindOptions={kindOptions}
                         labRoomOptions={labRoomOptions}
                     />
 

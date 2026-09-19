@@ -7,13 +7,17 @@ import ScheduleForm from "./Components/ScheduleForm";
 export default function Edit({
     schedule,
     guruOptions,
+    siswaOptions = [],
+    equipmentOptions = [],
     kelasOptions,
     subjectOptions,
     dayOptions,
     typeOptions,
+    kindOptions = {},
     labRoomOptions = [],
 }) {
     const { data, setData, put, processing, errors } = useForm({
+        schedule_kind: schedule.schedule_kind || "praktikum",
         title: schedule.title,
         mata_kuliah: schedule.mata_kuliah,
         kelas: schedule.kelas,
@@ -24,6 +28,14 @@ export default function Edit({
         jam_selesai: schedule.jam_selesai,
         ruangan: schedule.ruangan ?? "",
         guru_id: String(schedule.guru_id),
+        penanggung_jawab_id: schedule.penanggung_jawab_id
+            ? String(schedule.penanggung_jawab_id)
+            : "",
+        participant_ids: schedule.participant_ids ?? [],
+        items: (schedule.items ?? []).map((row) => ({
+            equipment_id: String(row.equipment_id),
+            quantity: row.quantity,
+        })),
         priority: schedule.priority,
         notes: schedule.notes ?? "",
     });
@@ -38,10 +50,7 @@ export default function Edit({
             <Head title={`Edit ${schedule.title}`} />
 
             <div className="animate-fade-in">
-                <PageHeader
-                    title="Edit Jadwal"
-                    subtitle={schedule.code}
-                />
+                <PageHeader title="Edit Jadwal" subtitle={schedule.code} />
 
                 <form onSubmit={submit} className="space-y-6">
                     <ScheduleForm
@@ -50,10 +59,13 @@ export default function Edit({
                         errors={errors}
                         processing={processing}
                         guruOptions={guruOptions}
+                        siswaOptions={siswaOptions}
+                        equipmentOptions={equipmentOptions}
                         kelasOptions={kelasOptions}
                         subjectOptions={subjectOptions}
                         dayOptions={dayOptions}
                         typeOptions={typeOptions}
+                        kindOptions={kindOptions}
                         labRoomOptions={labRoomOptions}
                     />
 

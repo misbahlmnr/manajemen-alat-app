@@ -42,10 +42,11 @@ class DatabaseSeeder extends Seeder
 
         $siswa = [
             ['name' => 'Patmawati', 'username' => 'patmawati', 'class' => 'XI TAV 1'],
-            ['name' => 'Santi', 'username' => 'santi', 'class' => 'XII TAV 1'],
-            ['name' => 'Misbah', 'username' => 'misbah', 'class' => 'XII TAV 1'],
+            ['name' => 'Misbah', 'username' => 'misbah', 'class' => 'XI TAV 1'],
+            ['name' => 'Santi', 'username' => 'santi', 'class' => 'XI TAV 1'],
             ['name' => 'Azka', 'username' => 'azka', 'class' => 'XII TAV 3'],
             ['name' => 'Azki', 'username' => 'azki', 'class' => 'XII TAV 3'],
+            ['name' => 'Citra', 'username' => 'citra', 'class' => 'X TE 1'],
         ];
 
         foreach ($siswa as $index => $murid) {
@@ -67,6 +68,8 @@ class DatabaseSeeder extends Seeder
             AngkatanOptionSeeder::class,
             EquipmentSeeder::class,
             SupplySeeder::class,
+            ScheduleSeeder::class,
+            LoanSeeder::class,
         ]);
     }
 }

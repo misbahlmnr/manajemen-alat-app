@@ -18,6 +18,7 @@ class LoanSlotAvailabilityService
 
         [$start, $end] = $this->windowFromContext([
             'item_type' => $loan->item_type,
+            'loan_type' => $loan->resolvedLoanType(),
             'borrow_scope' => $loan->borrow_scope,
             'borrow_reason' => $loan->borrow_reason,
             'request_date' => $loan->request_date?->toDateString(),
@@ -44,8 +45,11 @@ class LoanSlotAvailabilityService
     {
         $timezone = PracticumSchedule::schoolTimezone();
         $date = $this->contextDate($context);
-        $scope = $context['borrow_scope'] ?? 'lab';
-        $reason = $context['borrow_reason'] ?? 'reguler';
+        $loanType = $context['loan_type']
+            ?? Loan::resolveTypeFromLegacy(
+                $context['borrow_scope'] ?? null,
+                $context['borrow_reason'] ?? null,
+            );
         $open = $this->labOpenTime();
         $close = $this->schoolCloseTime();
 
@@ -53,7 +57,7 @@ class LoanSlotAvailabilityService
             $schedule = PracticumSchedule::query()->find($context['practicum_schedule_id']);
         }
 
-        if ($scope === 'bawa_pulang') {
+        if (in_array($loanType, ['bawa_pulang', 'lomba'], true)) {
             $closeAt = Carbon::parse($date.' '.$close, $timezone);
             $openAt = Carbon::parse($date.' '.$open, $timezone);
             $today = PracticumSchedule::inSchoolTimezone()->toDateString();
@@ -80,9 +84,7 @@ class LoanSlotAvailabilityService
             return [$start, $end];
         }
 
-        $isPribadi = $reason === 'lanjutan';
-
-        if (! $isPribadi && $schedule?->jam_mulai && $schedule?->jam_selesai) {
+        if ($loanType === 'praktikum' && $schedule?->jam_mulai && $schedule?->jam_selesai) {
             return [
                 Carbon::parse($date.' '.$this->normalizeTime($schedule->jam_mulai), $timezone),
                 Carbon::parse($date.' '.$this->normalizeTime($schedule->jam_selesai), $timezone),
@@ -190,11 +192,11 @@ class LoanSlotAvailabilityService
 
     private function slotKindFor(Loan $loan): string
     {
-        if ($loan->borrow_scope === 'bawa_pulang') {
+        if ($loan->isBawaPulang() || $loan->isLomba()) {
             return 'take_home';
         }
 
-        if ($loan->isCatchUp() || ($loan->borrow_scope === 'lab' && $loan->borrow_reason === 'lanjutan')) {
+        if ($loan->isPribadi()) {
             return 'lab_hours';
         }
 
@@ -202,44 +204,13 @@ class LoanSlotAvailabilityService
     }
 
     /**
-     * Jam selesai praktikum terakhir yang memakai barang loan ini di hari ambil.
+     * @deprecated Handover tidak lagi menunggu akhir praktikum.
      */
     public function lastPraktikumEndFor(Loan $loan): ?Carbon
     {
-        $loan->loadMissing('items');
-        $equipmentIds = $loan->items->pluck('equipment_id')->filter()->unique()->all();
-        $date = $loan->request_date?->toDateString();
+        unset($loan);
 
-        if ($equipmentIds === [] || $date === null) {
-            return null;
-        }
-
-        $praktikum = Loan::query()
-            ->where('item_type', 'alat')
-            ->where('borrow_scope', 'lab')
-            ->where('borrow_reason', 'reguler')
-            ->whereDate('request_date', $date)
-            ->whereIn('status', Loan::SLOT_OCCUPYING_STATUSES)
-            ->whereKeyNot($loan->id)
-            ->whereHas('items', fn ($q) => $q->whereIn('equipment_id', $equipmentIds))
-            ->with('schedule')
-            ->get();
-
-        $latest = null;
-
-        foreach ($praktikum as $praktikumLoan) {
-            if (! $praktikumLoan->isPakaiDiLab()) {
-                continue;
-            }
-
-            [, $end] = $this->windowFor($praktikumLoan);
-
-            if ($latest === null || $end->gt($latest)) {
-                $latest = $end;
-            }
-        }
-
-        return $latest;
+        return null;
     }
 
     public function canHandOver(Loan $loan, ?Carbon $at = null): bool
@@ -249,22 +220,10 @@ class LoanSlotAvailabilityService
 
     public function handoverBlockedReason(Loan $loan, ?Carbon $at = null): ?string
     {
-        if (! $loan->isAlat() || $loan->borrow_scope !== 'bawa_pulang') {
-            return null;
-        }
+        unset($loan, $at);
 
-        if ($loan->isBawaPulangLomba()) {
-            return null;
-        }
-
-        $at = $at ? PracticumSchedule::inSchoolTimezone($at) : PracticumSchedule::inSchoolTimezone();
-        $end = $this->lastPraktikumEndFor($loan);
-
-        if ($end === null || $at->gte($end)) {
-            return null;
-        }
-
-        return 'Tunggu praktikum terakhir barang ini selesai pukul '.$end->format('H:i');
+        // Serah terima tidak lagi diblokir menunggu praktikum selesai.
+        return null;
     }
 
     /**

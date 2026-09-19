@@ -26,52 +26,58 @@ class StoreStudentLoanRequest extends FormRequest
         }
 
         $isAlat = $this->input('item_type') === 'alat';
-        $bawaPulang = $this->input('borrow_scope') === 'bawa_pulang';
-        $isPribadi = $isAlat && ! $bawaPulang && $this->input('borrow_reason') === 'lanjutan';
+        $loanType = $this->resolveIncomingLoanType($isAlat);
 
         $merge = [
             'items' => $items,
             'borrower_id' => $this->user()->id,
+            'loan_type' => $isAlat ? $loanType : null,
         ];
 
-        if (! $isAlat || ! $bawaPulang) {
+        if ($isAlat && $loanType) {
+            $legacy = Loan::legacyFieldsForType($loanType);
+            $merge['borrow_scope'] = $legacy['borrow_scope'];
+            $merge['borrow_reason'] = $legacy['borrow_reason'];
+        }
+
+        $isPribadi = $loanType === 'pribadi';
+        $isBawaPulang = $loanType === 'bawa_pulang';
+        $isPraktikum = $loanType === 'praktikum';
+
+        if (! $isAlat || ! $isBawaPulang) {
             $merge['collateral_agreed'] = null;
         }
 
-        if (! $this->filled('practicum_schedule_id') || $isPribadi) {
+        if (! $this->filled('practicum_schedule_id') || $isPribadi || $isBawaPulang) {
             $merge['practicum_schedule_id'] = null;
         }
 
         if (! $isAlat) {
             $merge['borrow_reason'] = null;
-        } elseif ($bawaPulang && ! $this->filled('borrow_reason')) {
-            $merge['borrow_reason'] = 'lanjutan';
-        } elseif (! $bawaPulang && ! $this->filled('borrow_reason')) {
-            $merge['borrow_reason'] = 'reguler';
+            $merge['borrow_scope'] = 'lab';
+            $merge['group_member_count'] = null;
         }
 
-        if (! $isAlat || $bawaPulang) {
-            $merge['usage_room'] = null;
-        } elseif (! $this->filled('usage_room')) {
+        if (! $isPraktikum) {
+            $merge['group_member_count'] = null;
+        }
+
+        if (! $isAlat || $isBawaPulang) {
             $merge['usage_room'] = null;
         }
 
-        if (! $isAlat || $isPribadi || ($bawaPulang && ! $this->filled('practicum_schedule_id'))) {
+        if (! $isAlat || $isPribadi || ($isBawaPulang && ! $this->filled('practicum_schedule_id'))) {
             $merge['supervisor_id'] = null;
         }
 
-        if (
-            $isAlat
-            && ! $isPribadi
-            && $this->filled('practicum_schedule_id')
-        ) {
+        if ($isAlat && $isPraktikum && $this->filled('practicum_schedule_id')) {
             $schedule = PracticumSchedule::query()->find($this->input('practicum_schedule_id'));
 
             if ($schedule?->guru_id) {
                 $merge['supervisor_id'] = $schedule->guru_id;
             }
 
-            if (! $bawaPulang && filled($schedule?->ruangan)) {
+            if (filled($schedule?->ruangan)) {
                 $merge['usage_room'] = $schedule->ruangan;
             }
         }
@@ -79,15 +85,36 @@ class StoreStudentLoanRequest extends FormRequest
         $this->merge($merge);
     }
 
+    private function resolveIncomingLoanType(bool $isAlat): ?string
+    {
+        if (! $isAlat) {
+            return null;
+        }
+
+        $explicit = $this->input('loan_type');
+        if (in_array($explicit, ['praktikum', 'pribadi', 'bawa_pulang'], true)) {
+            return $explicit;
+        }
+
+        // Reject legacy lomba submits from students.
+        if ($this->input('borrow_scope') === 'bawa_pulang' && $this->input('borrow_reason') === 'lomba') {
+            return 'lomba';
+        }
+
+        return Loan::resolveTypeFromLegacy(
+            $this->input('borrow_scope'),
+            $this->input('borrow_reason'),
+        );
+    }
+
     public function rules(): array
     {
         $isAlat = $this->input('item_type') === 'alat';
-        $bawaPulang = $this->input('borrow_scope') === 'bawa_pulang';
-        $isLab = $isAlat && ! $bawaPulang;
-        $isLabReguler = $isLab && $this->input('borrow_reason') === 'reguler';
-        $isPribadi = $isLab && $this->input('borrow_reason') === 'lanjutan';
-        $supervisorRequired = $isLabReguler
-            || ($isAlat && $bawaPulang && $this->filled('practicum_schedule_id'));
+        $loanType = $this->input('loan_type');
+        $isBawaPulang = $loanType === 'bawa_pulang';
+        $isPraktikum = $loanType === 'praktikum';
+        $isPribadi = $loanType === 'pribadi';
+        $supervisorRequired = $isPraktikum;
         $roomOptions = config('lab.lab_room_options', []);
 
         if ($this->filled('practicum_schedule_id')) {
@@ -111,11 +138,15 @@ class StoreStudentLoanRequest extends FormRequest
                 Rule::exists(User::class, 'id')->where('role', 'guru'),
             ],
             'practicum_schedule_id' => [
-                $isLabReguler ? 'required' : 'nullable',
+                $isPraktikum ? 'required' : 'nullable',
                 'integer',
                 Rule::exists('practicum_schedules', 'id'),
             ],
             'item_type' => ['required', Rule::in(['alat', 'bahan'])],
+            'loan_type' => [
+                $isAlat ? 'required' : 'nullable',
+                Rule::in(['praktikum', 'pribadi', 'bawa_pulang']),
+            ],
             'request_date' => ['required', 'date', 'after_or_equal:'.$today, 'before_or_equal:'.$maxDate],
             'due_at' => [$isAlat ? 'required' : 'nullable', 'date', 'after_or_equal:request_date'],
             'purpose' => ['required', 'string', 'max:255'],
@@ -126,20 +157,24 @@ class StoreStudentLoanRequest extends FormRequest
             ],
             'borrow_reason' => [
                 $isAlat ? 'required' : 'nullable',
-                $bawaPulang
-                    ? Rule::in(['lomba', 'lanjutan'])
-                    : Rule::in(['reguler', 'lanjutan']),
+                Rule::in(['reguler', 'lanjutan']),
+            ],
+            'group_member_count' => [
+                'nullable',
+                'integer',
+                'min:1',
+                'max:50',
             ],
             'usage_room' => [
-                Rule::requiredIf($isLab),
+                Rule::requiredIf($isPraktikum || $isPribadi),
                 'nullable',
                 'string',
                 'max:100',
                 Rule::in($roomOptions),
             ],
             'collateral_agreed' => [
-                Rule::excludeIf(fn () => ! $isAlat || ! $bawaPulang),
-                Rule::requiredIf($isAlat && $bawaPulang),
+                Rule::excludeIf(fn () => ! $isAlat || ! $isBawaPulang),
+                Rule::requiredIf($isAlat && $isBawaPulang),
                 'accepted',
             ],
             'items' => ['required', 'array', 'min:1'],
@@ -154,12 +189,14 @@ class StoreStudentLoanRequest extends FormRequest
             'supervisor_id' => 'guru pembimbing',
             'practicum_schedule_id' => 'mata pelajaran',
             'item_type' => 'jenis barang',
+            'loan_type' => 'jenis peminjaman',
             'request_date' => 'tanggal pemakaian',
             'due_at' => 'batas pengembalian',
             'purpose' => 'catatan',
             'notes' => 'catatan',
             'borrow_scope' => 'kebutuhan penggunaan',
             'borrow_reason' => 'kebutuhan penggunaan',
+            'group_member_count' => 'jumlah anggota kelompok',
             'usage_room' => 'lokasi ruang/lab',
             'collateral_agreed' => 'pemahaman jaminan kartu',
             'items' => 'item peminjaman',
@@ -173,6 +210,7 @@ class StoreStudentLoanRequest extends FormRequest
             'practicum_schedule_id.required' => 'Pilih mata pelajaran dari jadwal di tanggal yang dipilih.',
             'usage_room.required' => 'Pilih lokasi ruang/lab.',
             'usage_room.in' => 'Lokasi ruang/lab tidak valid.',
+            'loan_type.in' => 'Jenis peminjaman tidak valid. Lomba diajukan melalui event admin.',
         ];
     }
 
@@ -180,6 +218,14 @@ class StoreStudentLoanRequest extends FormRequest
     {
         $validator->after(function (Validator $validator) {
             $itemType = $this->input('item_type');
+            $loanType = $this->input('loan_type');
+
+            if ($itemType === 'alat' && $loanType === 'lomba') {
+                $validator->errors()->add(
+                    'loan_type',
+                    'Peminjaman lomba dibuat oleh admin melalui Event Lomba.',
+                );
+            }
 
             foreach ($this->input('items', []) as $row) {
                 $equipment = Equipment::query()->find($row['equipment_id'] ?? null);
@@ -198,12 +244,19 @@ class StoreStudentLoanRequest extends FormRequest
                 return;
             }
 
-            $bawaPulang = $this->input('borrow_scope') === 'bawa_pulang';
-            $borrowReason = $this->input('borrow_reason');
+            $isBawaPulang = $loanType === 'bawa_pulang';
+            $isPraktikum = $loanType === 'praktikum';
 
             if ($this->filled('practicum_schedule_id')) {
                 $schedule = PracticumSchedule::query()->find($this->input('practicum_schedule_id'));
                 $class = $this->user()?->class;
+
+                if ($schedule && ($schedule->schedule_kind ?? 'praktikum') === 'lomba') {
+                    $validator->errors()->add(
+                        'practicum_schedule_id',
+                        'Jadwal event lomba tidak dapat dipilih dari pengajuan siswa.',
+                    );
+                }
 
                 if ($schedule && $class && $schedule->kelas !== $class) {
                     $validator->errors()->add(
@@ -213,20 +266,7 @@ class StoreStudentLoanRequest extends FormRequest
                 }
 
                 if (
-                    $bawaPulang
-                    && $schedule
-                    && $this->filled('request_date')
-                    && ! $schedule->matchesRequestDate($this->input('request_date'))
-                ) {
-                    $validator->errors()->add(
-                        'practicum_schedule_id',
-                        'Mata pelajaran harus sesuai tanggal pemakaian yang dipilih.',
-                    );
-                }
-
-                if (
-                    ! $bawaPulang
-                    && $borrowReason === 'reguler'
+                    $isPraktikum
                     && $schedule
                     && $this->filled('request_date')
                     && ! $schedule->matchesRequestDate($this->input('request_date'))
@@ -238,8 +278,7 @@ class StoreStudentLoanRequest extends FormRequest
                 }
 
                 if (
-                    ! $bawaPulang
-                    && $borrowReason === 'reguler'
+                    $isPraktikum
                     && $schedule
                     && $this->filled('request_date')
                     && Carbon::parse($this->input('request_date'))->isToday()
@@ -256,7 +295,7 @@ class StoreStudentLoanRequest extends FormRequest
                     && $this->filled('supervisor_id')
                     && $schedule->guru_id
                     && (int) $schedule->guru_id !== (int) $this->input('supervisor_id')
-                    && ($bawaPulang || $borrowReason === 'reguler')
+                    && $isPraktikum
                 ) {
                     $validator->errors()->add(
                         'supervisor_id',
@@ -266,8 +305,7 @@ class StoreStudentLoanRequest extends FormRequest
 
                 if (
                     $schedule
-                    && ! $bawaPulang
-                    && $borrowReason === 'reguler'
+                    && $isPraktikum
                     && filled($schedule->ruangan)
                     && $this->filled('usage_room')
                     && $schedule->ruangan !== $this->input('usage_room')
@@ -279,12 +317,10 @@ class StoreStudentLoanRequest extends FormRequest
                 }
             }
 
-            $isPakaiDiLab = ! $bawaPulang && $borrowReason !== 'lanjutan';
-
             if (
                 $this->isMethod('post')
                 && $this->filled('due_at')
-                && ! $isPakaiDiLab
+                && ! $isPraktikum
                 && Carbon::parse($this->input('due_at'))->lte(now())
             ) {
                 $validator->errors()->add(
@@ -293,8 +329,9 @@ class StoreStudentLoanRequest extends FormRequest
                 );
             }
 
-            if ($this->filled('due_at') && ! $isPakaiDiLab) {
+            if ($this->filled('due_at') && ! $isPraktikum) {
                 $loan = new Loan([
+                    'loan_type' => $loanType,
                     'borrow_scope' => $this->input('borrow_scope', 'lab'),
                     'borrow_reason' => $this->input('borrow_reason'),
                     'request_date' => $this->input('request_date'),
@@ -316,7 +353,7 @@ class StoreStudentLoanRequest extends FormRequest
                 if (Carbon::parse($this->input('due_at'))->gt($sliceEnd)) {
                     $validator->errors()->add(
                         'due_at',
-                        $this->timeSliceExceededMessage($bawaPulang, $sliceEnd),
+                        $this->timeSliceExceededMessage($isBawaPulang, $sliceEnd),
                     );
                 }
             }

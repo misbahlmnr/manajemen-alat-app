@@ -13,10 +13,18 @@ use Illuminate\Validation\ValidationException;
 class LoanQueueService
 {
     /**
-     * Validasi item pengajuan tanpa menolak stok habis (masuk antrian).
+     * Validasi item pengajuan. Untuk non-pribadi (kecuali bawa_pulang), stok kurang = error.
+     * Bawa Pulang: stok dicek saat approve (reservasi), bukan di submit.
      */
-    public function validateItemsForSubmit(array $items, string $itemType, ?int $borrowerId = null): void
-    {
+    public function validateItemsForSubmit(
+        array $items,
+        string $itemType,
+        ?int $borrowerId = null,
+        ?string $loanType = null,
+    ): void {
+        $allowsQueue = $itemType === 'bahan' || $loanType === 'pribadi';
+        $skipRealtimeStock = $loanType === 'bawa_pulang';
+
         foreach ($items as $row) {
             $equipment = Equipment::query()->find($row['equipment_id'] ?? null);
 
@@ -45,21 +53,47 @@ class LoanQueueService
                     ]);
                 }
             }
+
+            if (! $allowsQueue && ! $skipRealtimeStock && $equipment->available < (int) $row['quantity']) {
+                throw ValidationException::withMessages([
+                    'items' => "Stok {$equipment->name} tidak mencukupi (tersedia: {$equipment->available}).",
+                ]);
+            }
         }
     }
 
     /**
-     * Status awal: diminta (stok cukup) atau antrian (stok kurang) — alat & bahan.
+     * Status awal: diminta (stok cukup) atau antrian (hanya pribadi + stok kurang).
+     * Bawa Pulang selalu diminta — stok dialokasikan saat approve (reservasi).
      *
      * @param  array<string, mixed>  $context
      */
     public function resolveInitialStatus(array $items, string $itemType, array $context = [], ?int $exceptLoanId = null): string
     {
-        return $this->hasStockShortage($items, $itemType, $context, $exceptLoanId) ? 'antrian' : 'diminta';
+        $loanType = $context['loan_type']
+            ?? Loan::resolveTypeFromLegacy($context['borrow_scope'] ?? null, $context['borrow_reason'] ?? null);
+
+        if ($loanType === 'bawa_pulang') {
+            return 'diminta';
+        }
+
+        $shortage = $this->hasStockShortage($items, $itemType, $context, $exceptLoanId);
+
+        if (! $shortage) {
+            return 'diminta';
+        }
+
+        if ($loanType === 'pribadi' || $itemType === 'bahan') {
+            return 'antrian';
+        }
+
+        throw ValidationException::withMessages([
+            'items' => 'Stok alat tidak mencukupi. Jenis peminjaman ini tidak menggunakan antrian.',
+        ]);
     }
 
     /**
-     * Gusur loan diminta yang skornya lebih rendah jika slot tabrakan tidak muat.
+     * @deprecated Preempt lintas tipe dihapus; selalu return [].
      *
      * @param  array<int, array{equipment_id: mixed, quantity?: mixed}>  $items
      * @param  array<string, mixed>  $context
@@ -67,102 +101,7 @@ class LoanQueueService
      */
     public function preemptLowerPriorityDiminta(array $items, string $itemType, array $context, ?int $exceptLoanId = null): array
     {
-        if ($itemType !== 'alat' || ! $this->hasStockShortage($items, $itemType, $context, $exceptLoanId)) {
-            return [];
-        }
-
-        $equipmentIds = collect($items)
-            ->map(fn (array $row) => (int) ($row['equipment_id'] ?? 0))
-            ->filter()
-            ->unique()
-            ->values()
-            ->all();
-
-        if ($equipmentIds === []) {
-            return [];
-        }
-
-        $incomingScore = $this->scoreFromContext($context);
-        [$incomingStart, $incomingEnd] = $this->slots()->windowFromContext($context);
-
-        $candidates = Loan::query()
-            ->where('status', 'diminta')
-            ->where('item_type', 'alat')
-            ->when($exceptLoanId, fn ($q) => $q->whereKeyNot($exceptLoanId))
-            ->whereHas('items', fn ($q) => $q->whereIn('equipment_id', $equipmentIds))
-            ->with(['items', 'schedule'])
-            ->get()
-            ->filter(function (Loan $loan) use ($incomingScore, $incomingStart, $incomingEnd, $equipmentIds) {
-                if ($this->effectiveSortScore($loan) >= $incomingScore) {
-                    return false;
-                }
-
-                $sharesItem = $loan->items->contains(
-                    fn ($item) => in_array((int) $item->equipment_id, $equipmentIds, true)
-                );
-
-                if (! $sharesItem) {
-                    return false;
-                }
-
-                [$start, $end] = $this->slots()->windowFor($loan);
-
-                return $incomingStart->lt($end) && $start->lt($incomingEnd);
-            })
-            ->sort(function (Loan $a, Loan $b) {
-                $scoreDiff = $this->effectiveSortScore($a) <=> $this->effectiveSortScore($b);
-
-                if ($scoreDiff !== 0) {
-                    return $scoreDiff;
-                }
-
-                $timeDiff = ($b->created_at ?? now()) <=> ($a->created_at ?? now());
-
-                if ($timeDiff !== 0) {
-                    return $timeDiff;
-                }
-
-                return $b->id <=> $a->id;
-            })
-            ->values();
-
-        $demoted = [];
-
-        foreach ($candidates as $loan) {
-            if (! $this->hasStockShortage($items, $itemType, $context, $exceptLoanId)) {
-                break;
-            }
-
-            if ($this->demoteToQueue($loan)) {
-                $demoted[] = $loan->fresh();
-            }
-        }
-
-        return $demoted;
-    }
-
-    /**
-     * @param  array<string, mixed>  $context
-     */
-    public function scoreFromContext(array $context): int
-    {
-        $itemType = $context['item_type'] ?? 'alat';
-
-        if ($itemType !== 'alat') {
-            return 0;
-        }
-
-        $scope = $context['borrow_scope'] ?? 'lab';
-        $reason = $context['borrow_reason'] ?? 'reguler';
-
-        $key = match (true) {
-            $scope === 'bawa_pulang' && $reason === 'lomba' => 'bawa_pulang_lomba',
-            $scope === 'bawa_pulang' => 'bawa_pulang_project',
-            $reason === 'lanjutan' => 'pribadi',
-            default => 'praktikum',
-        };
-
-        return (int) config("lab.queue.type_scores.{$key}", 0);
+        return [];
     }
 
     /**
@@ -179,6 +118,7 @@ class LoanQueueService
         }
 
         return $itemType === 'alat'
+            && ($context['loan_type'] ?? null) === 'pribadi'
             && $this->queuedAheadBlocksDraft($items, $context, $exceptLoanId);
     }
 
@@ -186,6 +126,12 @@ class LoanQueueService
     {
         if ($loan->status !== 'antrian') {
             return;
+        }
+
+        if (! $loan->allowsQueue() && $loan->isAlat()) {
+            throw ValidationException::withMessages([
+                'status' => 'Hanya peminjaman pribadi yang dapat masuk antrian.',
+            ]);
         }
 
         $loan->update([
@@ -207,26 +153,55 @@ class LoanQueueService
     }
 
     /**
-     * Skor antrian otomatis dari tipe peminjaman (bahan = 0 / FIFO).
+     * Skor urutan antrian = prioritas manual admin.
      */
     public function effectiveSortScore(Loan $loan): int
     {
-        $key = $loan->queueTypeKey();
+        return (int) ($loan->queue_priority ?? 0);
+    }
 
-        if ($key === null) {
-            return 0;
+    public function setQueuePriority(Loan $loan, int $priority, ?User $actor = null, ?string $note = null): void
+    {
+        if ($loan->status !== 'antrian') {
+            throw ValidationException::withMessages([
+                'queue_priority' => 'Prioritas hanya dapat diatur untuk pengajuan berstatus antrian.',
+            ]);
         }
 
-        return (int) config("lab.queue.type_scores.{$key}", 0);
+        if ($loan->isAlat() && ! $loan->isPribadi()) {
+            throw ValidationException::withMessages([
+                'queue_priority' => 'Prioritas antrian hanya untuk peminjaman pribadi.',
+            ]);
+        }
+
+        $loan->update([
+            'queue_priority' => max(0, $priority),
+            'queue_priority_note' => $note,
+            'queue_priority_set_by' => $actor?->id,
+            'queue_priority_set_at' => now(),
+        ]);
     }
 
     /**
-     * Antrian per barang: skor tipe DESC, jadwal praktikum terdekat, lalu FIFO.
+     * Antrian per barang: queue_priority DESC, queued_at ASC, id ASC.
      */
     public function queuedLoansForEquipment(int $equipmentId): Collection
     {
         return Loan::query()
             ->where('status', 'antrian')
+            ->where(function ($q) {
+                $q->where('loan_type', 'pribadi')
+                    ->orWhere(function ($inner) {
+                        $inner->where('item_type', 'bahan');
+                    })
+                    ->orWhere(function ($legacy) {
+                        // Legacy rows tanpa loan_type: pribadi = lab + lanjutan
+                        $legacy->whereNull('loan_type')
+                            ->where('item_type', 'alat')
+                            ->where('borrow_scope', 'lab')
+                            ->where('borrow_reason', 'lanjutan');
+                    });
+            })
             ->whereHas('items', fn ($q) => $q->where('equipment_id', $equipmentId))
             ->with(['items', 'borrower:id,name', 'schedule'])
             ->get()
@@ -260,9 +235,6 @@ class LoanQueueService
         return ! $this->slots()->hasShortage($loan, $exceptLoanIds, $includePending);
     }
 
-    /**
-     * Promosikan pengajuan antrian ke diminta jika seluruh item tersedia.
-     */
     public function promoteFromQueue(Loan $loan, ?User $actor = null, int|array|null $exceptLoanIds = null): bool
     {
         if ($loan->status !== 'antrian' || ! $this->allItemsAvailable($loan, $exceptLoanIds)) {
@@ -283,12 +255,13 @@ class LoanQueueService
         return true;
     }
 
-    /**
-     * Pindahkan pengajuan diminta ke antrian jika stok fisik sudah tidak cukup.
-     */
     public function demoteToQueue(Loan $loan, ?User $actor = null): bool
     {
         if ($loan->status !== 'diminta') {
+            return false;
+        }
+
+        if ($loan->isAlat() && ! $loan->allowsQueue()) {
             return false;
         }
 
@@ -318,6 +291,16 @@ class LoanQueueService
         $pending = Loan::query()
             ->where('status', 'diminta')
             ->when($exceptLoanId, fn ($q) => $q->where('id', '!=', $exceptLoanId))
+            ->where(function ($q) {
+                $q->where('loan_type', 'pribadi')
+                    ->orWhere('item_type', 'bahan')
+                    ->orWhere(function ($legacy) {
+                        $legacy->whereNull('loan_type')
+                            ->where('item_type', 'alat')
+                            ->where('borrow_scope', 'lab')
+                            ->where('borrow_reason', 'lanjutan');
+                    });
+            })
             ->whereHas('items', fn ($q) => $q->whereIn('equipment_id', $equipmentIds))
             ->with(['items.equipment'])
             ->get();
@@ -347,6 +330,8 @@ class LoanQueueService
         array $exceptLoanIds = [],
         bool $skipPraktikum = false,
     ): array {
+        unset($skipPraktikum);
+
         $equipment = Equipment::query()->find($equipmentId);
 
         if (! $equipment) {
@@ -362,10 +347,6 @@ class LoanQueueService
         $virtualIntervals = [];
 
         foreach ($this->queuedLoansForEquipment($equipmentId) as $loan) {
-            if ($skipPraktikum && $loan->isPakaiDiLab()) {
-                continue;
-            }
-
             if (! $this->canAllocateLoan($loan, $virtualAvailability, $virtualIntervals, $exceptLoanIds)) {
                 break;
             }
@@ -392,10 +373,11 @@ class LoanQueueService
         array $exceptLoanIds = [],
         bool $skipPraktikum = false,
     ): array {
+        unset($skipPraktikum);
         $promoted = [];
 
         foreach (array_unique($equipmentIds) as $equipmentId) {
-            foreach ($this->processQueueForEquipment((int) $equipmentId, $actor, $exceptLoanIds, $skipPraktikum) as $loan) {
+            foreach ($this->processQueueForEquipment((int) $equipmentId, $actor, $exceptLoanIds) as $loan) {
                 $promoted[$loan->id] = $loan;
             }
         }
@@ -407,29 +389,19 @@ class LoanQueueService
     {
         $loan->loadMissing('items');
 
-        $skipPraktikum = $loan->isAlat() && ! $loan->isPakaiDiLab();
-
         return $this->processQueueForEquipments(
             $loan->items->pluck('equipment_id')->all(),
             $actor,
             [$loan->id],
-            $skipPraktikum,
         );
     }
 
-    /**
-     * Batas due_at menurut time slice operasional lab.
-     *
-     * - Bawa pulang: tanggal pengajuan + N hari pada jam tutup sekolah
-     * - Pribadi / catch-up: jam tutup sekolah hari yang sama
-     * - Pakai di lab: jam selesai jadwal
-     */
     public function resolveTimeSliceDueAt(Loan $loan, ?Carbon $from = null): Carbon
     {
         $from = ($from ?? now())->copy();
         $loan->loadMissing('schedule');
 
-        if ($loan->borrow_scope === 'bawa_pulang') {
+        if ($loan->isBawaPulang() || $loan->isLomba()) {
             $days = max(1, (int) config('lab.queue.bawa_pulang_max_days', 1));
             $close = (string) config('lab.queue.school_close_time', '17:00');
             $baseDate = $loan->request_date?->toDateString()
@@ -438,7 +410,7 @@ class LoanQueueService
             return Carbon::parse($baseDate.' '.$close)->addDays($days);
         }
 
-        if ($loan->isCatchUp() || ($loan->borrow_scope === 'lab' && $loan->borrow_reason === 'lanjutan')) {
+        if ($loan->isPribadi()) {
             $close = (string) config('lab.queue.school_close_time', '17:00');
             $date = $loan->request_date?->toDateString()
                 ?? $from->toDateString();
@@ -446,7 +418,6 @@ class LoanQueueService
             return Carbon::parse($date.' '.$close);
         }
 
-        // Lab reguler: ikuti jam_selesai jadwal
         if ($loan->schedule?->jam_selesai) {
             $date = $loan->request_date?->toDateString()
                 ?? $loan->schedule->tanggal?->toDateString()
@@ -460,9 +431,6 @@ class LoanQueueService
         return Carbon::parse($from->toDateString().' '.$close);
     }
 
-    /**
-     * Clamp due_at agar tidak melebihi time slice (alat saja).
-     */
     public function clampDueAtToTimeSlice(Loan $loan, ?Carbon $from = null): Carbon
     {
         $sliceEnd = $this->resolveTimeSliceDueAt($loan, $from);
@@ -475,9 +443,6 @@ class LoanQueueService
         return $requested->lessThanOrEqualTo($sliceEnd) ? $requested->copy() : $sliceEnd;
     }
 
-    /**
-     * Batas kembali alat selalu mengikuti time slice, tidak dari input siswa.
-     */
     public function applyDueAtForLoan(Loan $loan, ?Carbon $from = null): void
     {
         if (! $loan->isAlat()) {
@@ -532,7 +497,7 @@ class LoanQueueService
         }
 
         $waitingStock = ! $this->allItemsAvailable($loan);
-        $typeLabel = $loan->queueTypeLabel();
+        $typeLabel = $loan->loanTypeLabel();
 
         return [
             'queue_position' => $position,
@@ -541,6 +506,7 @@ class LoanQueueService
             'queued_at_formatted' => $loan->queued_at?->translatedFormat('d M Y H:i'),
             'queue_type_key' => $loan->queueTypeKey(),
             'queue_type_label' => $typeLabel,
+            'queue_priority' => (int) ($loan->queue_priority ?? 0),
             'queue_priority_label' => $typeLabel,
             'queue_stock_available' => $stockAvailable ?? 0,
             'queue_stock_needed' => $stockNeeded ?? 0,
@@ -559,14 +525,6 @@ class LoanQueueService
             return $scoreDiff;
         }
 
-        if ($a->isPakaiDiLab() && $b->isPakaiDiLab()) {
-            $proximityDiff = $this->scheduleProximitySeconds($a) <=> $this->scheduleProximitySeconds($b);
-
-            if ($proximityDiff !== 0) {
-                return $proximityDiff;
-            }
-        }
-
         $aTime = $a->queued_at ?? $a->created_at;
         $bTime = $b->queued_at ?? $b->created_at;
         $timeDiff = $aTime <=> $bTime;
@@ -579,68 +537,22 @@ class LoanQueueService
     }
 
     /**
-     * Semakin kecil = jadwal semakin dekat ke sekarang (sedang berlangsung = 0).
+     * @deprecated Proximity scoring removed; kept for call sites.
      */
     public function scheduleProximitySeconds(Loan $loan, ?Carbon $at = null): int
     {
-        $at = $at ? PracticumSchedule::inSchoolTimezone($at) : PracticumSchedule::inSchoolTimezone();
-        $start = $this->praktikumOccurrenceStart($loan);
-        $end = $this->praktikumOccurrenceEnd($loan) ?? $start;
+        unset($loan, $at);
 
-        if ($start === null) {
-            return PHP_INT_MAX;
-        }
-
-        if ($at->gte($start) && $at->lte($end)) {
-            return 0;
-        }
-
-        if ($at->lt($start)) {
-            return (int) $at->diffInSeconds($start);
-        }
-
-        return 1_000_000_000 + (int) $end->diffInSeconds($at);
-    }
-
-    private function praktikumOccurrenceStart(Loan $loan): ?Carbon
-    {
-        $loan->loadMissing('schedule');
-        $date = $loan->request_date?->toDateString();
-        $jamMulai = $loan->schedule?->jam_mulai;
-
-        if (! $date || ! $jamMulai) {
-            return null;
-        }
-
-        return Carbon::parse($date.' '.$jamMulai, PracticumSchedule::schoolTimezone());
-    }
-
-    private function praktikumOccurrenceEnd(Loan $loan): ?Carbon
-    {
-        $loan->loadMissing('schedule');
-        $date = $loan->request_date?->toDateString();
-        $jamSelesai = $loan->schedule?->jam_selesai;
-
-        if (! $date || ! $jamSelesai) {
-            return null;
-        }
-
-        return Carbon::parse($date.' '.$jamSelesai, PracticumSchedule::schoolTimezone());
+        return PHP_INT_MAX;
     }
 
     /**
-     * Sisa slot tidak boleh diambil yang belakang jika antrian di depan belum muat.
-     *
-     * Cadangan dihitung dari jendela orang antrian itu sendiri, bukan sisa di
-     * jendela pengaju baru. Kalau kepala antrian belum muat, sisa dikunci.
-     *
      * @param  array<int, array{equipment_id: mixed, quantity?: mixed}>  $items
      * @param  array<string, mixed>  $context
      */
     private function queuedAheadBlocksDraft(array $items, array $context, ?int $exceptLoanId = null): bool
     {
         [$incomingStart, $incomingEnd] = $this->slots()->windowFromContext($context);
-        $incomingScore = $this->scoreFromContext($context);
         $exceptLoanIds = $exceptLoanId ? [(int) $exceptLoanId] : [];
 
         foreach ($items as $row) {
@@ -658,10 +570,6 @@ class LoanQueueService
 
             foreach ($this->queuedLoansForEquipment($equipmentId) as $queued) {
                 if ($exceptLoanId && $queued->id === $exceptLoanId) {
-                    continue;
-                }
-
-                if ($incomingScore > $this->effectiveSortScore($queued)) {
                     continue;
                 }
 

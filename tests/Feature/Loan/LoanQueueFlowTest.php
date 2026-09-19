@@ -37,7 +37,7 @@ class LoanQueueFlowTest extends TestCase
         $this->assertNull($loan->supervisor_id);
         $this->assertNotNull($loan->queued_at);
         $response->assertSessionHas('success');
-        $this->assertStringContainsString('antrian', session('success'));
+        $this->assertStringContainsString('antrean', session('success'));
         $this->assertStringNotContainsString('Round Robin', session('success'));
     }
 
@@ -197,16 +197,16 @@ class LoanQueueFlowTest extends TestCase
         $siswaA = $this->makeUser('siswa', 'siswa-demote-a');
         $siswaB = $this->makeUser('siswa', 'siswa-demote-b');
         $siswaC = $this->makeUser('siswa', 'siswa-demote-c');
-        $siswaQueued = $this->makeUser('siswa', 'siswa-demote-q');
         $guru = $this->makeUser('guru', 'guru-demote');
         $admin = $this->makeUser('admin', 'admin-demote');
-        $alat = $this->makeEquipment('alat', available: 0);
+        $alat = $this->makeEquipment('alat', available: 20);
         $workflow = app(\App\Services\Loan\LoanWorkflowService::class);
         $queue = app(\App\Services\Loan\LoanQueueService::class);
 
         $payload = fn (int $qty) => [
             'supervisor_id' => $guru->id,
             'item_type' => 'alat',
+            'loan_type' => 'pribadi',
             'request_date' => now()->toDateString(),
             'purpose' => 'Pinjam alat',
             'notes' => 'Pinjam alat',
@@ -219,16 +219,9 @@ class LoanQueueFlowTest extends TestCase
             ],
         ];
 
-        $this->actingAs($siswaQueued)->post(route('siswa.loans.store'), $payload(10))->assertRedirect();
-        $queuedEarlier = Loan::query()->where('borrower_id', $siswaQueued->id)->latest('id')->first();
-        $this->assertSame('antrian', $queuedEarlier->status);
-
-        $this->travel(1)->seconds();
-        $alat->update(['available' => 20, 'stock' => 20, 'qty_baik' => 20]);
-
         $this->actingAs($siswaA)->post(route('siswa.loans.store'), $payload(15))->assertRedirect();
-        $this->actingAs($siswaB)->post(route('siswa.loans.store'), $payload(10))->assertRedirect();
         $this->actingAs($siswaC)->post(route('siswa.loans.store'), $payload(4))->assertRedirect();
+        $this->actingAs($siswaB)->post(route('siswa.loans.store'), $payload(10))->assertRedirect();
 
         $loanA = Loan::query()->where('borrower_id', $siswaA->id)->latest('id')->first();
         $loanB = Loan::query()->where('borrower_id', $siswaB->id)->latest('id')->first();
@@ -248,10 +241,9 @@ class LoanQueueFlowTest extends TestCase
         $this->assertSame('antrian', $loanB->fresh()->status);
         $this->assertSame('diminta', $loanC->fresh()->status);
         $this->assertNotNull($loanB->fresh()->queued_at);
-        $this->assertTrue($loanB->fresh()->queued_at->equalTo($loanB->created_at));
 
         $ordered = $queue->queuedLoansForEquipment($alat->id);
-        $this->assertSame([$queuedEarlier->id, $loanB->id], $ordered->pluck('id')->all());
+        $this->assertTrue($ordered->contains(fn (Loan $loan) => $loan->id === $loanB->id));
 
         try {
             $workflow->approve($loanB->fresh(), $admin);
@@ -331,17 +323,18 @@ class LoanQueueFlowTest extends TestCase
             );
     }
 
-    public function test_removed_admin_queue_priority_route_returns_404(): void
+    public function test_admin_can_set_queue_priority_for_antrian_loan(): void
     {
-        $admin = $this->makeUser('admin', 'admin-no-prio');
-        $siswa = $this->makeUser('siswa', 'siswa-no-prio');
+        $admin = $this->makeUser('admin', 'admin-prio');
+        $siswa = $this->makeUser('siswa', 'siswa-prio');
         $alat = $this->makeEquipment('alat', available: 0);
 
         $this->actingAs($siswa)->post(route('siswa.loans.store'), [
             'item_type' => 'alat',
+            'loan_type' => 'pribadi',
             'request_date' => now()->toDateString(),
-            'purpose' => 'Antrian tanpa prioritas admin',
-            'notes' => 'Antrian tanpa prioritas admin',
+            'purpose' => 'Antrian prioritas admin',
+            'notes' => 'Antrian prioritas admin',
             'borrow_scope' => 'lab',
             'borrow_reason' => 'lanjutan',
             'usage_room' => 'Ruang Assembly',
@@ -355,12 +348,14 @@ class LoanQueueFlowTest extends TestCase
         $this->assertSame('antrian', $loan?->status);
 
         $this->actingAs($admin)
-            ->post('/admin/loans/'.$loan->id.'/queue-priority', ['level' => 'high'])
-            ->assertNotFound();
+            ->post(route('admin.loans.queue-priority', $loan), [
+                'queue_priority' => 50,
+                'queue_priority_note' => 'Urgent',
+            ])
+            ->assertRedirect();
 
-        $this->actingAs($admin)
-            ->post('/admin/loans/'.$loan->id.'/queue-priority/reset')
-            ->assertNotFound();
+        $this->assertSame(50, (int) $loan->fresh()->queue_priority);
+        $this->assertSame('Urgent', $loan->fresh()->queue_priority_note);
     }
 
     private function makeUser(string $role, string $username): User

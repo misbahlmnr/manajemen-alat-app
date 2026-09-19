@@ -121,9 +121,11 @@ class LoanController extends Controller
             ...$options,
             'defaults' => [
                 'item_type' => $type,
+                'loan_type' => 'praktikum',
                 'request_date' => now()->toDateString(),
                 'borrow_scope' => 'lab',
                 'borrow_reason' => 'reguler',
+                'group_member_count' => '',
                 'supervisor_id' => '',
                 'practicum_schedule_id' => '',
                 'due_at' => '',
@@ -239,6 +241,7 @@ class LoanController extends Controller
         [$alatLoan, $submission] = DB::transaction(function () use ($alatPayload, $bahanPayload, $request, $groupId) {
             $submission = Submission::createForBorrower($request->user(), $alatPayload);
             $alatLoan = $this->createStudentLoan($alatPayload, $request->user(), $groupId, $submission);
+            $bahanPayload['loan_type'] = $alatLoan->loan_type ?? 'praktikum';
             $this->createStudentLoan($bahanPayload, $request->user(), $groupId, $submission);
 
             return [$alatLoan, $submission];
@@ -289,6 +292,8 @@ class LoanController extends Controller
                 'request_date' => $loan->request_date?->format('Y-m-d') ?? now()->toDateString(),
                 'borrow_scope' => $loan->borrow_scope ?? 'lab',
                 'borrow_reason' => $loan->borrow_reason ?? 'reguler',
+                'loan_type' => $loan->resolvedLoanType(),
+                'group_member_count' => $loan->group_member_count ?? '',
                 'due_at' => $loan->due_at?->format('Y-m-d\TH:i') ?? '',
                 'purpose' => $loan->purpose ?? '',
                 'notes' => $loan->notes ?? $loan->purpose ?? '',
@@ -311,15 +316,14 @@ class LoanController extends Controller
             $items,
             $loan->item_type,
             $request->user()->id,
+            $loan->resolvedLoanType(),
         );
 
-        $slotContext = $this->slotContextFromPayload($validated, $loan->item_type);
-        $this->queueService->preemptLowerPriorityDiminta(
-            $items,
-            $loan->item_type,
-            $slotContext,
-            $loan->id,
-        );
+        $slotContext = $this->slotContextFromPayload([
+            ...$validated,
+            'loan_type' => $loan->resolvedLoanType(),
+            'item_type' => $loan->item_type,
+        ], $loan->item_type);
 
         $newStatus = in_array($loan->status, ['diminta', 'antrian'], true)
             ? $this->queueService->resolveInitialStatus(
@@ -692,6 +696,13 @@ class LoanController extends Controller
 
         return [
             'item_type' => $type,
+            'loan_type' => $payload['loan_type']
+                ?? ($type === 'alat'
+                    ? Loan::resolveTypeFromLegacy(
+                        $payload['borrow_scope'] ?? null,
+                        $payload['borrow_reason'] ?? null,
+                    )
+                    : null),
             'borrow_scope' => $payload['borrow_scope'] ?? 'lab',
             'borrow_reason' => $payload['borrow_reason'] ?? 'reguler',
             'request_date' => $payload['request_date'] ?? now()->toDateString(),
@@ -743,6 +754,9 @@ class LoanController extends Controller
             'schedule_priority' => $loan->schedule?->priority,
             'item_type' => $loan->item_type,
             'item_type_label' => $loan->item_type === 'alat' ? 'Alat' : 'Bahan',
+            'loan_type' => $loan->resolvedLoanType(),
+            'loan_type_label' => $loan->loanTypeLabel(),
+            'group_member_count' => $loan->group_member_count,
             'status' => $loan->status,
             'request_date' => $loan->request_date?->format('Y-m-d'),
             'request_date_formatted' => $loan->request_date?->translatedFormat('d M Y'),
@@ -868,19 +882,35 @@ class LoanController extends Controller
         $items = $validated['items'];
         unset($validated['items'], $validated['collateral_agreed']);
 
+        $loanType = $validated['loan_type']
+            ?? ($validated['item_type'] === 'alat'
+                ? Loan::resolveTypeFromLegacy(
+                    $validated['borrow_scope'] ?? null,
+                    $validated['borrow_reason'] ?? null,
+                )
+                : 'praktikum');
+
+        if ($loanType === 'lomba') {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'loan_type' => 'Peminjaman lomba dibuat oleh admin melalui Event Lomba.',
+            ]);
+        }
+
+        $legacy = Loan::legacyFieldsForType($loanType);
+        $validated['loan_type'] = $loanType;
+        if ($validated['item_type'] === 'alat') {
+            $validated['borrow_scope'] = $legacy['borrow_scope'];
+            $validated['borrow_reason'] = $legacy['borrow_reason'];
+        }
+
         $this->queueService->validateItemsForSubmit(
             $items,
             $validated['item_type'],
             $user->id,
+            $loanType,
         );
 
         $slotContext = $this->slotContextFromPayload($validated);
-
-        $this->queueService->preemptLowerPriorityDiminta(
-            $items,
-            $validated['item_type'],
-            $slotContext,
-        );
 
         $initialStatus = $this->queueService->resolveInitialStatus(
             $items,
@@ -899,11 +929,15 @@ class LoanController extends Controller
             'code' => Loan::generateCode(),
             'status' => $initialStatus,
             'queued_at' => $initialStatus === 'antrian' ? now() : null,
+            'loan_type' => $loanType,
             'borrow_scope' => $validated['item_type'] === 'alat'
                 ? ($validated['borrow_scope'] ?? 'lab')
                 : 'lab',
             'borrow_reason' => $validated['item_type'] === 'alat'
-                ? ($validated['borrow_reason'] ?? (($validated['borrow_scope'] ?? 'lab') === 'bawa_pulang' ? 'lanjutan' : 'reguler'))
+                ? ($validated['borrow_reason'] ?? 'reguler')
+                : null,
+            'group_member_count' => $loanType === 'praktikum'
+                ? ($validated['group_member_count'] ?? null)
                 : null,
             'usage_room' => $validated['usage_room'] ?? null,
             'due_at' => $validated['item_type'] === 'alat' ? ($validated['due_at'] ?? null) : null,
@@ -959,22 +993,29 @@ class LoanController extends Controller
     {
         if ($loan->status === 'antrian') {
             $position = $this->queueService->getQueuePosition($loan);
-            $base = 'Pengajuan berhasil dikirim. Stok saat ini belum mencukupi sehingga pengajuan Anda masuk antrian (prioritas tipe, jatah sampai batas kembali).';
+            $lines = [
+                'Pengajuan berhasil dibuat.',
+                'Karena stok alat belum tersedia, pengajuan Anda telah masuk antrean.',
+                'Silakan menunggu hingga admin memproses antrean.',
+            ];
 
-            return $position
-                ? "{$base} Posisi antrian: #{$position}."
-                : $base;
+            if ($position) {
+                $lines[] = "Posisi antrean: #{$position}";
+            }
+
+            return implode("\n", $lines);
         }
 
-        if ($loan->item_type === 'bahan') {
-            return 'Pengajuan berhasil dikirim dan menunggu persetujuan admin.';
+        $lines = [
+            'Pengajuan berhasil dibuat.',
+            'Menunggu persetujuan admin.',
+        ];
+
+        if ($loan->requiresCollateral()) {
+            $lines[] = 'Siapkan kartu pelajar saat pengambilan alat.';
         }
 
-        if ($loan->borrow_scope === 'bawa_pulang') {
-            return 'Pengajuan berhasil dikirim dan menunggu persetujuan admin. Siapkan kartu pelajar saat pengambilan alat.';
-        }
-
-        return 'Pengajuan berhasil dikirim dan menunggu persetujuan admin.';
+        return implode("\n", $lines);
     }
 
     /**

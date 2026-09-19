@@ -9,121 +9,191 @@ use App\Models\Submission;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 class LoanSeeder extends Seeder
 {
     public function run(): void
     {
-        $siswa = User::query()->where('role', 'siswa')->first();
-        $guru = User::query()->where('role', 'guru')->first();
-        $alat = Equipment::query()->alat()->first();
+        $maryadi = User::query()->where('username', 'maryadi')->first();
+        $alat = Equipment::query()->alat()->where('name', 'Toolset')->first();
         $bahan = Equipment::query()->bahan()->first();
+        $schedule = PracticumSchedule::query()
+            ->where('code', 'JADWAL-0001')
+            ->first();
 
-        if (! $siswa || ! $guru || ! $alat) {
+        if (! $maryadi || ! $alat) {
             return;
         }
 
-        $schedule = PracticumSchedule::query()
-            ->where('kelas', $siswa->class)
-            ->first();
+        $praktikDate = Carbon::parse('2026-09-21');
 
-        $sub1 = Submission::createForBorrower($siswa, [
-            'supervisor_id' => $guru->id,
-            'purpose' => 'Praktik sesuai jadwal mapel',
-            'notes' => 'Untuk praktikum hari ini',
-            'request_date' => Carbon::today()->toDateString(),
+        foreach (['patmawati', 'misbah', 'santi'] as $username) {
+            $siswa = User::query()->where('username', $username)->first();
+            if (! $siswa) {
+                continue;
+            }
+
+            $this->createPraktikPackage(
+                borrower: $siswa,
+                supervisor: $maryadi,
+                alat: $alat,
+                bahan: $bahan,
+                schedule: $schedule,
+                requestDate: $praktikDate,
+                alatQty: 3,
+                bahanQty: 10,
+            );
+        }
+
+        foreach (['azka', 'azki'] as $username) {
+            $siswa = User::query()->where('username', $username)->first();
+            if (! $siswa) {
+                continue;
+            }
+
+            $this->createPribadiLoan(
+                borrower: $siswa,
+                supervisor: $maryadi,
+                alat: $alat,
+                requestDate: $praktikDate,
+                quantity: 1,
+            );
+        }
+    }
+
+    private function createPraktikPackage(
+        User $borrower,
+        User $supervisor,
+        Equipment $alat,
+        ?Equipment $bahan,
+        ?PracticumSchedule $schedule,
+        Carbon $requestDate,
+        int $alatQty,
+        int $bahanQty,
+    ): void {
+        $legacy = Loan::legacyFieldsForType('praktikum');
+        $groupId = (string) Str::uuid();
+        $date = $requestDate->toDateString();
+
+        $submission = Submission::createForBorrower($borrower, [
+            'supervisor_id' => $supervisor->id,
+            'purpose' => 'Praktik Lab — Pembuatan Sound',
+            'notes' => 'Paket alat dan bahan untuk praktik lab.',
+            'request_date' => $date,
         ]);
 
-        $loan1 = Loan::create([
+        $alatLoan = Loan::query()->create([
             'code' => Loan::generateCode(),
-            'submission_id' => $sub1->id,
-            'borrower_id' => $siswa->id,
-            'supervisor_id' => $guru->id,
+            'loan_group_id' => $groupId,
+            'submission_id' => $submission->id,
+            'borrower_id' => $borrower->id,
+            'borrower_class' => $borrower->class,
+            'supervisor_id' => $supervisor->id,
             'practicum_schedule_id' => $schedule?->id,
             'item_type' => 'alat',
+            'loan_type' => 'praktikum',
             'status' => 'diminta',
-            'borrow_scope' => 'lab',
-            'borrow_reason' => 'reguler',
-            'request_date' => Carbon::today(),
-            'due_at' => Carbon::today()->setTime(15, 0),
-            'purpose' => 'Praktik sesuai jadwal mapel',
-            'notes' => 'Untuk praktikum hari ini',
+            'request_date' => $date,
+            'due_at' => $requestDate->copy()->setTime(10, 0),
+            'purpose' => 'Praktik Lab — Pembuatan Sound',
+            'notes' => 'Alat toolset untuk praktik.',
+            'borrow_scope' => $legacy['borrow_scope'],
+            'borrow_reason' => $legacy['borrow_reason'],
+            'usage_room' => 'Assembly',
+            'group_member_count' => 1,
         ]);
-        $loan1->items()->create([
+
+        $alatLoan->items()->create([
             'equipment_id' => $alat->id,
-            'quantity' => 1,
+            'quantity' => $alatQty,
         ]);
-        $loan1->statusLogs()->create([
+
+        $alatLoan->statusLogs()->create([
             'status' => 'diminta',
-            'note' => 'Pengajuan peminjaman dibuat.',
+            'note' => 'Pengajuan praktik lab (alat) dibuat dari seeder.',
             'created_at' => now(),
         ]);
 
-        if ($schedule) {
-            $subCatchUp = Submission::createForBorrower($siswa, [
-                'supervisor_id' => $guru->id,
-                'purpose' => 'Lanjutan praktikum — progress belum selesai',
-                'notes' => 'Belum selesai saat jam mapel, melanjutkan di lab besok.',
-                'request_date' => Carbon::tomorrow()->toDateString(),
-            ]);
-
-            $loanCatchUp = Loan::create([
-                'code' => Loan::generateCode(),
-                'submission_id' => $subCatchUp->id,
-                'borrower_id' => $siswa->id,
-                'supervisor_id' => $guru->id,
-                'practicum_schedule_id' => $schedule->id,
-                'item_type' => 'alat',
-                'status' => 'diminta',
-                'borrow_scope' => 'lab',
-                'borrow_reason' => 'lanjutan',
-                'request_date' => Carbon::tomorrow(),
-                'due_at' => Carbon::tomorrow()->setTime(15, 0),
-                'purpose' => 'Lanjutan praktikum — progress belum selesai',
-                'notes' => 'Belum selesai saat jam mapel, melanjutkan di lab besok.',
-            ]);
-            $loanCatchUp->items()->create([
-                'equipment_id' => $alat->id,
-                'quantity' => 1,
-            ]);
-            $loanCatchUp->statusLogs()->create([
-                'status' => 'diminta',
-                'note' => 'Pengajuan lanjutan praktikum dibuat.',
-                'created_at' => now(),
-            ]);
+        if (! $bahan) {
+            return;
         }
 
-        if ($bahan) {
-            $sub2 = Submission::createForBorrower($siswa, [
-                'supervisor_id' => $guru->id,
-                'purpose' => 'Praktik elektronika',
-                'request_date' => Carbon::today()->subDays(1)->toDateString(),
-            ]);
+        $bahanLoan = Loan::query()->create([
+            'code' => Loan::generateCode(),
+            'loan_group_id' => $groupId,
+            'submission_id' => $submission->id,
+            'borrower_id' => $borrower->id,
+            'borrower_class' => $borrower->class,
+            'supervisor_id' => $supervisor->id,
+            'practicum_schedule_id' => $schedule?->id,
+            'item_type' => 'bahan',
+            'loan_type' => 'praktikum',
+            'status' => 'diminta',
+            'request_date' => $date,
+            'purpose' => 'Praktik Lab — Pembuatan Sound',
+            'notes' => 'Bahan untuk praktik.',
+            'borrow_scope' => 'lab',
+            'borrow_reason' => null,
+            'group_member_count' => 1,
+        ]);
 
-            $loan2 = Loan::create([
-                'code' => Loan::generateCode(),
-                'submission_id' => $sub2->id,
-                'borrower_id' => $siswa->id,
-                'supervisor_id' => $guru->id,
-                'item_type' => 'bahan',
-                'status' => 'dipinjam',
-                'request_date' => Carbon::today()->subDays(1),
-                'borrowed_at' => Carbon::today()->subDays(1),
-                'purpose' => 'Praktik elektronika',
-            ]);
-            $loan2->items()->create([
-                'equipment_id' => $bahan->id,
-                'quantity' => 2,
-            ]);
-            $loan2->statusLogs()->create([
-                'status' => 'diminta',
-                'created_at' => now()->subDays(1),
-            ]);
-            $loan2->statusLogs()->create([
-                'status' => 'dipinjam',
-                'note' => 'Bahan disetujui.',
-                'created_at' => now()->subDays(1),
-            ]);
-        }
+        $bahanLoan->items()->create([
+            'equipment_id' => $bahan->id,
+            'quantity' => $bahanQty,
+        ]);
+
+        $bahanLoan->statusLogs()->create([
+            'status' => 'diminta',
+            'note' => 'Pengajuan praktik lab (bahan) dibuat dari seeder.',
+            'created_at' => now(),
+        ]);
+    }
+
+    private function createPribadiLoan(
+        User $borrower,
+        User $supervisor,
+        Equipment $alat,
+        Carbon $requestDate,
+        int $quantity,
+    ): void {
+        $legacy = Loan::legacyFieldsForType('pribadi');
+        $date = $requestDate->toDateString();
+
+        $submission = Submission::createForBorrower($borrower, [
+            'supervisor_id' => $supervisor->id,
+            'purpose' => 'Peminjaman pribadi',
+            'notes' => 'Latihan mandiri di lab.',
+            'request_date' => $date,
+        ]);
+
+        $loan = Loan::query()->create([
+            'code' => Loan::generateCode(),
+            'submission_id' => $submission->id,
+            'borrower_id' => $borrower->id,
+            'borrower_class' => $borrower->class,
+            'supervisor_id' => $supervisor->id,
+            'item_type' => 'alat',
+            'loan_type' => 'pribadi',
+            'status' => 'diminta',
+            'request_date' => $date,
+            'due_at' => $requestDate->copy()->setTime(15, 0),
+            'purpose' => 'Peminjaman pribadi',
+            'notes' => 'Latihan mandiri di lab.',
+            'borrow_scope' => $legacy['borrow_scope'],
+            'borrow_reason' => $legacy['borrow_reason'],
+            'usage_room' => 'Assembly',
+        ]);
+
+        $loan->items()->create([
+            'equipment_id' => $alat->id,
+            'quantity' => $quantity,
+        ]);
+
+        $loan->statusLogs()->create([
+            'status' => 'diminta',
+            'note' => 'Pengajuan pribadi dibuat dari seeder.',
+            'created_at' => now(),
+        ]);
     }
 }

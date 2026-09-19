@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Loan extends Model
 {
+    public const LOAN_TYPES = ['praktikum', 'lomba', 'pribadi', 'bawa_pulang'];
+
     public const SLOT_OCCUPYING_STATUSES = [
         'diminta',
         'disetujui',
@@ -33,6 +35,7 @@ class Loan extends Model
         'supervisor_id',
         'practicum_schedule_id',
         'item_type',
+        'loan_type',
         'status',
         'queue_priority',
         'queued_at',
@@ -50,6 +53,7 @@ class Loan extends Model
         'borrow_scope',
         'borrow_reason',
         'usage_room',
+        'group_member_count',
     ];
 
     protected function casts(): array
@@ -62,7 +66,33 @@ class Loan extends Model
             'queued_at' => 'datetime',
             'stock_held' => 'boolean',
             'queue_priority_set_at' => 'datetime',
+            'group_member_count' => 'integer',
         ];
+    }
+
+    /**
+     * Map loan_type to legacy borrow_scope / borrow_reason for compatibility.
+     *
+     * @return array{borrow_scope: string, borrow_reason: string}
+     */
+    public static function legacyFieldsForType(string $loanType): array
+    {
+        return match ($loanType) {
+            'bawa_pulang' => ['borrow_scope' => 'bawa_pulang', 'borrow_reason' => 'lanjutan'],
+            'lomba' => ['borrow_scope' => 'bawa_pulang', 'borrow_reason' => 'lomba'],
+            'pribadi' => ['borrow_scope' => 'lab', 'borrow_reason' => 'lanjutan'],
+            default => ['borrow_scope' => 'lab', 'borrow_reason' => 'reguler'],
+        };
+    }
+
+    public static function resolveTypeFromLegacy(?string $scope, ?string $reason): string
+    {
+        return match (true) {
+            $scope === 'bawa_pulang' && $reason === 'lomba' => 'lomba',
+            $scope === 'bawa_pulang' => 'bawa_pulang',
+            $reason === 'lanjutan' => 'pribadi',
+            default => 'praktikum',
+        };
     }
 
     public function submission(): BelongsTo
@@ -122,9 +152,43 @@ class Loan extends Model
         return $this->hasOne(LoanCompensation::class);
     }
 
+    public function resolvedLoanType(): string
+    {
+        if (filled($this->loan_type) && in_array($this->loan_type, self::LOAN_TYPES, true)) {
+            return $this->loan_type;
+        }
+
+        return self::resolveTypeFromLegacy($this->borrow_scope, $this->borrow_reason);
+    }
+
+    public function isPraktikum(): bool
+    {
+        return $this->isAlat() && $this->resolvedLoanType() === 'praktikum';
+    }
+
+    public function isLomba(): bool
+    {
+        return $this->isAlat() && $this->resolvedLoanType() === 'lomba';
+    }
+
+    public function isPribadi(): bool
+    {
+        return $this->isAlat() && $this->resolvedLoanType() === 'pribadi';
+    }
+
+    public function isBawaPulang(): bool
+    {
+        return $this->isAlat() && $this->resolvedLoanType() === 'bawa_pulang';
+    }
+
+    public function allowsQueue(): bool
+    {
+        return $this->isPribadi();
+    }
+
     public function requiresCollateral(): bool
     {
-        return $this->isAlat() && $this->borrow_scope === 'bawa_pulang';
+        return $this->isBawaPulang();
     }
 
     public function requiresReturnInspection(): bool
@@ -132,25 +196,22 @@ class Loan extends Model
         return $this->isAlat();
     }
 
+    /** @deprecated Use isPribadi() */
     public function isCatchUp(): bool
     {
-        return $this->isAlat()
-            && $this->borrow_scope !== 'bawa_pulang'
-            && $this->borrow_reason === 'lanjutan';
+        return $this->isPribadi();
     }
 
+    /** @deprecated Use isPraktikum() */
     public function isPakaiDiLab(): bool
     {
-        return $this->isAlat()
-            && $this->borrow_scope !== 'bawa_pulang'
-            && ! $this->isCatchUp();
+        return $this->isPraktikum();
     }
 
+    /** @deprecated Use isLomba() */
     public function isBawaPulangLomba(): bool
     {
-        return $this->isAlat()
-            && $this->borrow_scope === 'bawa_pulang'
-            && $this->borrow_reason === 'lomba';
+        return $this->isLomba();
     }
 
     public function queueTypeKey(): ?string
@@ -159,23 +220,13 @@ class Loan extends Model
             return null;
         }
 
-        if ($this->isBawaPulangLomba()) {
-            return 'bawa_pulang_lomba';
-        }
-
-        if ($this->isPakaiDiLab()) {
-            return 'praktikum';
-        }
-
-        if ($this->isCatchUp()) {
-            return 'pribadi';
-        }
-
-        if ($this->borrow_scope === 'bawa_pulang') {
-            return 'bawa_pulang_project';
-        }
-
-        return null;
+        return match ($this->resolvedLoanType()) {
+            'lomba' => 'lomba',
+            'praktikum' => 'praktikum',
+            'pribadi' => 'pribadi',
+            'bawa_pulang' => 'bawa_pulang',
+            default => null,
+        };
     }
 
     public function queueTypeLabel(): string
@@ -184,41 +235,36 @@ class Loan extends Model
             return 'Bahan';
         }
 
-        return match ($this->queueTypeKey()) {
-            'bawa_pulang_lomba' => 'Lomba',
-            'praktikum' => 'Praktek Lab',
-            'pribadi' => 'Pribadi',
-            'bawa_pulang_project' => 'Bawa pulang',
-            default => 'Antrian',
-        };
+        return config('lab.loan_types.'.$this->resolvedLoanType())
+            ?? match ($this->resolvedLoanType()) {
+                'lomba' => 'Lomba',
+                'praktikum' => 'Praktik Lab',
+                'pribadi' => 'Pribadi',
+                'bawa_pulang' => 'Bawa pulang',
+                default => 'Peminjaman',
+            };
+    }
+
+    public function loanTypeLabel(): string
+    {
+        return $this->queueTypeLabel();
     }
 
     public function borrowReasonLabel(): ?string
     {
-        if (! $this->borrow_reason) {
-            return null;
-        }
-
-        if ($this->borrow_scope === 'bawa_pulang') {
-            return config("lab.bawa_pulang_categories.{$this->borrow_reason}")
-                ?? config("lab.borrow_reasons.{$this->borrow_reason}");
-        }
-
-        return config("lab.borrow_reasons.{$this->borrow_reason}");
+        return $this->loanTypeLabel();
     }
 
     public function borrowScopeLabel(): string
     {
-        if ($this->borrow_scope === 'bawa_pulang') {
-            return 'Bawa pulang';
-        }
-
-        return 'Praktek Lab';
+        return $this->isBawaPulang() || $this->isLomba()
+            ? 'Bawa pulang'
+            : 'Praktik Lab';
     }
 
     public function borrowLocationLabel(): string
     {
-        return $this->queueTypeLabel();
+        return $this->loanTypeLabel();
     }
 
     public static function generateCode(): string

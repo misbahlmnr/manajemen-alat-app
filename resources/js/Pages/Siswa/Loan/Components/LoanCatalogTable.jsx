@@ -1,48 +1,53 @@
 import DataTable from "@/Components/DataTable";
 import DataPagination from "@/Components/DataPagination";
 import EquipmentImage from "@/Components/Equipment/EquipmentImage";
+import { Badge } from "@/Components/ui/badge";
 import { normalizePaginator } from "@/lib/paginator";
 import { Button } from "@/Components/ui/button";
-import { cn } from "@/lib/utils";
 import { useMemo } from "react";
 
 function StockIndicator({ item, isBahan }) {
-    const remain = isBahan
-        ? item.available
-        : (item.slot_remaining ?? item.available);
-    const capacity = isBahan ? item.stock : (item.qty_baik ?? item.stock);
+    const remain = Number(
+        isBahan ? item.available : (item.slot_remaining ?? item.available),
+    );
+    const capacity = Number(
+        isBahan ? item.stock : (item.qty_baik ?? item.stock),
+    );
+    const unit = item.unit || "unit";
     const low = isBahan && item.is_low_stock;
-    const queueOpen = remain <= 0;
+    const outOfStock = remain <= 0;
 
-    const className = queueOpen
-        ? "bg-amber-500/10 text-amber-800"
-        : low
-          ? "bg-warning/10 text-warning"
-          : "bg-success/10 text-success";
+    if (outOfStock) {
+        return (
+            <div className="max-w-[220px] space-y-1.5">
+                <Badge variant="destructive">Tidak tersedia</Badge>
+                <p className="text-xs text-muted-foreground">
+                    0 {unit} tersedia
+                    {capacity > 0 ? ` dari ${capacity}` : ""}
+                </p>
+            </div>
+        );
+    }
 
     return (
-        <div className="space-y-1">
-            <span
-                className={cn(
-                    "inline-block rounded px-2 py-0.5 text-xs font-medium",
-                    className,
-                )}
-            >
-                {isBahan
-                    ? `Stok: ${remain} ${item.unit ?? ""}`
-                    : `Sisa jam ini: ${remain} / ${capacity}`}
-            </span>
-            {queueOpen && (
-                <p className="text-xs text-amber-800">Antrean dibuka</p>
-            )}
-            {low && !queueOpen && (
-                <p className="text-xs text-warning">Stok menipis</p>
-            )}
+        <div className="space-y-1.5">
+            <Badge variant="success">Tersedia</Badge>
+            <p className="text-xs text-muted-foreground">
+                {remain} {unit} tersedia
+                {!isBahan && capacity > 0 ? ` dari ${capacity}` : ""}
+                {low ? " · Stok menipis" : ""}
+            </p>
         </div>
     );
 }
 
-function CatalogMobileCard({ item, isBahan, cart, onAdd, maxQty }) {
+function CatalogMobileCard({
+    item,
+    isBahan,
+    cart,
+    onAdd,
+    maxQty,
+}) {
     const inCart = cart.find((i) => i.equipment.id === item.id);
     const remain = maxQty(item);
     const disabled =
@@ -142,7 +147,10 @@ export default function LoanCatalogTable({
                 header: "Ketersediaan",
                 enableSorting: false,
                 cell: ({ row }) => (
-                    <StockIndicator item={row.original} isBahan={isBahan} />
+                    <StockIndicator
+                        item={row.original}
+                        isBahan={isBahan}
+                    />
                 ),
             },
             {

@@ -208,6 +208,58 @@ export default function Show({ loan }) {
                             Kembalikan Kartu
                         </Button>
                     )}
+                    {loan.can_set_queue_priority && (
+                        <form
+                            className="flex flex-wrap items-end gap-2"
+                            onSubmit={(e) => {
+                                e.preventDefault();
+                                const form = e.currentTarget;
+                                const priority = form.queue_priority.value;
+                                const note = form.queue_priority_note.value;
+                                router.post(
+                                    route(
+                                        "admin.loans.queue-priority",
+                                        loan.id,
+                                    ),
+                                    {
+                                        queue_priority: Number(priority),
+                                        queue_priority_note: note || null,
+                                    },
+                                    { preserveScroll: true },
+                                );
+                            }}
+                        >
+                            <div className="space-y-1">
+                                <label className="text-xs text-muted-foreground">
+                                    Prioritas antrian
+                                </label>
+                                <input
+                                    name="queue_priority"
+                                    type="number"
+                                    min={0}
+                                    max={1000}
+                                    defaultValue={loan.queue_priority ?? 0}
+                                    className="w-24 rounded-md border border-input bg-background px-2 py-1.5 text-sm"
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-xs text-muted-foreground">
+                                    Catatan
+                                </label>
+                                <input
+                                    name="queue_priority_note"
+                                    type="text"
+                                    defaultValue={
+                                        loan.queue_priority_note ?? ""
+                                    }
+                                    className="w-40 rounded-md border border-input bg-background px-2 py-1.5 text-sm"
+                                />
+                            </div>
+                            <Button type="submit" variant="secondary" size="sm">
+                                Simpan prioritas
+                            </Button>
+                        </form>
+                    )}
                     <Button
                         variant="destructive"
                         onClick={() => setDeleteOpen(true)}

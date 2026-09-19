@@ -1,6 +1,6 @@
 import AppLayout from "@/Layouts/AppLayout";
 import PageHeader from "@/Components/PageHeader";
-import SchedulePriorityBadge from "@/Components/SchedulePriorityBadge";
+import { Badge } from "@/Components/ui/badge";
 import { Button } from "@/Components/ui/button";
 import {
     Card,
@@ -17,6 +17,7 @@ import DeleteScheduleDialog from "./Components/DeleteScheduleDialog";
 export default function Show({ schedule }) {
     const [deleteOpen, setDeleteOpen] = useState(false);
     const [deleting, setDeleting] = useState(false);
+    const isLomba = schedule.schedule_kind === "lomba";
 
     const handleDelete = () => {
         setDeleting(true);
@@ -60,25 +61,46 @@ export default function Show({ schedule }) {
                                 {schedule.title}
                             </h2>
                             <p className="mt-1 text-sm text-muted-foreground">
-                                {schedule.mata_kuliah} · {schedule.kelas}
+                                {isLomba
+                                    ? schedule.schedule_kind_label
+                                    : `${schedule.mata_kuliah} · ${schedule.kelas}`}
                             </p>
 
                             <div className="mt-6 space-y-4 border-t border-border pt-6">
-                                <MetaRow label="Jenis">
+                                <MetaRow label="Jenis Kegiatan">
                                     <span className="text-sm font-medium text-foreground">
-                                        {schedule.type_label}
+                                        {schedule.schedule_kind_label ||
+                                            schedule.type_label}
                                     </span>
                                 </MetaRow>
-                                <MetaRow label="Prioritas">
-                                    <SchedulePriorityBadge
-                                        priority={schedule.priority}
-                                    />
-                                </MetaRow>
-                                <MetaRow label="Guru">
+                                {!isLomba && (
+                                    <MetaRow label="Jenis Jadwal">
+                                        <span className="text-sm font-medium text-foreground">
+                                            {schedule.type_label}
+                                        </span>
+                                    </MetaRow>
+                                )}
+                                <MetaRow
+                                    label={
+                                        isLomba
+                                            ? "Guru Pendamping"
+                                            : "Guru"
+                                    }
+                                >
                                     <span className="text-sm font-medium text-foreground">
                                         {schedule.guru_name}
                                     </span>
                                 </MetaRow>
+                                {isLomba && schedule.penanggung_jawab_name && (
+                                    <MetaRow label="Ketua Tim">
+                                        <span className="inline-flex items-center gap-2 text-sm font-medium text-foreground">
+                                            {schedule.penanggung_jawab_name}
+                                            <Badge variant="warning">
+                                                Ketua Tim
+                                            </Badge>
+                                        </span>
+                                    </MetaRow>
+                                )}
                             </div>
                         </CardContent>
                     </Card>
@@ -86,25 +108,38 @@ export default function Show({ schedule }) {
                     <div className="space-y-6 lg:col-span-2">
                         <Card className="rounded-[10px] border-border/60 shadow-card">
                             <CardHeader>
-                                <CardTitle>Informasi Jadwal</CardTitle>
+                                <CardTitle>
+                                    {isLomba
+                                        ? "Informasi Event"
+                                        : "Informasi Jadwal"}
+                                </CardTitle>
                                 <CardDescription>
-                                    Detail pelaksanaan praktikum
+                                    {isLomba
+                                        ? "Detail pelaksanaan event lomba"
+                                        : "Detail pelaksanaan praktikum"}
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="grid gap-4 sm:grid-cols-2">
-                                <Info
-                                    label="Mata pelajaran"
-                                    value={schedule.mata_kuliah}
-                                />
-                                <Info
-                                    label="Jurusan"
-                                    value={schedule.jurusan}
-                                />
-                                <Info label="Kelas" value={schedule.kelas} />
-                                <Info
-                                    label="Ruang / Lab"
-                                    value={schedule.ruangan || "—"}
-                                />
+                                {!isLomba && (
+                                    <>
+                                        <Info
+                                            label="Mata pelajaran"
+                                            value={schedule.mata_kuliah}
+                                        />
+                                        <Info
+                                            label="Jurusan"
+                                            value={schedule.jurusan}
+                                        />
+                                        <Info
+                                            label="Kelas"
+                                            value={schedule.kelas}
+                                        />
+                                        <Info
+                                            label="Ruang / Lab"
+                                            value={schedule.ruangan || "—"}
+                                        />
+                                    </>
+                                )}
                                 <Info
                                     label="Jadwal"
                                     value={schedule.jadwal_label}
@@ -131,6 +166,100 @@ export default function Show({ schedule }) {
                                 )}
                             </CardContent>
                         </Card>
+
+                        {isLomba && (
+                            <>
+                                <Card className="rounded-[10px] border-border/60 shadow-card">
+                                    <CardHeader>
+                                        <CardTitle>Peserta Lomba</CardTitle>
+                                        <CardDescription>
+                                            Ketua Tim bertanggung jawab atas
+                                            peminjaman dan pengembalian alat.
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        {(schedule.participants ?? []).length ===
+                                        0 ? (
+                                            <p className="text-sm text-muted-foreground">
+                                                Belum ada peserta.
+                                            </p>
+                                        ) : (
+                                            <ul className="flex flex-col gap-2">
+                                                {(
+                                                    schedule.participants ?? []
+                                                ).map((siswa) => {
+                                                    const isKetua =
+                                                        String(siswa.id) ===
+                                                        String(
+                                                            schedule.penanggung_jawab_id,
+                                                        );
+                                                    return (
+                                                        <li
+                                                            key={siswa.id}
+                                                            className="flex flex-wrap items-center gap-2 rounded-md border border-border/70 bg-muted/30 px-3 py-2 text-sm"
+                                                        >
+                                                            <span className="font-medium">
+                                                                {siswa.name}
+                                                            </span>
+                                                            {siswa.class && (
+                                                                <span className="text-xs text-muted-foreground">
+                                                                    {
+                                                                        siswa.class
+                                                                    }
+                                                                </span>
+                                                            )}
+                                                            {isKetua && (
+                                                                <Badge variant="warning">
+                                                                    Ketua Tim
+                                                                </Badge>
+                                                            )}
+                                                        </li>
+                                                    );
+                                                })}
+                                            </ul>
+                                        )}
+                                    </CardContent>
+                                </Card>
+
+                                <Card className="rounded-[10px] border-border/60 shadow-card">
+                                    <CardHeader>
+                                        <CardTitle>Daftar Alat</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        {(schedule.items ?? []).length === 0 ? (
+                                            <p className="text-sm text-muted-foreground">
+                                                Belum ada alat.
+                                            </p>
+                                        ) : (
+                                            <ul className="divide-y divide-border rounded-md border border-border">
+                                                {(schedule.items ?? []).map(
+                                                    (item) => (
+                                                        <li
+                                                            key={
+                                                                item.equipment_id
+                                                            }
+                                                            className="flex items-center justify-between gap-3 px-3 py-2 text-sm"
+                                                        >
+                                                            <span>
+                                                                {item.equipment_code
+                                                                    ? `${item.equipment_code} — `
+                                                                    : ""}
+                                                                {
+                                                                    item.equipment_name
+                                                                }
+                                                            </span>
+                                                            <span className="text-muted-foreground">
+                                                                ×{item.quantity}
+                                                            </span>
+                                                        </li>
+                                                    ),
+                                                )}
+                                            </ul>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            </>
+                        )}
                     </div>
                 </div>
             </div>

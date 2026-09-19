@@ -31,8 +31,8 @@ export default function ReportRoundRobinStats({ roundRobin = {} }) {
                     Statistik antrian
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                    Prioritas tipe peminjaman, lalu waktu antre. Satu pinjaman =
-                    satu jatah sampai batas kembali.
+                    Antrian hanya untuk peminjaman pribadi. Urutan: prioritas
+                    admin, lalu waktu masuk antrean.
                 </p>
             </div>
             <div className="rounded-[10px] border border-border/60 bg-card p-5 shadow-sm">

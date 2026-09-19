@@ -215,6 +215,25 @@ class LoanController extends Controller
         return back()->with('success', $message);
     }
 
+    public function setQueuePriority(Request $request, Loan $loan): RedirectResponse
+    {
+        $this->authorize('setQueuePriority', $loan);
+
+        $validated = $request->validate([
+            'queue_priority' => ['required', 'integer', 'min:0', 'max:1000'],
+            'queue_priority_note' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $this->queueService->setQueuePriority(
+            $loan,
+            (int) $validated['queue_priority'],
+            $request->user(),
+            $validated['queue_priority_note'] ?? null,
+        );
+
+        return back()->with('success', 'Prioritas antrian berhasil diperbarui.');
+    }
+
     private function syncItems(Loan $loan, array $rows): void
     {
         $loan->items()->delete();
@@ -317,6 +336,9 @@ class LoanController extends Controller
             'schedule_title' => $loan->schedule?->title,
             'item_type' => $loan->item_type,
             'item_type_label' => $loan->item_type === 'alat' ? 'Alat' : 'Bahan',
+            'loan_type' => $loan->resolvedLoanType(),
+            'loan_type_label' => $loan->loanTypeLabel(),
+            'group_member_count' => $loan->group_member_count,
             'status' => $loan->status,
             'request_date' => $loan->request_date?->format('Y-m-d'),
             'request_date_formatted' => $loan->request_date?->translatedFormat('d M Y'),
@@ -344,6 +366,9 @@ class LoanController extends Controller
             'mark_borrowed_blocked_reason' => $markBorrowedBlockedReason,
             'can_return' => $loan->isAlat() && in_array($loan->status, ['dipinjam', 'terlambat'], true),
             'can_inspect' => $loan->status === 'menunggu_inspeksi',
+            'can_set_queue_priority' => $loan->status === 'antrian'
+                && ($loan->isPribadi() || $loan->item_type === 'bahan'),
+            'queue_priority' => (int) ($loan->queue_priority ?? 0),
             'can_edit' => false,
             'requires_collateral' => $loan->requiresCollateral(),
             'requires_return_inspection' => $loan->requiresReturnInspection(),

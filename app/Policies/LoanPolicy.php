@@ -52,6 +52,13 @@ class LoanPolicy
         return $user->isAdmin();
     }
 
+    public function setQueuePriority(User $user, Loan $loan): bool
+    {
+        return $user->isAdmin()
+            && $loan->status === 'antrian'
+            && ($loan->isPribadi() || $loan->item_type === 'bahan');
+    }
+
     public function markBorrowed(User $user, Loan $loan): bool
     {
         return $user->isAdmin();

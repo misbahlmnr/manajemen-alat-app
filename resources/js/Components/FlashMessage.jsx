@@ -25,11 +25,19 @@ export default function FlashMessage() {
                         primary: "hsl(var(--success))",
                         secondary: "#fff",
                     },
+                    style: {
+                        whiteSpace: "pre-line",
+                        maxWidth: "28rem",
+                    },
                 },
                 error: {
                     iconTheme: {
                         primary: "hsl(var(--destructive))",
                         secondary: "#fff",
+                    },
+                    style: {
+                        whiteSpace: "pre-line",
+                        maxWidth: "28rem",
                     },
                 },
             }}
