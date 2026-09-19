@@ -1145,20 +1145,15 @@ export default function Create({
                                             <Alert variant="warning">
                                                 <Info className="h-4 w-4" />
                                                 <AlertTitle>
-                                                    Salah satu alat belum dapat
-                                                    diajukan.
+                                                    Stok alat sedang tidak
+                                                    tersedia.
                                                 </AlertTitle>
-                                                <AlertDescription className="space-y-1">
-                                                    <p>
-                                                        Pengajuan tetap dapat
-                                                        dilakukan.
-                                                    </p>
-                                                    <p>
-                                                        Permintaan Anda akan
-                                                        masuk antrean dan
-                                                        diproses setelah unit
-                                                        tersedia.
-                                                    </p>
+                                                <AlertDescription>
+                                                    Pengajuan tetap dapat
+                                                    dilakukan dan akan masuk
+                                                    antrean. Permintaan akan
+                                                    diproses setelah unit
+                                                    tersedia.
                                                 </AlertDescription>
                                             </Alert>
                                         )}

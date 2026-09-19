@@ -248,7 +248,8 @@ class LoanSlotAvailabilityService
         bool $includePending = true,
     ): int {
         if ($equipment->item_type !== 'alat') {
-            return max(0, (int) $equipment->available);
+            return app(LoanMaterialAvailabilityService::class)
+                ->remaining($equipment, $exceptLoanIds, $includePending);
         }
 
         $capacity = max(0, (int) $equipment->qty_baik);
@@ -277,8 +278,14 @@ class LoanSlotAvailabilityService
             $exceptLoanIds = $this->normalizeExceptIds($exceptLoanIds, $draft->id);
 
             if (! $draft->isAlat()) {
+                $materials = app(LoanMaterialAvailabilityService::class);
                 foreach ($draft->items as $item) {
-                    if ($item->equipment && $item->equipment->available < $item->quantity) {
+                    if ($item->equipment && $materials->hasShortage(
+                        $item->equipment,
+                        (int) $item->quantity,
+                        $exceptLoanIds,
+                        $includePending,
+                    )) {
                         return true;
                     }
                 }
@@ -305,10 +312,16 @@ class LoanSlotAvailabilityService
         $items = $draft['items'] ?? [];
 
         if ($itemType !== 'alat') {
+            $materials = app(LoanMaterialAvailabilityService::class);
             foreach ($items as $row) {
                 $equipment = Equipment::query()->find($row['equipment_id'] ?? null);
 
-                if ($equipment && $equipment->available < (int) $row['quantity']) {
+                if ($equipment && $materials->hasShortage(
+                    $equipment,
+                    (int) $row['quantity'],
+                    $exceptLoanIds,
+                    $includePending,
+                )) {
                     return true;
                 }
             }
@@ -339,7 +352,8 @@ class LoanSlotAvailabilityService
     public function remainingForDraft(Equipment $equipment, array $context, int|array|null $exceptLoanIds = null): int
     {
         if ($equipment->item_type !== 'alat') {
-            return max(0, (int) $equipment->available);
+            return app(LoanMaterialAvailabilityService::class)
+                ->remaining($equipment, $exceptLoanIds);
         }
 
         [$start, $end] = $this->windowFromContext($context);

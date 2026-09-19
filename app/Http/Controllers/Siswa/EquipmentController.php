@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Siswa;
 
 use App\Http\Controllers\Controller;
 use App\Models\Equipment;
-use App\Services\Loan\LoanSlotAvailabilityService;
+use App\Services\Loan\LoanRequestAvailabilityService;
 use App\Support\EquipmentFormatter;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -13,7 +13,7 @@ use Inertia\Response;
 class EquipmentController extends Controller
 {
     public function __construct(
-        private LoanSlotAvailabilityService $slots,
+        private LoanRequestAvailabilityService $requestAvailability,
     ) {}
 
     public function index(Request $request): Response
@@ -104,7 +104,7 @@ class EquipmentController extends Controller
             ? $slotContext
             : $this->slotContextFromRequest(request(), now()->toDateString());
 
-        $requestable = $this->slots->remainingForDraft($equipment, $context);
+        $requestable = $this->requestAvailability->remainingForSubmit($equipment, $context);
         $capacity = max(0, (int) $equipment->qty_baik);
         $queueOpen = $equipment->status === 'tersedia' && $requestable <= 0;
 

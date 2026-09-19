@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Siswa;
 
 use App\Http\Controllers\Controller;
 use App\Models\Supply;
-use App\Services\Loan\LoanSlotAvailabilityService;
+use App\Services\Loan\LoanRequestAvailabilityService;
 use App\Support\EquipmentFormatter;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -13,7 +13,7 @@ use Inertia\Response;
 class SupplyController extends Controller
 {
     public function __construct(
-        private LoanSlotAvailabilityService $slots,
+        private LoanRequestAvailabilityService $requestAvailability,
     ) {}
 
     public function index(Request $request): Response
@@ -69,10 +69,8 @@ class SupplyController extends Controller
 
     private function formatSupply(Supply $supply, bool $detailed = false): array
     {
-        // Bahan: sama dengan Ajukan — remainingForDraft mengembalikan equipment.available.
-        $requestable = $this->slots->remainingForDraft($supply, [
+        $requestable = $this->requestAvailability->remainingForSubmit($supply, [
             'item_type' => 'bahan',
-            'request_date' => now()->toDateString(),
         ]);
 
         $queueOpen = $supply->isAvailableForInventory() && $requestable <= 0;
@@ -81,6 +79,7 @@ class SupplyController extends Controller
             ...EquipmentFormatter::format($supply, $detailed),
             'slot_remaining' => $requestable,
             'available' => $requestable,
+            'is_low_stock' => $supply->min_stock !== null && $requestable <= $supply->min_stock,
             'can_request' => $supply->isAvailableForInventory(),
             'queue_open' => $queueOpen,
             'cta_label' => $queueOpen ? 'Ajukan' : 'Tambah',

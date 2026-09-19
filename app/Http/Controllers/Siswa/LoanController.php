@@ -13,6 +13,7 @@ use App\Models\Submission;
 use App\Models\User;
 use App\Services\Loan\CollateralWorkflowService;
 use App\Services\Loan\LoanQueueService;
+use App\Services\Loan\LoanRequestAvailabilityService;
 use App\Services\Loan\LoanSlotAvailabilityService;
 use App\Services\Loan\LoanWorkflowService;
 use App\Services\Loan\StudentLoanSubmissionService;
@@ -33,6 +34,7 @@ class LoanController extends Controller
         private CollateralWorkflowService $collateralWorkflow,
         private LoanQueueService $queueService,
         private LoanSlotAvailabilityService $slotAvailability,
+        private LoanRequestAvailabilityService $requestAvailability,
         private StudentLoanSubmissionService $studentLoans,
         private SubmissionPresenter $submissions,
     ) {}
@@ -182,7 +184,7 @@ class LoanController extends Controller
         $remaining = [];
 
         foreach ($query->get() as $equipment) {
-            $remaining[$equipment->id] = $this->slotAvailability->remainingForDraft(
+            $remaining[$equipment->id] = $this->requestAvailability->remainingForSubmit(
                 $equipment,
                 $context,
                 $validated['except_loan_id'] ?? null,
@@ -631,17 +633,14 @@ class LoanController extends Controller
     private function formatCatalogItem(Equipment $equipment, ?array $slotContext = null): array
     {
         $isBahan = $equipment->item_type === 'bahan';
-        $slotRemaining = $isBahan
-            ? (int) $equipment->available
-            : $this->slotAvailability->remainingForDraft(
-                $equipment,
-                $slotContext ?? [
-                    'item_type' => 'alat',
-                    'borrow_scope' => 'lab',
-                    'borrow_reason' => 'reguler',
-                    'request_date' => now()->toDateString(),
-                ],
-            );
+        $context = $slotContext ?? [
+            'item_type' => $isBahan ? 'bahan' : 'alat',
+            'borrow_scope' => 'lab',
+            'borrow_reason' => 'reguler',
+            'request_date' => now()->toDateString(),
+        ];
+
+        $requestable = $this->requestAvailability->remainingForSubmit($equipment, $context);
 
         return [
             'id' => $equipment->id,
@@ -649,16 +648,17 @@ class LoanController extends Controller
             'name' => $equipment->name,
             'category' => $equipment->category,
             'item_type' => $equipment->item_type,
-            'available' => $equipment->available,
+            // Angka yang ditampilkan siswa = sisa yang bisa diajukan (bukan stok gudang).
+            'available' => $requestable,
             'qty_baik' => $equipment->qty_baik,
             'stock' => $equipment->stock,
-            'slot_remaining' => $slotRemaining,
+            'slot_remaining' => $requestable,
             'unit' => $equipment->unit ?? ($isBahan ? 'pcs' : 'unit'),
             'min_stock' => $equipment->min_stock,
             'image_url' => $equipment->image_url,
             'is_low_stock' => $isBahan
                 && $equipment->min_stock !== null
-                && $equipment->available <= $equipment->min_stock,
+                && $requestable <= $equipment->min_stock,
         ];
     }
 
