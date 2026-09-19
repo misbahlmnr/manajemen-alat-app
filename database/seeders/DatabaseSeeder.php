@@ -40,13 +40,29 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
+        // XI TAV 1: 3 ketua + 15 anggota (cukup untuk 3 kelompok × 5 orang).
         $siswa = [
             ['name' => 'Patmawati', 'username' => 'patmawati', 'class' => 'XI TAV 1'],
             ['name' => 'Misbah', 'username' => 'misbah', 'class' => 'XI TAV 1'],
             ['name' => 'Santi', 'username' => 'santi', 'class' => 'XI TAV 1'],
+            ['name' => 'Andi', 'username' => 'andi', 'class' => 'XI TAV 1'],
+            ['name' => 'Budi', 'username' => 'budi', 'class' => 'XI TAV 1'],
+            ['name' => 'Candra', 'username' => 'candra', 'class' => 'XI TAV 1'],
+            ['name' => 'Dina', 'username' => 'dina', 'class' => 'XI TAV 1'],
+            ['name' => 'Eko', 'username' => 'eko', 'class' => 'XI TAV 1'],
+            ['name' => 'Fajar', 'username' => 'fajar', 'class' => 'XI TAV 1'],
+            ['name' => 'Gita', 'username' => 'gita', 'class' => 'XI TAV 1'],
+            ['name' => 'Hadi', 'username' => 'hadi', 'class' => 'XI TAV 1'],
+            ['name' => 'Indra', 'username' => 'indra', 'class' => 'XI TAV 1'],
+            ['name' => 'Joko', 'username' => 'joko', 'class' => 'XI TAV 1'],
+            ['name' => 'Kartika', 'username' => 'kartika', 'class' => 'XI TAV 1'],
+            ['name' => 'Lina', 'username' => 'lina', 'class' => 'XI TAV 1'],
+            ['name' => 'Maya', 'username' => 'maya', 'class' => 'XI TAV 1'],
+            ['name' => 'Nanda', 'username' => 'nanda', 'class' => 'XI TAV 1'],
+            ['name' => 'Omar', 'username' => 'omar', 'class' => 'XI TAV 1'],
             ['name' => 'Azka', 'username' => 'azka', 'class' => 'XII TAV 3'],
             ['name' => 'Azki', 'username' => 'azki', 'class' => 'XII TAV 3'],
-            ['name' => 'Citra', 'username' => 'citra', 'class' => 'X TE 1'],
+            ['name' => 'Eka', 'username' => 'eka', 'class' => 'X TE 1'],
         ];
 
         foreach ($siswa as $index => $murid) {

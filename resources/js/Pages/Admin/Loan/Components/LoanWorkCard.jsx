@@ -400,6 +400,14 @@ export default function LoanWorkCard({
                         Paket alat + bahan
                     </Badge>
                 ) : null}
+                {submission.is_praktikum && submission.group_size ? (
+                    <Badge
+                        variant="muted"
+                        className="h-5 px-1.5 text-[10px] font-medium"
+                    >
+                        Peserta · {submission.group_size} Orang
+                    </Badge>
+                ) : null}
             </div>
 
             <div className="mt-2">

@@ -17,6 +17,7 @@ use App\Services\Loan\LoanRequestAvailabilityService;
 use App\Services\Loan\LoanSlotAvailabilityService;
 use App\Services\Loan\LoanWorkflowService;
 use App\Services\Loan\StudentLoanSubmissionService;
+use App\Services\Loan\SubmissionMemberService;
 use App\Services\Loan\SubmissionPresenter;
 use App\Services\Notification\LabNotificationService;
 use Illuminate\Http\JsonResponse;
@@ -24,6 +25,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -37,6 +39,7 @@ class LoanController extends Controller
         private LoanRequestAvailabilityService $requestAvailability,
         private StudentLoanSubmissionService $studentLoans,
         private SubmissionPresenter $submissions,
+        private SubmissionMemberService $memberService,
     ) {}
 
     public function index(Request $request): Response
@@ -130,6 +133,7 @@ class LoanController extends Controller
                 'borrow_scope' => 'lab',
                 'borrow_reason' => 'reguler',
                 'group_member_count' => '',
+                'member_ids' => [],
                 'supervisor_id' => '',
                 'practicum_schedule_id' => $request->input('practicum_schedule_id') ?: '',
                 'due_at' => '',
@@ -298,6 +302,9 @@ class LoanController extends Controller
                 'borrow_reason' => $loan->borrow_reason ?? 'reguler',
                 'loan_type' => $loan->resolvedLoanType(),
                 'group_member_count' => $loan->group_member_count ?? '',
+                'member_ids' => $loan->submission_id
+                    ? $loan->submission()->with('members:id')->first()?->members->pluck('id')->all() ?? []
+                    : [],
                 'due_at' => $loan->due_at?->format('Y-m-d\TH:i') ?? '',
                 'purpose' => $loan->purpose ?? '',
                 'notes' => $loan->notes ?? $loan->purpose ?? '',
@@ -314,7 +321,27 @@ class LoanController extends Controller
 
         $validated = $request->validated();
         $items = $validated['items'];
-        unset($validated['items'], $validated['collateral_agreed'], $validated['item_type']);
+        $memberIds = array_values(array_map('intval', $validated['member_ids'] ?? []));
+        unset($validated['items'], $validated['collateral_agreed'], $validated['item_type'], $validated['member_ids']);
+
+        $submission = $loan->submission_id
+            ? $loan->submission()->with(['loans', 'members:id'])->first()
+            : null;
+
+        $wantsMemberSync = $submission
+            && $loan->resolvedLoanType() === 'praktikum'
+            && $request->exists('member_ids');
+
+        if ($wantsMemberSync && ! $this->memberService->canEditMembers($submission)) {
+            $currentIds = $submission->members->pluck('id')->map(fn ($id) => (int) $id)->sort()->values()->all();
+            $nextIds = collect($memberIds)->map(fn ($id) => (int) $id)->sort()->values()->all();
+            if ($currentIds !== $nextIds) {
+                throw ValidationException::withMessages([
+                    'member_ids' => 'Anggota kelompok tidak dapat diubah karena pengajuan sudah diproses.',
+                ]);
+            }
+            $wantsMemberSync = false;
+        }
 
         $this->queueService->validateItemsForSubmit(
             $items,
@@ -386,6 +413,16 @@ class LoanController extends Controller
         }
 
         $this->collateralWorkflow->syncCollateralForLoan($loan->fresh());
+
+        if ($wantsMemberSync) {
+            $this->memberService->syncMembers(
+                $submission->fresh(['loans']),
+                $memberIds,
+                $request->user(),
+            );
+        } elseif ($submission && $loan->resolvedLoanType() !== 'praktikum') {
+            $this->memberService->syncMembers($submission->fresh(['loans']), [], $request->user());
+        }
 
         return redirect()
             ->route('siswa.loans.show', $loan)
@@ -491,6 +528,21 @@ class LoanController extends Controller
                 ->orderBy('name')
                 ->get(['id', 'name'])
                 ->map(fn (User $u) => ['id' => $u->id, 'name' => $u->name])
+                ->values()
+                ->all(),
+            'classmateOptions' => User::query()
+                ->where('role', 'siswa')
+                ->where('status', 'active')
+                ->where('class', $user->class)
+                ->whereKeyNot($user->id)
+                ->orderBy('name')
+                ->get(['id', 'name', 'nisn', 'class'])
+                ->map(fn (User $u) => [
+                    'id' => $u->id,
+                    'name' => $u->name,
+                    'nis' => $u->nisn,
+                    'class_name' => $u->class,
+                ])
                 ->values()
                 ->all(),
             'todaySchedules' => $schedules,

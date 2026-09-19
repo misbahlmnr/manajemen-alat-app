@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import RejectLoanDialog from "./Components/RejectLoanDialog";
+import PracticumParticipants from "@/Components/PracticumParticipants";
 
 const LOAN_TYPE_SUBTITLE = {
     praktikum: "Praktik Lab",
@@ -283,6 +284,8 @@ export default function Submission({ submission }) {
                         <MetaRow label="Catatan" value={notes} />
                     </dl>
                 </div>
+
+                <PracticumParticipants submission={submission} />
 
                 {(alat || bahan) && (
                     <div

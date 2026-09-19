@@ -4,34 +4,39 @@ namespace App\Services\Loan;
 
 use App\Models\Loan;
 use App\Models\Submission;
+use App\Models\User;
 
 class SubmissionPresenter
 {
     public function __construct(
         private SubmissionDecisionService $decisions,
+        private SubmissionMemberService $members,
     ) {}
 
     /**
      * @param  callable(Loan): array  $loanFormatter
      * @return array<string, mixed>
      */
-    public function list(Submission $submission, callable $loanFormatter, string $showRouteName): array
+    public function list(Submission $submission, callable $loanFormatter, string $showRouteName, ?User $actor = null): array
     {
         $submission->loadMissing([
-            'borrower:id,name,role,class',
+            'borrower:id,name,role,class,nisn',
             'supervisor:id,name',
             'loans.items.equipment:id,code,name,item_type,unit,image_path',
+            'members:id,name,nisn,class',
         ]);
 
-        $members = $submission->loans->map(function (Loan $loan) use ($submission, $loanFormatter) {
+        $actor ??= auth()->user();
+
+        $loanRows = $submission->loans->map(function (Loan $loan) use ($submission, $loanFormatter) {
             $loan->setRelation('submission', $submission);
 
             return $loanFormatter($loan);
         })->values();
-        $alat = $members->firstWhere('item_type', 'alat');
-        $bahan = $members->firstWhere('item_type', 'bahan');
+        $alat = $loanRows->firstWhere('item_type', 'alat');
+        $bahan = $loanRows->firstWhere('item_type', 'bahan');
 
-        $handoverMembers = $members->filter(
+        $handoverMembers = $loanRows->filter(
             fn ($m) => ($m['status'] ?? null) === 'disetujui',
         );
         $markBorrowedBlockedReason = $handoverMembers
@@ -39,20 +44,22 @@ class SubmissionPresenter
             ->first(fn ($reason) => filled($reason));
         $canMarkBorrowed = $handoverMembers->isNotEmpty()
             && $handoverMembers->every(fn ($m) => ($m['can_mark_borrowed'] ?? false) === true);
-        $requiresCollateral = $members->contains(
+        $requiresCollateral = $loanRows->contains(
             fn ($m) => ($m['requires_collateral'] ?? false) === true,
         );
         $collateralReceived = $requiresCollateral
-            && ! $members->contains(fn ($m) => ($m['can_receive_card'] ?? false) === true)
-            && $members
+            && ! $loanRows->contains(fn ($m) => ($m['can_receive_card'] ?? false) === true)
+            && $loanRows
                 ->filter(fn ($m) => ($m['requires_collateral'] ?? false) === true)
                 ->every(fn ($m) => ($m['collateral_status'] ?? null) === 'ditahan');
+
+        $groupMembers = $this->members->formatMembers($submission);
 
         return [
             'id' => $submission->id,
             'code' => $submission->code,
             'is_submission' => true,
-            'is_package' => $members->count() > 1,
+            'is_package' => $loanRows->count() > 1,
             'show_url' => route($showRouteName, $submission),
             'borrower_id' => $submission->borrower_id,
             'borrower_name' => $submission->borrower?->name,
@@ -74,11 +81,16 @@ class SubmissionPresenter
             'mark_borrowed_blocked_reason' => $markBorrowedBlockedReason,
             'requires_collateral' => $requiresCollateral,
             'collateral_received' => $collateralReceived,
+            'members' => $groupMembers,
+            'group_size' => count($groupMembers) + 1,
+            'group_role' => $this->members->groupRole($submission, $actor instanceof User ? $actor : null),
+            'can_edit_members' => $this->members->canEditMembers($submission),
+            'is_praktikum' => $this->members->isPraktikumSubmission($submission),
             'alat_count' => $submission->alatItemCount(),
             'bahan_count' => $submission->bahanItemCount(),
             'has_alat' => (bool) $alat,
             'has_bahan' => (bool) $bahan,
-            'package_members' => $members->all(),
+            'package_members' => $loanRows->all(),
             'package_codes' => [$submission->code],
             'alat' => $alat,
             'bahan' => $bahan,
@@ -89,9 +101,9 @@ class SubmissionPresenter
      * @param  callable(Loan): array  $loanFormatter
      * @return array<string, mixed>
      */
-    public function detail(Submission $submission, callable $loanFormatter, string $showRouteName): array
+    public function detail(Submission $submission, callable $loanFormatter, string $showRouteName, ?User $actor = null): array
     {
-        $row = $this->list($submission, $loanFormatter, $showRouteName);
+        $row = $this->list($submission, $loanFormatter, $showRouteName, $actor);
         $row['loans'] = $row['package_members'];
 
         return $row;

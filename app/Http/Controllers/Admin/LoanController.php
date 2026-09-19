@@ -61,6 +61,7 @@ class LoanController extends Controller
                 'loans.schedule:id,code,title,jam_mulai,jam_selesai',
                 'loans.items.equipment:id,code,name,item_type',
                 'loans.collateral.heldByAdmin:id,name',
+                'members:id,name,nisn,class',
             ])
             ->when($search->isNotEmpty(), function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {

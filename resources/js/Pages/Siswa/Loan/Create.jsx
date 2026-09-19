@@ -7,6 +7,7 @@ import { useAppClock } from "@/lib/appClock";
 import { cn } from "@/lib/utils";
 import { Head, Link, router, useForm } from "@inertiajs/react";
 import LoanCatalogTable from "./Components/LoanCatalogTable";
+import GroupMemberMultiSelect from "./Components/GroupMemberMultiSelect";
 import {
     AlertTriangle,
     Calendar,
@@ -204,6 +205,7 @@ export default function Create({
     catalogFilters,
     defaults,
     supervisorOptions = [],
+    classmateOptions = [],
     todaySchedules = [],
     bookableSchedules = [],
     labRoomOptions = [],
@@ -468,7 +470,7 @@ export default function Create({
                 practicum_schedule_id: "",
                 supervisor_id: "",
                 usage_room: "",
-                group_member_count: "",
+                member_ids: [],
                 collateral_agreed: false,
                 due_at: addDaysDateTime(
                     requestDate,
@@ -488,7 +490,7 @@ export default function Create({
                 practicum_schedule_id: "",
                 supervisor_id: "",
                 usage_room: "",
-                group_member_count: "",
+                member_ids: [],
                 collateral_agreed: false,
                 due_at: buildDueAt(requestDate, schoolCloseTime, appNow),
             }));
@@ -503,6 +505,7 @@ export default function Create({
             practicum_schedule_id: "",
             supervisor_id: "",
             usage_room: "",
+            member_ids: [],
             collateral_agreed: false,
             due_at: "",
         }));
@@ -685,13 +688,8 @@ export default function Create({
             ) {
                 payload.usage_room = formData.usage_room;
             }
-            if (
-                payload.loan_type === "praktikum" &&
-                formData.group_member_count
-            ) {
-                payload.group_member_count = Number(
-                    formData.group_member_count,
-                );
+            if (payload.loan_type === "praktikum") {
+                payload.member_ids = (formData.member_ids ?? []).map(Number);
             }
         }
 
@@ -1169,32 +1167,6 @@ export default function Create({
                                     </div>
                                 )}
 
-                                {isPakaiDiLab && (
-                                    <div className="space-y-1.5">
-                                        <label className="text-sm font-medium">
-                                            Jumlah anggota kelompok (opsional)
-                                        </label>
-                                        <input
-                                            type="number"
-                                            min={1}
-                                            max={50}
-                                            value={data.group_member_count ?? ""}
-                                            onChange={(e) =>
-                                                setData(
-                                                    "group_member_count",
-                                                    e.target.value,
-                                                )
-                                            }
-                                            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                            disabled={busy}
-                                            placeholder="Contoh: 4"
-                                        />
-                                        <InputError
-                                            message={errors.group_member_count}
-                                        />
-                                    </div>
-                                )}
-
                                 {needsAlatFields && (
                                     <div className="space-y-1.5">
                                         <label className="flex items-center gap-1.5 text-sm font-medium">
@@ -1459,6 +1431,31 @@ export default function Create({
                                     />
                                 </div>
                                 )}
+
+                                {isPakaiDiLab ? (
+                                    <div className="space-y-1.5">
+                                        <label className="text-sm font-medium">
+                                            Anggota Kelompok (Opsional)
+                                        </label>
+                                        <p className="text-xs text-muted-foreground">
+                                            Isi jika praktikum dilakukan secara
+                                            berkelompok. Kosongkan jika
+                                            praktikum dilakukan secara individu.
+                                        </p>
+                                        <GroupMemberMultiSelect
+                                            options={classmateOptions}
+                                            value={data.member_ids ?? []}
+                                            onChange={(ids) =>
+                                                setData("member_ids", ids)
+                                            }
+                                            disabled={busy}
+                                            error={
+                                                errors.member_ids ||
+                                                errors["member_ids.0"]
+                                            }
+                                        />
+                                    </div>
+                                ) : null}
 
                                 {needsAlatFields && (
                                     <>

@@ -28,14 +28,35 @@ class LoanSeeder extends Seeder
         $praktikDate = Carbon::parse('2026-09-21');
         $submissions = app(StudentLoanSubmissionService::class);
 
-        foreach (['patmawati', 'misbah', 'santi'] as $username) {
-            $siswa = User::query()->where('username', $username)->first();
+        // 15 peer pool — 4 anggota per ketua (kelompok 5 orang).
+        $peerPool = User::query()
+            ->where('role', 'siswa')
+            ->where('class', 'XI TAV 1')
+            ->whereIn('username', [
+                'andi', 'budi', 'candra', 'dina', 'eko',
+                'fajar', 'gita', 'hadi', 'indra', 'joko',
+                'kartika', 'lina', 'maya', 'nanda', 'omar',
+            ])
+            ->orderBy('id')
+            ->pluck('id')
+            ->values()
+            ->all();
+
+        $groups = [
+            ['username' => 'patmawati', 'peers' => array_slice($peerPool, 0, 4)],
+            ['username' => 'misbah', 'peers' => array_slice($peerPool, 4, 4)],
+            ['username' => 'santi', 'peers' => array_slice($peerPool, 8, 4)],
+        ];
+
+        foreach ($groups as $row) {
+            $siswa = User::query()->where('username', $row['username'])->first();
             if (! $siswa) {
                 continue;
             }
 
             $date = $praktikDate->toDateString();
             $legacy = Loan::legacyFieldsForType('praktikum');
+            $memberIds = array_map('intval', $row['peers']);
 
             $alatPayload = [
                 'item_type' => 'alat',
@@ -48,7 +69,7 @@ class LoanSeeder extends Seeder
                 'borrow_scope' => $legacy['borrow_scope'],
                 'borrow_reason' => $legacy['borrow_reason'],
                 'usage_room' => $schedule?->ruangan ?: 'Assembly',
-                'group_member_count' => 1,
+                'member_ids' => $memberIds,
                 'due_at' => $praktikDate->copy()->setTime(10, 0)->format('Y-m-d H:i:s'),
                 'items' => [
                     ['equipment_id' => $alat->id, 'quantity' => 3],

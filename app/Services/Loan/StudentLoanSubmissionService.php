@@ -14,6 +14,7 @@ class StudentLoanSubmissionService
         private LoanQueueService $queue,
         private LoanWorkflowService $workflow,
         private CollateralWorkflowService $collateralWorkflow,
+        private SubmissionMemberService $members,
     ) {}
 
     /**
@@ -25,7 +26,8 @@ class StudentLoanSubmissionService
     public function create(array $validated, User $user, ?string $loanGroupId = null, ?Submission $submission = null): Loan
     {
         $items = $validated['items'];
-        unset($validated['items'], $validated['collateral_agreed']);
+        $memberIds = array_values(array_map('intval', $validated['member_ids'] ?? []));
+        unset($validated['items'], $validated['collateral_agreed'], $validated['member_ids']);
 
         $loanType = $validated['loan_type']
             ?? ($validated['item_type'] === 'alat'
@@ -46,6 +48,15 @@ class StudentLoanSubmissionService
         if ($validated['item_type'] === 'alat') {
             $validated['borrow_scope'] = $legacy['borrow_scope'];
             $validated['borrow_reason'] = $legacy['borrow_reason'];
+        }
+
+        $creatingSubmission = $submission === null;
+        $shouldManageMembers = $loanType === 'praktikum' && $validated['item_type'] === 'alat';
+
+        // Always assert/sync for praktikum alat — callers may pre-create Submission
+        // (store / createPackage) so $creatingSubmission alone is not enough.
+        if ($shouldManageMembers) {
+            $this->members->assertParticipantsAvailable($user, $memberIds, $submission);
         }
 
         $this->queue->validateItemsForSubmit(
@@ -81,9 +92,7 @@ class StudentLoanSubmissionService
             'borrow_reason' => $validated['item_type'] === 'alat'
                 ? ($validated['borrow_reason'] ?? 'reguler')
                 : null,
-            'group_member_count' => $loanType === 'praktikum'
-                ? ($validated['group_member_count'] ?? null)
-                : null,
+            'group_member_count' => null,
             'usage_room' => $validated['usage_room'] ?? null,
             'due_at' => $validated['item_type'] === 'alat' ? ($validated['due_at'] ?? null) : null,
         ]);
@@ -103,6 +112,12 @@ class StudentLoanSubmissionService
 
         if ($loan->requiresCollateral()) {
             $this->collateralWorkflow->registerPendingCollateral($loan->fresh());
+        }
+
+        if ($shouldManageMembers) {
+            $this->members->syncMembers($submission->fresh(['loans']), $memberIds, $user);
+        } elseif ($creatingSubmission) {
+            $this->members->syncMembers($submission->fresh(['loans']), [], $user);
         }
 
         app(LabNotificationService::class)->loanSubmitted(
@@ -129,6 +144,17 @@ class StudentLoanSubmissionService
     public function createPackage(array $alatPayload, array $bahanPayload, User $user, ?string $loanGroupId = null): array
     {
         $groupId = $loanGroupId ?? (string) \Illuminate\Support\Str::uuid();
+        $memberIds = array_values(array_map('intval', $alatPayload['member_ids'] ?? []));
+
+        $loanType = $alatPayload['loan_type']
+            ?? Loan::resolveTypeFromLegacy(
+                $alatPayload['borrow_scope'] ?? null,
+                $alatPayload['borrow_reason'] ?? null,
+            );
+
+        if ($loanType === 'praktikum') {
+            $this->members->assertParticipantsAvailable($user, $memberIds);
+        }
 
         $submission = Submission::createForBorrower($user, $alatPayload);
         $alatLoan = $this->create($alatPayload, $user, $groupId, $submission);
@@ -137,6 +163,12 @@ class StudentLoanSubmissionService
         if (($bahanPayload['items'] ?? []) !== []) {
             $bahanPayload['loan_type'] = $alatLoan->loan_type ?? 'praktikum';
             $bahanLoan = $this->create($bahanPayload, $user, $groupId, $submission);
+        }
+
+        if ($loanType === 'praktikum') {
+            $this->members->syncMembers($submission->fresh(['loans']), $memberIds, $user);
+        } else {
+            $this->members->syncMembers($submission->fresh(['loans']), [], $user);
         }
 
         return [$alatLoan, $bahanLoan, $submission];

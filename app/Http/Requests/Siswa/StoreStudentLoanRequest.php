@@ -60,6 +60,7 @@ class StoreStudentLoanRequest extends FormRequest
 
         if (! $isPraktikum) {
             $merge['group_member_count'] = null;
+            $merge['member_ids'] = [];
         }
 
         if (! $isAlat || $isBawaPulang) {
@@ -165,6 +166,22 @@ class StoreStudentLoanRequest extends FormRequest
                 'min:1',
                 'max:50',
             ],
+            'member_ids' => [
+                Rule::excludeIf(fn () => ! $isPraktikum),
+                'nullable',
+                'array',
+                'max:10',
+            ],
+            'member_ids.*' => [
+                Rule::excludeIf(fn () => ! $isPraktikum),
+                'integer',
+                'distinct',
+                Rule::exists(User::class, 'id')
+                    ->where('role', 'siswa')
+                    ->where('status', 'active')
+                    ->where('class', $this->user()?->class),
+                Rule::notIn([(int) $this->user()->id]),
+            ],
             'usage_room' => [
                 Rule::requiredIf($isPraktikum || $isPribadi),
                 'nullable',
@@ -197,6 +214,8 @@ class StoreStudentLoanRequest extends FormRequest
             'borrow_scope' => 'kebutuhan penggunaan',
             'borrow_reason' => 'kebutuhan penggunaan',
             'group_member_count' => 'jumlah anggota kelompok',
+            'member_ids' => 'anggota kelompok',
+            'member_ids.*' => 'anggota kelompok',
             'usage_room' => 'lokasi ruang/lab',
             'collateral_agreed' => 'pemahaman jaminan kartu',
             'items' => 'item peminjaman',

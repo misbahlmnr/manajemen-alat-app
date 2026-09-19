@@ -7,6 +7,7 @@ import { Button } from "@/Components/ui/button";
 import { Card, CardContent } from "@/Components/ui/card";
 import { Head, Link } from "@inertiajs/react";
 import { ArrowLeft, Package, Wrench } from "lucide-react";
+import PracticumParticipants from "@/Components/PracticumParticipants";
 
 export default function Submission({ submission }) {
     return (
@@ -86,6 +87,10 @@ export default function Submission({ submission }) {
                         </div>
                     </CardContent>
                 </Card>
+
+                <div className="mb-6">
+                    <PracticumParticipants submission={submission} />
+                </div>
 
                 <div className="grid gap-6 lg:grid-cols-2">
                     <SubmissionTypeCard

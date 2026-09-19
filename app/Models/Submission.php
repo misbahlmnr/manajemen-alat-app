@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Collection;
 
@@ -61,6 +62,15 @@ class Submission extends Model
     public function loans(): HasMany
     {
         return $this->hasMany(Loan::class)->orderBy('item_type')->orderBy('id');
+    }
+
+    /**
+     * Peer group members only (ketua = borrower_id, not in pivot).
+     */
+    public function members(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'submission_members', 'submission_id', 'student_id')
+            ->withTimestamps();
     }
 
     public function alatLoan(): ?Loan
