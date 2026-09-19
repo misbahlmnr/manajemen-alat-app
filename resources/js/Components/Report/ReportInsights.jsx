@@ -1,4 +1,4 @@
-function RankingList({ items, countSuffix, emptyLabel }) {
+function RankingList({ items, formatCount, emptyLabel }) {
     if (!items?.length) {
         return (
             <p className="py-8 text-center text-sm text-muted-foreground">
@@ -22,17 +22,8 @@ function RankingList({ items, countSuffix, emptyLabel }) {
                             {item.name}
                         </span>
                     </div>
-                    <span className="shrink-0 text-sm font-semibold tabular-nums text-foreground">
-                        {countSuffix ? (
-                            <>
-                                {item.count}{" "}
-                                <span className="font-normal text-muted-foreground">
-                                    {countSuffix}
-                                </span>
-                            </>
-                        ) : (
-                            <>{item.count}x</>
-                        )}
+                    <span className="shrink-0 text-right text-sm font-semibold tabular-nums text-foreground">
+                        {formatCount(item.count)}
                     </span>
                 </li>
             ))}
@@ -46,12 +37,43 @@ export default function ReportInsights({
 }) {
     const topAlat = insights.top_alat ?? [];
     const topBahan = insights.top_bahan ?? [];
-    const emptyLabel = isGuruScope
-        ? "Belum ada data pada periode ini."
-        : "Belum ada data.";
-    const subtitle = isGuruScope
-        ? "Item yang paling sering dipinjam atau digunakan pada periode yang dipilih."
-        : "Item yang paling sering dipinjam atau diminta pada periode ini.";
+    const emptyLabel = "Belum ada data pada periode ini.";
+    const subtitle =
+        "Item yang paling sering dipinjam atau digunakan pada periode yang dipilih.";
+
+    const formatAlatCount = isGuruScope
+        ? (count) => (
+              <>
+                  {count}{" "}
+                  <span className="font-normal text-muted-foreground">
+                      dipinjam
+                  </span>
+              </>
+          )
+        : (count) => (
+              <span className="font-normal text-muted-foreground">
+                  Dipinjam{" "}
+                  <span className="font-semibold text-foreground">{count}</span>{" "}
+                  kali
+              </span>
+          );
+
+    const formatBahanCount = isGuruScope
+        ? (count) => (
+              <>
+                  {count}{" "}
+                  <span className="font-normal text-muted-foreground">
+                      digunakan
+                  </span>
+              </>
+          )
+        : (count) => (
+              <span className="font-normal text-muted-foreground">
+                  Digunakan{" "}
+                  <span className="font-semibold text-foreground">{count}</span>{" "}
+                  kali
+              </span>
+          );
 
     return (
         <section className="space-y-3">
@@ -68,12 +90,8 @@ export default function ReportInsights({
                     </h4>
                     <RankingList
                         items={topAlat}
-                        countSuffix={isGuruScope ? "dipinjam" : null}
-                        emptyLabel={
-                            isGuruScope
-                                ? emptyLabel
-                                : "Belum ada data peminjaman alat."
-                        }
+                        formatCount={formatAlatCount}
+                        emptyLabel={emptyLabel}
                     />
                 </div>
                 <div className="rounded-[10px] border border-border/60 bg-card p-5 shadow-sm">
@@ -82,12 +100,8 @@ export default function ReportInsights({
                     </h4>
                     <RankingList
                         items={topBahan}
-                        countSuffix={isGuruScope ? "digunakan" : null}
-                        emptyLabel={
-                            isGuruScope
-                                ? emptyLabel
-                                : "Belum ada data permintaan bahan."
-                        }
+                        formatCount={formatBahanCount}
+                        emptyLabel={emptyLabel}
                     />
                 </div>
             </div>

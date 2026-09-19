@@ -8,7 +8,7 @@ export default function Index(props) {
             <Head title="Laporan" />
             <ReportWorkspace
                 indexRoute="admin.reports.index"
-                pageSubtitle="Generate laporan operasional lab untuk kepala sekolah atau atasan"
+                pageSubtitle="Pantau ringkasan operasional laboratorium, kondisi inventaris, dan aktivitas peminjaman berdasarkan periode yang dipilih."
                 {...props}
             />
         </AppLayout>

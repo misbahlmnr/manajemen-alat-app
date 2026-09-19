@@ -6,7 +6,6 @@ import {
     Clock3,
     CreditCard,
     HandCoins,
-    ListOrdered,
     PackageMinus,
     Users,
 } from "lucide-react";
@@ -41,101 +40,120 @@ function KpiCard({ label, value, subtitle, icon: Icon, accent }) {
     );
 }
 
+function KpiSection({ title, cards }) {
+    return (
+        <section className="space-y-3">
+            <h3 className="text-base font-semibold text-foreground">{title}</h3>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                {cards.map((card) => (
+                    <KpiCard key={card.label} {...card} />
+                ))}
+            </div>
+        </section>
+    );
+}
+
 export default function ReportKpiGrid({ stats = {}, isGuruScope = false }) {
-    const cards = isGuruScope
-        ? [
-              {
-                  label: "Total Pengajuan",
-                  value: stats.total_loans,
-                  subtitle: "Seluruh pengajuan pada periode ini",
-                  icon: ClipboardList,
-              },
-              {
-                  label: "Sedang Dipinjam",
-                  value: stats.active_borrows,
-                  subtitle: "Alat/bahan bimbingan yang masih aktif",
-                  icon: HandCoins,
-                  accent: "text-primary",
-              },
-              {
-                  label: "Menunggu Persetujuan",
-                  value: stats.awaiting_approval ?? 0,
-                  subtitle: "Belum diproses admin",
-                  icon: Clock3,
-              },
-              {
-                  label: "Keterlambatan",
-                  value: stats.overdue,
-                  subtitle: "Lewat jatuh tempo",
-                  icon: AlertTriangle,
-                  accent: "text-destructive",
-              },
-              {
-                  label: "Siswa Bimbingan",
-                  value: stats.siswa_bimbingan,
-                  subtitle: "Siswa dengan pengajuan pada periode ini",
-                  icon: Users,
-              },
-              {
-                  label: "Jadwal Praktikum",
-                  value: stats.schedules_period,
-                  subtitle: "Jadwal praktikum pada periode ini",
-                  icon: CalendarDays,
-              },
-          ]
-        : [
-              {
-                  label: "Total Pengajuan",
-                  value: stats.total_loans,
-                  subtitle: "Seluruh submission pada periode ini",
-                  icon: ClipboardList,
-              },
-              {
-                  label: "Sedang Dipinjam",
-                  value: stats.active_borrows,
-                  subtitle: "Alat/bahan yang masih aktif",
-                  icon: HandCoins,
-                  accent: "text-primary",
-              },
-              {
-                  label: "Dalam Antrian",
-                  value: stats.queued ?? 0,
-                  subtitle: "Menunggu stok / antrian",
-                  icon: ListOrdered,
-              },
-              {
-                  label: "Menunggu Persetujuan",
-                  value: stats.awaiting_approval ?? 0,
-                  subtitle: "Belum diproses admin",
-                  icon: Clock3,
-              },
-              {
-                  label: "Keterlambatan",
-                  value: stats.overdue,
-                  subtitle: "Lewat jatuh tempo",
-                  icon: AlertTriangle,
-                  accent: "text-destructive",
-              },
-              {
-                  label: "Kartu Ditahan",
-                  value: stats.collateral_held,
-                  subtitle: "Jaminan masih ditahan",
-                  icon: CreditCard,
-              },
-              {
-                  label: "Bahan Menipis",
-                  value: stats.low_stock_bahan,
-                  subtitle: "Di bawah stok minimum",
-                  icon: PackageMinus,
-                  accent: "text-warning",
-              },
-          ];
+    if (isGuruScope) {
+        const cards = [
+            {
+                label: "Total Pengajuan",
+                value: stats.total_loans,
+                subtitle: "Seluruh pengajuan pada periode ini",
+                icon: ClipboardList,
+            },
+            {
+                label: "Sedang Dipinjam",
+                value: stats.active_borrows,
+                subtitle: "Alat/bahan bimbingan yang masih aktif",
+                icon: HandCoins,
+                accent: "text-primary",
+            },
+            {
+                label: "Menunggu Persetujuan",
+                value: stats.awaiting_approval ?? 0,
+                subtitle: "Belum diproses admin",
+                icon: Clock3,
+            },
+            {
+                label: "Keterlambatan",
+                value: stats.overdue,
+                subtitle: "Lewat jatuh tempo",
+                icon: AlertTriangle,
+                accent: "text-destructive",
+            },
+            {
+                label: "Siswa Bimbingan",
+                value: stats.siswa_bimbingan,
+                subtitle: "Siswa dengan pengajuan pada periode ini",
+                icon: Users,
+            },
+            {
+                label: "Jadwal Praktikum",
+                value: stats.schedules_period,
+                subtitle: "Jadwal praktikum pada periode ini",
+                icon: CalendarDays,
+            },
+        ];
+
+        return (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                {cards.map((card) => (
+                    <KpiCard key={card.label} {...card} />
+                ))}
+            </div>
+        );
+    }
+
+    const operasionalCards = [
+        {
+            label: "Total Pengajuan",
+            value: stats.total_loans,
+            subtitle: "Seluruh pengajuan pada periode ini",
+            icon: ClipboardList,
+        },
+        {
+            label: "Sedang Dipinjam",
+            value: stats.active_borrows,
+            subtitle: "Alat/bahan yang masih aktif",
+            icon: HandCoins,
+            accent: "text-primary",
+        },
+        {
+            label: "Menunggu Persetujuan",
+            value: stats.awaiting_approval ?? 0,
+            subtitle: "Belum diproses admin",
+            icon: Clock3,
+        },
+        {
+            label: "Keterlambatan",
+            value: stats.overdue,
+            subtitle: "Lewat jatuh tempo",
+            icon: AlertTriangle,
+            accent: "text-destructive",
+        },
+    ];
+
+    const inventarisCards = [
+        {
+            label: "Kartu Ditahan",
+            value: stats.collateral_held,
+            subtitle: "Jaminan masih ditahan",
+            icon: CreditCard,
+        },
+        {
+            label: "Bahan Menipis",
+            value: stats.low_stock_bahan,
+            subtitle: "Di bawah stok minimum",
+            icon: PackageMinus,
+            accent: "text-warning",
+        },
+    ];
 
     return (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {cards.map((card) => (
-                <KpiCard key={card.label} {...card} />
-            ))}
+        <div className="space-y-6">
+            <KpiSection title="Operasional" cards={operasionalCards} />
+            <KpiSection title="Inventaris" cards={inventarisCards} />
         </div>
     );
 }

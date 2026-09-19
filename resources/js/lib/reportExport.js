@@ -454,72 +454,173 @@ function exportGuruRingkasanPdf(stats, meta, extras = {}) {
     doc.save(`${formatFilename("ringkasan")}.pdf`);
 }
 
+function addAdminPdfFooter(doc) {
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(7);
+        doc.setFont("helvetica", "normal");
+        doc.text(
+            "Laporan ini dibuat secara otomatis oleh Sistem Informasi Laboratorium Audio Video SMKN 7 Kota Bekasi.",
+            pageWidth / 2,
+            pageHeight - 12,
+            { align: "center" },
+        );
+        doc.setFontSize(8);
+        doc.text(`Halaman ${i} dari ${pageCount}`, pageWidth / 2, pageHeight - 6, {
+            align: "center",
+        });
+    }
+}
+
+function exportAdminRingkasanPdf(stats, meta, extras = {}) {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const insights = extras.insights ?? {};
+    const charts = extras.charts ?? {};
+    const recentActivity = extras.recentActivity ?? [];
+    const topAlat = insights.top_alat ?? [];
+    const topBahan = insights.top_bahan ?? [];
+    const statusDistribution = charts.status_distribution ?? [];
+
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text(meta.school_name ?? "Sekolah", pageWidth / 2, 15, {
+        align: "center",
+    });
+    doc.setFontSize(11);
+    doc.text(meta.lab_name ?? "Laboratorium", pageWidth / 2, 22, {
+        align: "center",
+    });
+    doc.setFontSize(13);
+    doc.text("Laporan Ringkasan Operasional Laboratorium", pageWidth / 2, 32, {
+        align: "center",
+    });
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    let y = 40;
+    doc.text(`Periode: ${stats.period_label ?? "-"}`, 14, y);
+    doc.text(`Tanggal Cetak: ${meta.generated_at ?? "-"}`, pageWidth - 14, y, {
+        align: "right",
+    });
+    y += 8;
+
+    y = addSectionTitle(doc, "Ringkasan Operasional", y);
+    autoTable(doc, {
+        startY: y,
+        head: [["Indikator", "Nilai"]],
+        body: [
+            ["Total Pengajuan", stats.total_loans ?? 0],
+            ["Sedang Dipinjam", stats.active_borrows ?? 0],
+            ["Menunggu Persetujuan", stats.awaiting_approval ?? 0],
+            ["Keterlambatan", stats.overdue ?? 0],
+        ],
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [30, 58, 95] },
+        margin: { bottom: 24 },
+    });
+    y = doc.lastAutoTable.finalY + 10;
+
+    const inventarisRows = [
+        ["Kartu Ditahan", stats.collateral_held ?? 0],
+        ["Bahan Menipis", stats.low_stock_bahan ?? 0],
+        ["Total Alat", stats.total_alat ?? 0],
+        ["Unit Tersedia", stats.alat_available ?? 0],
+    ];
+
+    y = addSectionTitle(doc, "Kondisi Inventaris", y);
+    autoTable(doc, {
+        startY: y,
+        head: [["Indikator", "Nilai"]],
+        body: inventarisRows,
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [30, 58, 95] },
+        margin: { bottom: 24 },
+    });
+    y = doc.lastAutoTable.finalY + 10;
+
+    y = addSectionTitle(doc, "Insight Operasional — Top Alat", y);
+    autoTable(doc, {
+        startY: y,
+        head: [["No", "Nama", "Jumlah"]],
+        body:
+            topAlat.length > 0
+                ? topAlat.map((row, i) => [i + 1, row.name, row.count])
+                : [["—", "Belum ada data pada periode ini.", "—"]],
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [30, 58, 95] },
+        margin: { bottom: 24 },
+    });
+    y = doc.lastAutoTable.finalY + 10;
+
+    y = addSectionTitle(doc, "Insight Operasional — Top Bahan", y);
+    autoTable(doc, {
+        startY: y,
+        head: [["No", "Nama", "Jumlah"]],
+        body:
+            topBahan.length > 0
+                ? topBahan.map((row, i) => [i + 1, row.name, row.count])
+                : [["—", "Belum ada data pada periode ini.", "—"]],
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [30, 58, 95] },
+        margin: { bottom: 24 },
+    });
+    y = doc.lastAutoTable.finalY + 10;
+
+    y = addSectionTitle(doc, "Distribusi Status", y);
+    autoTable(doc, {
+        startY: y,
+        head: [["Status", "Jumlah"]],
+        body:
+            statusDistribution.length > 0
+                ? statusDistribution.map((row) => [row.label, row.value])
+                : [["—", "Belum ada data pada periode ini."]],
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [30, 58, 95] },
+        margin: { bottom: 24 },
+    });
+    y = doc.lastAutoTable.finalY + 10;
+
+    y = addSectionTitle(doc, "Aktivitas Terbaru", y);
+    autoTable(doc, {
+        startY: y,
+        head: [["Submission", "Nama Siswa", "Jenis", "Status", "Tanggal"]],
+        body:
+            recentActivity.length > 0
+                ? recentActivity.map((row) => [
+                      row.submission_code,
+                      row.borrower_name,
+                      row.item_type_label ?? "—",
+                      row.status_label ?? row.status,
+                      row.date_formatted,
+                  ])
+                : [
+                      [
+                          "—",
+                          "Belum ada aktivitas pada periode ini.",
+                          "—",
+                          "—",
+                          "—",
+                      ],
+                  ],
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [30, 58, 95] },
+        margin: { bottom: 24 },
+    });
+
+    addAdminPdfFooter(doc);
+    doc.save(`${formatFilename("ringkasan")}.pdf`);
+}
+
 export function exportRingkasanPdf(stats, highlights, meta, extras = {}) {
     if (meta?.report_scope === "guru") {
         exportGuruRingkasanPdf(stats, meta, extras);
         return;
     }
 
-    const doc = new jsPDF();
-    const title = "Laporan Ringkasan Operasional Lab";
-    const headerBottom = addPdfHeader(doc, meta, title);
-
-    doc.setFontSize(10);
-    doc.text(`Periode: ${stats.period_label ?? "-"}`, 14, headerBottom + 8);
-
-    const summaryRows = buildRingkasanRows(stats, meta);
-
-    autoTable(doc, {
-        startY: headerBottom + 14,
-        head: [["Indikator", "Nilai"]],
-        body: summaryRows,
-        styles: { fontSize: 9 },
-        headStyles: { fillColor: [30, 58, 95] },
-    });
-
-    let nextY = doc.lastAutoTable.finalY + 10;
-
-    if (highlights?.overdue_loans?.length) {
-        doc.setFontSize(11);
-        doc.setFont("helvetica", "bold");
-        doc.text("Peminjaman Terlambat", 14, nextY);
-        doc.setFont("helvetica", "normal");
-        autoTable(doc, {
-            startY: nextY + 4,
-            head: [["Kode", "Peminjam", "Kelas", "Barang"]],
-            body: highlights.overdue_loans.map((row) => [
-                row.code,
-                row.borrower_name,
-                row.borrower_class,
-                row.items_summary,
-            ]),
-            styles: { fontSize: 8 },
-            headStyles: { fillColor: [180, 50, 50] },
-        });
-        nextY = doc.lastAutoTable.finalY + 10;
-    }
-
-    if (highlights?.low_stock?.length) {
-        doc.setFontSize(11);
-        doc.setFont("helvetica", "bold");
-        doc.text("Bahan Stok Menipis", 14, nextY);
-        doc.setFont("helvetica", "normal");
-        autoTable(doc, {
-            startY: nextY + 4,
-            head: [["Kode", "Nama", "Tersedia", "Stok"]],
-            body: highlights.low_stock.map((row) => [
-                row.code,
-                row.name,
-                row.available,
-                row.stock,
-            ]),
-            styles: { fontSize: 8 },
-            headStyles: { fillColor: [180, 120, 30] },
-        });
-    }
-
-    addPdfFooter(doc);
-    doc.save(`${formatFilename("ringkasan")}.pdf`);
+    exportAdminRingkasanPdf(stats, meta, extras);
 }
 
 export function exportRingkasanExcel(stats, highlights, meta = {}) {

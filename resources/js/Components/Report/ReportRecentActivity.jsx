@@ -22,9 +22,7 @@ export default function ReportRecentActivity({
     isGuruScope = false,
 }) {
     const headers = isGuruScope ? guruHeaders : adminHeaders;
-    const emptyLabel = isGuruScope
-        ? "Belum ada aktivitas pada periode ini."
-        : "Belum ada aktivitas pada periode ini.";
+    const emptyLabel = "Belum ada aktivitas pada periode ini.";
 
     return (
         <section className="space-y-3">
@@ -35,17 +33,17 @@ export default function ReportRecentActivity({
                 <p className="text-sm text-muted-foreground">
                     {isGuruScope
                         ? "5 pengajuan terakhir pada periode yang dipilih."
-                        : "5 pengajuan terakhir pada periode filter."}
+                        : "5 aktivitas terakhir pada periode yang dipilih."}
                 </p>
             </div>
             <div className="overflow-hidden rounded-[10px] border border-border/60 bg-card shadow-sm">
                 {items.length === 0 ? (
-                    <p className="py-10 text-center text-sm text-muted-foreground">
+                    <p className="px-4 py-10 text-center text-sm text-muted-foreground">
                         {emptyLabel}
                     </p>
                 ) : (
                     <div className="overflow-x-auto">
-                        <table className="w-full min-w-[640px]">
+                        <table className="w-full min-w-[640px] table-fixed">
                             <thead className="bg-muted/40">
                                 <tr>
                                     {headers.map((header) => (
@@ -65,24 +63,24 @@ export default function ReportRecentActivity({
                                             key={row.id ?? row.submission_code}
                                             className="hover:bg-muted/30"
                                         >
-                                            <td className="px-4 py-3 text-sm font-medium">
+                                            <td className="px-4 py-3.5 align-middle text-sm font-medium">
                                                 {row.submission_code}
                                             </td>
-                                            <td className="px-4 py-3 text-sm">
+                                            <td className="px-4 py-3.5 align-middle text-sm">
                                                 {row.borrower_name}
                                             </td>
-                                            <td className="px-4 py-3 text-sm text-muted-foreground">
+                                            <td className="px-4 py-3.5 align-middle text-sm text-muted-foreground">
                                                 {row.borrower_class ?? "—"}
                                             </td>
-                                            <td className="px-4 py-3 text-sm tabular-nums">
+                                            <td className="px-4 py-3.5 align-middle text-sm tabular-nums">
                                                 {row.items_count ?? 0}
                                             </td>
-                                            <td className="px-4 py-3 text-sm">
+                                            <td className="px-4 py-3.5 align-middle text-sm">
                                                 <LoanStatusBadge
                                                     status={row.status}
                                                 />
                                             </td>
-                                            <td className="px-4 py-3 text-sm text-muted-foreground">
+                                            <td className="px-4 py-3.5 align-middle text-sm text-muted-foreground">
                                                 {row.date_formatted}
                                             </td>
                                         </tr>
@@ -91,22 +89,22 @@ export default function ReportRecentActivity({
                                             key={row.id}
                                             className="hover:bg-muted/30"
                                         >
-                                            <td className="px-4 py-3 text-sm font-medium">
+                                            <td className="px-4 py-3.5 align-middle text-sm font-medium">
                                                 {row.submission_code}
                                             </td>
-                                            <td className="px-4 py-3 text-sm">
+                                            <td className="px-4 py-3.5 align-middle text-sm">
                                                 {row.borrower_name}
                                             </td>
-                                            <td className="px-4 py-3 text-sm">
+                                            <td className="px-4 py-3.5 align-middle text-sm text-muted-foreground">
                                                 {row.item_type_label}
                                             </td>
-                                            <td className="px-4 py-3 text-sm">
+                                            <td className="px-4 py-3.5 align-middle text-sm">
                                                 <LoanStatusBadge
                                                     status={row.status}
                                                     itemType={row.item_type}
                                                 />
                                             </td>
-                                            <td className="px-4 py-3 text-sm text-muted-foreground">
+                                            <td className="px-4 py-3.5 align-middle text-sm text-muted-foreground">
                                                 {row.date_formatted}
                                             </td>
                                         </tr>
