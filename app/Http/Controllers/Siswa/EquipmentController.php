@@ -28,7 +28,7 @@ class EquipmentController extends Controller
         $requestDate = $request->date('request_date')?->toDateString()
             ?? now()->toDateString();
 
-        $slotContext = $this->slotContextFromRequest($request, $requestDate);
+        $slotContext = $this->requestAvailability->catalogSlotContext($request, $requestDate);
 
         $equipment = Equipment::query()
             ->alat()
@@ -77,7 +77,7 @@ class EquipmentController extends Controller
 
         $requestDate = $request->date('request_date')?->toDateString()
             ?? now()->toDateString();
-        $slotContext = $this->slotContextFromRequest($request, $requestDate);
+        $slotContext = $this->requestAvailability->catalogSlotContext($request, $requestDate);
 
         return Inertia::render('Siswa/Equipment/Show', [
             'equipment' => $this->formatEquipment($equipment, true, $slotContext),
@@ -102,7 +102,7 @@ class EquipmentController extends Controller
     {
         $context = $slotContext !== []
             ? $slotContext
-            : $this->slotContextFromRequest(request(), now()->toDateString());
+            : $this->requestAvailability->catalogSlotContext(request(), now()->toDateString());
 
         $requestable = $this->requestAvailability->remainingForSubmit($equipment, $context);
         $capacity = max(0, (int) $equipment->qty_baik);
@@ -113,7 +113,7 @@ class EquipmentController extends Controller
             'slot_remaining' => $requestable,
             'available' => $requestable,
             'borrowed' => max(0, $capacity - $requestable),
-            'availability_label' => $this->requestAvailabilityLabel($equipment, $requestable),
+            'availability_label' => $this->requestAvailability->availabilityLabel($equipment, $requestable),
             'can_borrow' => $equipment->status === 'tersedia',
             'queue_open' => $queueOpen,
             'cta_label' => $queueOpen ? 'Ajukan' : 'Tambah',
@@ -142,51 +142,5 @@ class EquipmentController extends Controller
             'request_date' => $context['request_date'] ?? null,
             'practicum_schedule_id' => $context['practicum_schedule_id'] ?? null,
         ], fn ($value) => $value !== null && $value !== ''));
-    }
-
-    /**
-     * Konteks slot sama dengan default halaman Ajukan (praktikum / lab).
-     *
-     * @return array<string, mixed>
-     */
-    private function slotContextFromRequest(Request $request, string $requestDate): array
-    {
-        $loanType = $request->string('loan_type')->toString() ?: 'praktikum';
-        if (! in_array($loanType, ['praktikum', 'pribadi', 'bawa_pulang'], true)) {
-            $loanType = 'praktikum';
-        }
-
-        $legacy = \App\Models\Loan::legacyFieldsForType($loanType);
-
-        return [
-            'item_type' => 'alat',
-            'loan_type' => $loanType,
-            'borrow_scope' => $legacy['borrow_scope'],
-            'borrow_reason' => $legacy['borrow_reason'],
-            'request_date' => $requestDate,
-            'practicum_schedule_id' => $request->integer('practicum_schedule_id') ?: null,
-            'due_at' => $request->input('due_at'),
-        ];
-    }
-
-    private function requestAvailabilityLabel(Equipment $equipment, int $requestable): string
-    {
-        if ($equipment->status === 'tidak_tersedia') {
-            return 'tidak_tersedia';
-        }
-
-        if ($equipment->qty_baik <= 0 && $equipment->qty_rusak_berat > 0) {
-            return 'rusak';
-        }
-
-        if ($requestable <= 0) {
-            return 'habis';
-        }
-
-        if ($requestable < (int) $equipment->qty_baik) {
-            return 'dipinjam';
-        }
-
-        return 'tersedia';
     }
 }
