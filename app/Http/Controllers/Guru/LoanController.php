@@ -45,8 +45,9 @@ class LoanController extends Controller
             ->with([
                 'borrower:id,name,class',
                 'supervisor:id,name',
+                'members:id,name',
                 'loans.borrower:id,name,class',
-                'loans.schedule:id,code,title,mata_kuliah,kelas,tanggal,jam_mulai,jam_selesai,priority',
+                'loans.schedule:id,code,title,mata_kuliah,kelas,tanggal,jam_mulai,jam_selesai,ruangan,priority',
                 'loans.items.equipment:id,code,name,item_type,unit',
                 'loans.collateral:id,loan_id,status',
             ])
@@ -122,9 +123,11 @@ class LoanController extends Controller
         $submission->load([
             'borrower:id,name,class,nisn',
             'supervisor:id,name',
+            'members:id,name,nisn,class',
             'loans.borrower:id,name,class',
-            'loans.schedule:id,code,title,mata_kuliah,tanggal,kelas,jam_mulai,jam_selesai',
+            'loans.schedule:id,code,title,mata_kuliah,tanggal,kelas,jam_mulai,jam_selesai,ruangan',
             'loans.items.equipment:id,code,name,item_type,unit',
+            'loans.statusLogs.user:id,name',
             'loans.collateral',
         ]);
 
@@ -207,6 +210,14 @@ class LoanController extends Controller
             'schedule_mata_kuliah' => $loan->schedule?->mata_kuliah,
             'schedule_kelas' => $loan->schedule?->kelas,
             'schedule_tanggal' => $loan->schedule?->tanggal?->format('Y-m-d'),
+            'schedule_jam_mulai' => $loan->schedule?->jam_mulai
+                ? substr((string) $loan->schedule->jam_mulai, 0, 5)
+                : null,
+            'schedule_jam_selesai' => $loan->schedule?->jam_selesai
+                ? substr((string) $loan->schedule->jam_selesai, 0, 5)
+                : null,
+            'schedule_ruangan' => $loan->schedule?->ruangan,
+            'usage_room' => $loan->usage_room,
             'item_type' => $loan->item_type,
             'item_type_label' => $loan->item_type === 'alat' ? 'Alat' : 'Bahan',
             'status' => $loan->status,

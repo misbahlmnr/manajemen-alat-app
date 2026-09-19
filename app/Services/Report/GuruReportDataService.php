@@ -6,12 +6,15 @@ use App\Models\Equipment;
 use App\Models\Loan;
 use App\Models\LoanCompensation;
 use App\Models\PracticumSchedule;
+use App\Models\Submission;
 use App\Models\Supply;
 use App\Models\User;
 use App\Services\Loan\LoanWorkflowService;
 use App\Services\Report\Concerns\FormatsReportData;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 
 class GuruReportDataService
 {
@@ -191,7 +194,119 @@ class GuruReportDataService
             'charts' => $analytics['charts'],
             'insights' => $analytics['insights'],
             'round_robin' => $analytics['round_robin'],
-            'recent_activity' => $analytics['recent_activity'],
+            'recent_activity' => $this->buildGuruRecentActivity($loanBase),
         ];
+    }
+
+    /**
+     * Presentation-only: one row per submission for Guru report UI/PDF.
+     * Groups loans already in scope; uses Submission::aggregateStatus() (no new priority rules).
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function buildGuruRecentActivity(Builder $loanBase): array
+    {
+        $recentLoans = (clone $loanBase)
+            ->latest('created_at')
+            ->limit(40)
+            ->get(['id', 'submission_id', 'created_at']);
+
+        if ($recentLoans->isEmpty()) {
+            return [];
+        }
+
+        $orderedKeys = [];
+        foreach ($recentLoans as $loan) {
+            $key = $loan->submission_id ?: 'loan-'.$loan->id;
+            if (! in_array($key, $orderedKeys, true)) {
+                $orderedKeys[] = $key;
+            }
+            if (count($orderedKeys) >= 5) {
+                break;
+            }
+        }
+
+        $submissionIds = collect($orderedKeys)
+            ->filter(fn ($key) => is_numeric($key))
+            ->map(fn ($key) => (int) $key)
+            ->values()
+            ->all();
+        $orphanLoanIds = collect($orderedKeys)
+            ->filter(fn ($key) => is_string($key) && str_starts_with($key, 'loan-'))
+            ->map(fn ($key) => (int) str_replace('loan-', '', $key))
+            ->values()
+            ->all();
+
+        $loans = (clone $loanBase)
+            ->with([
+                'borrower:id,name,class',
+                'submission:id,code,borrower_id,borrower_class,request_date,created_at',
+                'items:id,loan_id',
+            ])
+            ->where(function ($q) use ($submissionIds, $orphanLoanIds) {
+                if ($submissionIds !== []) {
+                    $q->orWhereIn('submission_id', $submissionIds);
+                }
+                if ($orphanLoanIds !== []) {
+                    $q->orWhereIn('id', $orphanLoanIds);
+                }
+            })
+            ->get();
+
+        $grouped = $loans->groupBy(
+            fn (Loan $loan) => $loan->submission_id ?: 'loan-'.$loan->id,
+        );
+
+        $statusLabels = config('lab.loan_statuses', []);
+
+        return collect($orderedKeys)->map(function ($key) use ($grouped, $statusLabels) {
+            /** @var Collection<int, Loan> $groupLoans */
+            $groupLoans = $grouped->get($key, collect());
+            $first = $groupLoans->first();
+            if (! $first) {
+                return null;
+            }
+
+            $submission = $first->submission;
+
+            if ($submission instanceof Submission) {
+                $submission->setRelation('loans', $groupLoans->values());
+                $status = $submission->aggregateStatus();
+                $code = $submission->code;
+                $borrowerName = $first->borrower?->name ?? '—';
+                $borrowerClass = $submission->borrowerClassLabel()
+                    ?? $first->borrower?->class
+                    ?? '—';
+                $dateFormatted = $submission->request_date?->translatedFormat('d M Y')
+                    ?? $first->request_date?->translatedFormat('d M Y')
+                    ?? $first->created_at?->translatedFormat('d M Y')
+                    ?? '—';
+                $rowId = $submission->id;
+            } else {
+                $status = $first->status;
+                $code = $first->displayCode();
+                $borrowerName = $first->borrower?->name ?? '—';
+                $borrowerClass = $first->borrower?->class ?? '—';
+                $dateFormatted = $first->request_date?->translatedFormat('d M Y')
+                    ?? $first->created_at?->translatedFormat('d M Y')
+                    ?? '—';
+                $rowId = $first->id;
+            }
+
+            return [
+                'id' => $rowId,
+                'submission_code' => $code,
+                'borrower_name' => $borrowerName,
+                'borrower_class' => $borrowerClass,
+                'items_count' => $groupLoans->sum(
+                    fn (Loan $loan) => $loan->relationLoaded('items')
+                        ? $loan->items->count()
+                        : 0,
+                ),
+                'status' => $status,
+                'status_label' => $statusLabels[$status] ?? $status,
+                'date_formatted' => $dateFormatted,
+            ];
+        })->filter()->values()->all();
     }
 }

@@ -120,7 +120,11 @@ export default function ReportWorkspace({
             } else if (data.type === "pengguna") {
                 exportPenggunaPdf(rows, meta);
             } else {
-                exportRingkasanPdf(stats, highlights, meta);
+                exportRingkasanPdf(stats, highlights, meta, {
+                    insights,
+                    charts,
+                    recentActivity,
+                });
             }
             toast.success("Laporan PDF berhasil diunduh");
         } catch {
@@ -288,11 +292,17 @@ export default function ReportWorkspace({
                             isGuruScope={isGuruScope}
                         />
                         <ReportCharts charts={charts} />
-                        <ReportInsights insights={insights} />
+                        <ReportInsights
+                            insights={insights}
+                            isGuruScope={isGuruScope}
+                        />
                         {!isGuruScope && (
                             <ReportRoundRobinStats roundRobin={roundRobin} />
                         )}
-                        <ReportRecentActivity items={recentActivity} />
+                        <ReportRecentActivity
+                            items={recentActivity}
+                            isGuruScope={isGuruScope}
+                        />
                     </>
                 ) : (
                     <ReportEmptyState />

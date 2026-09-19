@@ -1,4 +1,4 @@
-function RankingList({ items, emptyLabel }) {
+function RankingList({ items, countSuffix, emptyLabel }) {
     if (!items?.length) {
         return (
             <p className="py-8 text-center text-sm text-muted-foreground">
@@ -23,7 +23,16 @@ function RankingList({ items, emptyLabel }) {
                         </span>
                     </div>
                     <span className="shrink-0 text-sm font-semibold tabular-nums text-foreground">
-                        {item.count}x
+                        {countSuffix ? (
+                            <>
+                                {item.count}{" "}
+                                <span className="font-normal text-muted-foreground">
+                                    {countSuffix}
+                                </span>
+                            </>
+                        ) : (
+                            <>{item.count}x</>
+                        )}
                     </span>
                 </li>
             ))}
@@ -31,9 +40,18 @@ function RankingList({ items, emptyLabel }) {
     );
 }
 
-export default function ReportInsights({ insights = {} }) {
+export default function ReportInsights({
+    insights = {},
+    isGuruScope = false,
+}) {
     const topAlat = insights.top_alat ?? [];
     const topBahan = insights.top_bahan ?? [];
+    const emptyLabel = isGuruScope
+        ? "Belum ada data pada periode ini."
+        : "Belum ada data.";
+    const subtitle = isGuruScope
+        ? "Item yang paling sering dipinjam atau digunakan pada periode yang dipilih."
+        : "Item yang paling sering dipinjam atau diminta pada periode ini.";
 
     return (
         <section className="space-y-3">
@@ -41,10 +59,7 @@ export default function ReportInsights({ insights = {} }) {
                 <h3 className="text-base font-semibold text-foreground">
                     Insight Operasional
                 </h3>
-                <p className="text-sm text-muted-foreground">
-                    Item yang paling sering dipinjam atau diminta pada periode
-                    ini.
-                </p>
+                <p className="text-sm text-muted-foreground">{subtitle}</p>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
                 <div className="rounded-[10px] border border-border/60 bg-card p-5 shadow-sm">
@@ -53,7 +68,12 @@ export default function ReportInsights({ insights = {} }) {
                     </h4>
                     <RankingList
                         items={topAlat}
-                        emptyLabel="Belum ada data peminjaman alat."
+                        countSuffix={isGuruScope ? "dipinjam" : null}
+                        emptyLabel={
+                            isGuruScope
+                                ? emptyLabel
+                                : "Belum ada data peminjaman alat."
+                        }
                     />
                 </div>
                 <div className="rounded-[10px] border border-border/60 bg-card p-5 shadow-sm">
@@ -62,7 +82,12 @@ export default function ReportInsights({ insights = {} }) {
                     </h4>
                     <RankingList
                         items={topBahan}
-                        emptyLabel="Belum ada data permintaan bahan."
+                        countSuffix={isGuruScope ? "digunakan" : null}
+                        emptyLabel={
+                            isGuruScope
+                                ? emptyLabel
+                                : "Belum ada data permintaan bahan."
+                        }
                     />
                 </div>
             </div>

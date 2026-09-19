@@ -7,7 +7,11 @@ export default function Index({
     loans = [],
     equipment = [],
     stats = {},
+    praktikumToday = null,
+    inventorySummary = null,
+    todaySchedules = [],
     upcomingSchedules = [],
+    weekScheduleCount = 0,
     notifications = [],
 }) {
     const user = usePage().props.auth?.user;
@@ -20,14 +24,18 @@ export default function Index({
             <div className="animate-fade-in mx-auto w-full min-w-0 max-w-7xl">
                 <DashboardPageHeader
                     title={`Halo, ${firstName}`}
-                    subtitle="Pantauan peminjaman siswa Anda."
+                    subtitle="Pantau aktivitas praktikum dan kondisi inventaris laboratorium."
                 />
 
                 <GuruDashboard
                     loans={loans}
                     equipment={equipment}
                     stats={stats}
+                    praktikumToday={praktikumToday}
+                    inventorySummary={inventorySummary}
+                    todaySchedules={todaySchedules}
                     upcomingSchedules={upcomingSchedules}
+                    weekScheduleCount={weekScheduleCount}
                     notifications={notifications}
                 />
             </div>

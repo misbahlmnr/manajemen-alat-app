@@ -1,12 +1,14 @@
 import { cn } from "@/lib/utils";
 import {
     AlertTriangle,
+    CalendarDays,
     ClipboardList,
     Clock3,
     CreditCard,
     HandCoins,
     ListOrdered,
     PackageMinus,
+    Users,
 } from "lucide-react";
 
 function KpiCard({ label, value, subtitle, icon: Icon, accent }) {
@@ -45,7 +47,7 @@ export default function ReportKpiGrid({ stats = {}, isGuruScope = false }) {
               {
                   label: "Total Pengajuan",
                   value: stats.total_loans,
-                  subtitle: "Seluruh submission pada periode ini",
+                  subtitle: "Seluruh pengajuan pada periode ini",
                   icon: ClipboardList,
               },
               {
@@ -54,12 +56,6 @@ export default function ReportKpiGrid({ stats = {}, isGuruScope = false }) {
                   subtitle: "Alat/bahan bimbingan yang masih aktif",
                   icon: HandCoins,
                   accent: "text-primary",
-              },
-              {
-                  label: "Dalam Antrian",
-                  value: stats.queued ?? 0,
-                  subtitle: "Menunggu stok / antrian",
-                  icon: ListOrdered,
               },
               {
                   label: "Menunggu Persetujuan",
@@ -75,11 +71,16 @@ export default function ReportKpiGrid({ stats = {}, isGuruScope = false }) {
                   accent: "text-destructive",
               },
               {
-                  label: "Bahan Menipis",
-                  value: stats.low_stock_bahan,
-                  subtitle: "Di bawah stok minimum",
-                  icon: PackageMinus,
-                  accent: "text-warning",
+                  label: "Siswa Bimbingan",
+                  value: stats.siswa_bimbingan,
+                  subtitle: "Siswa dengan pengajuan pada periode ini",
+                  icon: Users,
+              },
+              {
+                  label: "Jadwal Praktikum",
+                  value: stats.schedules_period,
+                  subtitle: "Jadwal praktikum pada periode ini",
+                  icon: CalendarDays,
               },
           ]
         : [

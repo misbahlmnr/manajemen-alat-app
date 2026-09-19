@@ -284,12 +284,184 @@ export function exportPenggunaExcel(rows) {
     downloadWorkbook(workbook, formatFilename("pengguna"));
 }
 
-export function exportRingkasanPdf(stats, highlights, meta) {
+function addGuruPdfFooter(doc) {
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(7);
+        doc.setFont("helvetica", "normal");
+        doc.text(
+            "Dokumen ini dibuat secara otomatis oleh Sistem Informasi Laboratorium Audio Video SMKN 7 Kota Bekasi.",
+            pageWidth / 2,
+            pageHeight - 16,
+            { align: "center" },
+        );
+        doc.text(
+            "Dokumen ini digunakan sebagai laporan operasional laboratorium.",
+            pageWidth / 2,
+            pageHeight - 12,
+            { align: "center" },
+        );
+        doc.setFontSize(8);
+        doc.text(`Halaman ${i} dari ${pageCount}`, pageWidth / 2, pageHeight - 6, {
+            align: "center",
+        });
+    }
+}
+
+function addSectionTitle(doc, title, y) {
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.text(title, 14, y);
+    doc.setFont("helvetica", "normal");
+    return y + 4;
+}
+
+function exportGuruRingkasanPdf(stats, meta, extras = {}) {
     const doc = new jsPDF();
-    const isGuruScope = meta?.report_scope === "guru";
-    const title = isGuruScope
-        ? "Laporan Ringkasan Bimbingan Peminjaman"
-        : "Laporan Ringkasan Operasional Lab";
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const insights = extras.insights ?? {};
+    const charts = extras.charts ?? {};
+    const recentActivity = (extras.recentActivity ?? []).slice(0, 5);
+    const topAlat = insights.top_alat ?? [];
+    const topBahan = insights.top_bahan ?? [];
+    const statusDistribution = charts.status_distribution ?? [];
+
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text(meta.school_name ?? "Sekolah", pageWidth / 2, 15, {
+        align: "center",
+    });
+    doc.setFontSize(11);
+    doc.text(meta.lab_name ?? "Laboratorium", pageWidth / 2, 22, {
+        align: "center",
+    });
+    doc.setFontSize(13);
+    doc.text("Laporan Ringkasan Peminjaman", pageWidth / 2, 32, {
+        align: "center",
+    });
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    let y = 40;
+    if (meta.guru_name) {
+        doc.text(`Guru: ${meta.guru_name}`, pageWidth / 2, y, {
+            align: "center",
+        });
+        y += 6;
+    }
+    doc.setFontSize(9);
+    doc.text(`Periode: ${stats.period_label ?? "-"}`, 14, y);
+    doc.text(`Tanggal Cetak: ${meta.generated_at ?? "-"}`, pageWidth - 14, y, {
+        align: "right",
+    });
+    y += 8;
+
+    y = addSectionTitle(doc, "Ringkasan", y);
+    autoTable(doc, {
+        startY: y,
+        head: [["Indikator", "Nilai"]],
+        body: [
+            ["Total Pengajuan", stats.total_loans ?? 0],
+            ["Sedang Dipinjam", stats.active_borrows ?? 0],
+            ["Menunggu Persetujuan", stats.awaiting_approval ?? 0],
+            ["Keterlambatan", stats.overdue ?? 0],
+        ],
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [30, 58, 95] },
+        margin: { bottom: 24 },
+    });
+    y = doc.lastAutoTable.finalY + 10;
+
+    y = addSectionTitle(doc, "Kondisi Inventaris", y);
+    autoTable(doc, {
+        startY: y,
+        head: [["Indikator", "Nilai"]],
+        body: [
+            ["Total Alat", stats.total_alat ?? 0],
+            ["Unit Tersedia", stats.alat_available ?? 0],
+            ["Unit Sedang Dipinjam", stats.active_borrows ?? 0],
+            ["Bahan Menipis", stats.low_stock_bahan ?? 0],
+        ],
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [30, 58, 95] },
+        margin: { bottom: 24 },
+    });
+    y = doc.lastAutoTable.finalY + 10;
+
+    y = addSectionTitle(doc, "Top Alat", y);
+    autoTable(doc, {
+        startY: y,
+        head: [["No", "Nama", "Jumlah Dipinjam"]],
+        body:
+            topAlat.length > 0
+                ? topAlat.map((row, i) => [i + 1, row.name, row.count])
+                : [["—", "Belum ada data pada periode ini.", "—"]],
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [30, 58, 95] },
+        margin: { bottom: 24 },
+    });
+    y = doc.lastAutoTable.finalY + 10;
+
+    y = addSectionTitle(doc, "Top Bahan", y);
+    autoTable(doc, {
+        startY: y,
+        head: [["No", "Nama", "Jumlah Digunakan"]],
+        body:
+            topBahan.length > 0
+                ? topBahan.map((row, i) => [i + 1, row.name, row.count])
+                : [["—", "Belum ada data pada periode ini.", "—"]],
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [30, 58, 95] },
+        margin: { bottom: 24 },
+    });
+    y = doc.lastAutoTable.finalY + 10;
+
+    y = addSectionTitle(doc, "Distribusi Status", y);
+    autoTable(doc, {
+        startY: y,
+        head: [["Status", "Jumlah"]],
+        body:
+            statusDistribution.length > 0
+                ? statusDistribution.map((row) => [row.label, row.value])
+                : [["—", "—"]],
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [30, 58, 95] },
+        margin: { bottom: 24 },
+    });
+    y = doc.lastAutoTable.finalY + 10;
+
+    y = addSectionTitle(doc, "Aktivitas Terbaru", y);
+    autoTable(doc, {
+        startY: y,
+        head: [["Submission", "Nama Siswa", "Status", "Tanggal"]],
+        body:
+            recentActivity.length > 0
+                ? recentActivity.map((row) => [
+                      row.submission_code,
+                      row.borrower_name,
+                      row.status_label ?? row.status,
+                      row.date_formatted,
+                  ])
+                : [["—", "Belum ada aktivitas pada periode ini.", "—", "—"]],
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [30, 58, 95] },
+        margin: { bottom: 24 },
+    });
+
+    addGuruPdfFooter(doc);
+    doc.save(`${formatFilename("ringkasan")}.pdf`);
+}
+
+export function exportRingkasanPdf(stats, highlights, meta, extras = {}) {
+    if (meta?.report_scope === "guru") {
+        exportGuruRingkasanPdf(stats, meta, extras);
+        return;
+    }
+
+    const doc = new jsPDF();
+    const title = "Laporan Ringkasan Operasional Lab";
     const headerBottom = addPdfHeader(doc, meta, title);
 
     doc.setFontSize(10);
