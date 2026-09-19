@@ -78,4 +78,44 @@ class SubmissionWorkflowService
             }
         });
     }
+
+    /**
+     * One-click handover for all approved children in the submission.
+     */
+    public function markBorrowed(Submission $submission, User $actor): void
+    {
+        $submission->loadMissing(['loans.collateral', 'loans.items.equipment']);
+
+        $toHandOver = $submission->loans
+            ->filter(fn ($loan) => $loan->status === 'disetujui')
+            ->values();
+
+        if ($toHandOver->isEmpty()) {
+            throw ValidationException::withMessages([
+                'status' => 'Tidak ada item disetujui yang siap diserahkan.',
+            ]);
+        }
+
+        // Fail the whole submission before any update if an alat is blocked.
+        foreach ($toHandOver as $loan) {
+            if (! $loan->isAlat()) {
+                continue;
+            }
+
+            if ($loan->requiresCollateral()) {
+                $loan->loadMissing('collateral');
+                if ($loan->collateral?->status !== 'ditahan') {
+                    throw ValidationException::withMessages([
+                        'status' => 'Terima kartu pelajar terlebih dahulu sebelum menyerahkan alat.',
+                    ]);
+                }
+            }
+        }
+
+        DB::transaction(function () use ($toHandOver, $actor) {
+            foreach ($toHandOver as $loan) {
+                $this->loans->markBorrowed($loan->fresh(['items.equipment', 'collateral']), $actor);
+            }
+        });
+    }
 }

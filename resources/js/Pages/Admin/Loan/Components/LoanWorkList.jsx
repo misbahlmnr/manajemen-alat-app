@@ -4,7 +4,8 @@ import LoanWorkCard from "./LoanWorkCard";
 export default function LoanWorkList({
     items,
     pagination,
-    onReturn,
+    scope,
+    onDecide,
     onInspect,
 }) {
     return (
@@ -13,8 +14,9 @@ export default function LoanWorkList({
                 {(items ?? []).map((submission) => (
                     <LoanWorkCard
                         key={submission.id ?? submission.code}
+                        scope={scope}
                         submission={submission}
-                        onReturn={onReturn}
+                        onDecide={onDecide}
                         onInspect={onInspect}
                     />
                 ))}

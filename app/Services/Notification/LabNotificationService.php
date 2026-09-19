@@ -113,14 +113,14 @@ class LabNotificationService
     {
         $loan->loadMissing(['borrower', 'supervisor']);
 
-        $statusLabel = $loan->status === 'dipinjam' ? 'disetujui dan siap diambil' : 'disetujui';
         $borrowerName = $loan->borrower?->name ?? 'Siswa';
+        $message = "Pengajuan {$loan->displayCode()} telah disetujui. Silakan ambil alat/bahan di laboratorium.";
 
         $this->notifyUser(
             $loan->borrower,
             'loan_approved',
             'Pengajuan Disetujui',
-            "Peminjaman {$loan->displayCode()} telah {$statusLabel}.",
+            $message,
             'success',
             route('siswa.loans.show', $loan),
             $loan,
@@ -131,7 +131,7 @@ class LabNotificationService
                 $loan->supervisor,
                 'loan_approved',
                 'Pengajuan Siswa Disetujui',
-                "Peminjaman {$loan->displayCode()} milik {$borrowerName} telah {$statusLabel}.",
+                "Pengajuan {$loan->displayCode()} milik {$borrowerName} telah disetujui. Silakan ambil alat/bahan di laboratorium.",
                 'success',
                 route('guru.loans.show', $loan),
                 $loan,
@@ -175,7 +175,22 @@ class LabNotificationService
             $loan->borrower,
             'loan_borrowed',
             'Alat Diserahkan',
-            "Peminjaman {$loan->displayCode()} telah diserahkan. Pastikan pengembalian tepat waktu.",
+            "Alat {$loan->displayCode()} telah dipinjam. Pastikan pengembalian tepat waktu.",
+            'success',
+            route('siswa.loans.show', $loan),
+            $loan,
+        );
+    }
+
+    public function loanTaken(Loan $loan): void
+    {
+        $loan->loadMissing('borrower');
+
+        $this->notifyUser(
+            $loan->borrower,
+            'loan_taken',
+            'Bahan Diambil',
+            "Bahan {$loan->displayCode()} telah diambil.",
             'success',
             route('siswa.loans.show', $loan),
             $loan,
@@ -423,9 +438,8 @@ class LabNotificationService
         match ($status) {
             'disetujui' => $this->loanApproved($loan),
             'ditolak' => $this->loanRejected($loan, $note),
-            'dipinjam' => str_contains($note ?? '', 'diserahkan')
-                ? $this->loanBorrowed($loan)
-                : $this->loanApproved($loan),
+            'dipinjam' => $this->loanBorrowed($loan),
+            'diambil' => $this->loanTaken($loan),
             'terlambat' => $this->loanOverdue($loan),
             'dikembalikan' => $this->loanReturned($loan),
             'dibatalkan' => $this->loanCancelled($loan),

@@ -143,7 +143,7 @@ class LoanController extends Controller
             $query->where(function ($q) {
                 $q->whereIn('status', ['dikembalikan', 'ditolak', 'dibatalkan'])
                     ->orWhere(function ($inner) {
-                        $inner->where('item_type', 'bahan')->where('status', 'dipinjam');
+                        $inner->where('item_type', 'bahan')->where('status', 'diambil');
                     });
             });
 
@@ -154,7 +154,7 @@ class LoanController extends Controller
             $q->whereNotIn('status', ['dikembalikan', 'ditolak', 'dibatalkan'])
                 ->where(function ($inner) {
                     $inner->where('item_type', 'alat')
-                        ->orWhere('status', '!=', 'dipinjam');
+                        ->orWhere('status', '!=', 'diambil');
                 });
         });
     }
@@ -210,6 +210,7 @@ class LoanController extends Controller
             'item_type' => $loan->item_type,
             'item_type_label' => $loan->item_type === 'alat' ? 'Alat' : 'Bahan',
             'status' => $loan->status,
+            'is_taken' => $loan->item_type === 'bahan' && $loan->status === 'diambil',
             'request_date' => $loan->request_date?->format('Y-m-d'),
             'request_date_formatted' => $loan->request_date?->translatedFormat('d M Y'),
             'borrowed_at_formatted' => $loan->borrowed_at?->translatedFormat('d M Y H:i') ?: '—',

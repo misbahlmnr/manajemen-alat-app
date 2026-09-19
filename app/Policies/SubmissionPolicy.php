@@ -35,4 +35,9 @@ class SubmissionPolicy
     {
         return $user->isAdmin();
     }
+
+    public function markBorrowed(User $user, Submission $submission): bool
+    {
+        return $user->isAdmin();
+    }
 }

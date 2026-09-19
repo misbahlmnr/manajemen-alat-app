@@ -31,6 +31,23 @@ class SubmissionPresenter
         $alat = $members->firstWhere('item_type', 'alat');
         $bahan = $members->firstWhere('item_type', 'bahan');
 
+        $handoverMembers = $members->filter(
+            fn ($m) => ($m['status'] ?? null) === 'disetujui',
+        );
+        $markBorrowedBlockedReason = $handoverMembers
+            ->pluck('mark_borrowed_blocked_reason')
+            ->first(fn ($reason) => filled($reason));
+        $canMarkBorrowed = $handoverMembers->isNotEmpty()
+            && $handoverMembers->every(fn ($m) => ($m['can_mark_borrowed'] ?? false) === true);
+        $requiresCollateral = $members->contains(
+            fn ($m) => ($m['requires_collateral'] ?? false) === true,
+        );
+        $collateralReceived = $requiresCollateral
+            && ! $members->contains(fn ($m) => ($m['can_receive_card'] ?? false) === true)
+            && $members
+                ->filter(fn ($m) => ($m['requires_collateral'] ?? false) === true)
+                ->every(fn ($m) => ($m['collateral_status'] ?? null) === 'ditahan');
+
         return [
             'id' => $submission->id,
             'code' => $submission->code,
@@ -53,6 +70,10 @@ class SubmissionPresenter
             'has_blocking_tool' => $submission->hasBlockingTool(),
             'can_approve' => $this->decisions->canApprove($submission),
             'can_reject' => $this->decisions->canReject($submission),
+            'can_mark_borrowed' => $canMarkBorrowed,
+            'mark_borrowed_blocked_reason' => $markBorrowedBlockedReason,
+            'requires_collateral' => $requiresCollateral,
+            'collateral_received' => $collateralReceived,
             'alat_count' => $submission->alatItemCount(),
             'bahan_count' => $submission->bahanItemCount(),
             'has_alat' => (bool) $alat,

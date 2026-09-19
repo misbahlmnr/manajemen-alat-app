@@ -39,7 +39,7 @@ class LoanMaterialAvailabilityServiceTest extends TestCase
     {
         // Setelah approve 30, available gudang = 70; pending diminta 50.
         $bahan = $this->makeBahan(stock: 100, available: 70);
-        $this->makeBahanLoan($bahan, 30, 'dipinjam', stockHeld: true);
+        $this->makeBahanLoan($bahan, 30, 'diambil', stockHeld: true);
         $this->makeBahanLoan($bahan, 50, 'diminta');
 
         $this->assertSame(20, $this->materials->remaining($bahan));

@@ -233,7 +233,7 @@ export default function StudentLoanCard({
                         {isHistory && (
                             <span className="inline-flex items-center gap-1">
                                 <Calendar className="h-3.5 w-3.5" />
-                                {isBahan && loan.status === "dipinjam"
+                                {isBahan && (loan.is_taken || loan.status === "diambil")
                                     ? `Diambil: ${loan.borrowed_at_formatted}`
                                     : `Selesai: ${
                                           loan.returned_at_formatted !== "—"

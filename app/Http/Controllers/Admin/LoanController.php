@@ -34,9 +34,14 @@ class LoanController extends Controller
         $this->authorize('viewAny', Loan::class);
         $this->workflow->syncOverdue();
 
-        $scope = $request->string('scope')->toString() ?: 'action';
-        if (! in_array($scope, ['action', 'queue', 'today', 'all'], true)) {
-            $scope = 'action';
+        $scope = $request->string('scope')->toString() ?: 'approval';
+        $scope = match ($scope) {
+            'action' => 'approval',
+            'today' => 'borrowed',
+            default => $scope,
+        };
+        if (! in_array($scope, ['approval', 'queue', 'handover', 'borrowed', 'returns', 'all'], true)) {
+            $scope = 'approval';
         }
 
         $search = $request->string('search')->trim();
@@ -46,7 +51,6 @@ class LoanController extends Controller
         $kelas = $request->string('kelas')->toString() ?: 'all';
         $dateFrom = $request->string('date_from')->toString();
         $dateTo = $request->string('date_to')->toString();
-        $today = \App\Models\PracticumSchedule::inSchoolTimezone()->toDateString();
 
         $listQuery = Submission::query()
             ->with([
@@ -80,13 +84,13 @@ class LoanController extends Controller
             ->when($scope === 'all' && $dateFrom !== '', fn ($q) => $q->whereDate('request_date', '>=', $dateFrom))
             ->when($scope === 'all' && $dateTo !== '', fn ($q) => $q->whereDate('request_date', '<=', $dateTo));
 
-        $this->applyIndexScope($listQuery, $scope, $today);
+        $this->applyIndexScope($listQuery, $scope);
 
-        if ($scope === 'action') {
-            $listQuery->orderByAdminUrgency();
-        } else {
-            $listQuery->latest();
-        }
+        match ($scope) {
+            'borrowed' => $listQuery->orderByLatestBorrowedAt(),
+            'all' => $listQuery->latest(),
+            default => $listQuery->orderByLatestLoanActivity(),
+        };
 
         $loans = $listQuery
             ->paginate(10)
@@ -109,7 +113,7 @@ class LoanController extends Controller
                 'date_from' => $dateFrom,
                 'date_to' => $dateTo,
             ],
-            'tabCounts' => $this->submissionTabCounts($today),
+            'tabCounts' => $this->submissionTabCounts(),
             'supervisorOptions' => $scope === 'all' ? $this->supervisorOptions() : [],
             'kelasOptions' => ClassOptions::names(),
             'statusOptions' => config('lab.submission_statuses'),
@@ -242,12 +246,36 @@ class LoanController extends Controller
         return back()->with('success', 'Pengajuan ditolak.');
     }
 
+    public function markBorrowedSubmission(Submission $submission): RedirectResponse
+    {
+        $this->authorize('markBorrowed', $submission);
+        $this->submissionWorkflow->markBorrowed(
+            $submission->load(['loans.collateral', 'loans.items.equipment']),
+            request()->user(),
+        );
+
+        return back()->with('success', 'Serah terima berhasil.');
+    }
+
     public function markBorrowed(Loan $loan): RedirectResponse
     {
         $this->authorize('markBorrowed', $loan);
-        $this->workflow->markBorrowed($loan, request()->user());
 
-        return back()->with('success', 'Status diperbarui: alat sedang dipinjam.');
+        if ($loan->submission_id) {
+            $this->submissionWorkflow->markBorrowed(
+                $loan->submission()->with(['loans.collateral', 'loans.items.equipment'])->firstOrFail(),
+                request()->user(),
+            );
+        } else {
+            $this->workflow->markBorrowed($loan, request()->user());
+        }
+
+        $loan->refresh();
+        $message = $loan->item_type === 'bahan' || $loan->status === 'diambil'
+            ? 'Status diperbarui: bahan telah diambil.'
+            : 'Status diperbarui: alat sedang dipinjam.';
+
+        return back()->with('success', $message);
     }
 
     public function processReturn(ReturnLoanRequest $request, Loan $loan): RedirectResponse
@@ -292,25 +320,29 @@ class LoanController extends Controller
         }
     }
 
-    private function applyIndexScope($query, string $scope, string $today): void
+    private function applyIndexScope($query, string $scope): void
     {
         match ($scope) {
-            'action' => $query->needsAdminAction(),
+            'approval' => $query->needingApproval(),
             'queue' => $query->inLoanQueue(),
-            'today' => $query->bookedOn($today),
+            'handover' => $query->needingHandover(),
+            'borrowed' => $query->currentlyBorrowed(),
+            'returns' => $query->needingReturnInspection(),
             default => $query,
         };
     }
 
     /**
-     * @return array{action: int, queue: int, today: int, all: int}
+     * @return array{approval: int, queue: int, handover: int, borrowed: int, returns: int, all: int}
      */
-    private function submissionTabCounts(string $today): array
+    private function submissionTabCounts(): array
     {
         return [
-            'action' => Submission::query()->needsAdminAction()->count(),
+            'approval' => Submission::query()->needingApproval()->count(),
             'queue' => Submission::query()->inLoanQueue()->count(),
-            'today' => Submission::query()->bookedOn($today)->count(),
+            'handover' => Submission::query()->needingHandover()->count(),
+            'borrowed' => Submission::query()->currentlyBorrowed()->count(),
+            'returns' => Submission::query()->needingReturnInspection()->count(),
             'all' => Submission::query()->count(),
         ];
     }
@@ -345,12 +377,12 @@ class LoanController extends Controller
 
         $collateral = $loan->collateral;
         $needsCollateralReceipt = $loan->requiresCollateral() && $collateral?->status !== 'ditahan';
-        $approvedAlat = $loan->isAlat() && $loan->status === 'disetujui';
-        $handoverBlockedReason = $approvedAlat
+        $approvedForHandover = $loan->status === 'disetujui';
+        $handoverBlockedReason = $loan->isAlat() && $approvedForHandover
             ? $this->slotAvailability->handoverBlockedReason($loan)
             : null;
-        $markBorrowedBlockedReason = $approvedAlat && $needsCollateralReceipt
-            ? 'Belum menerima jaminan kartu'
+        $markBorrowedBlockedReason = $loan->isAlat() && $approvedForHandover && $needsCollateralReceipt
+            ? 'Jaminan kartu pelajar belum diterima.'
             : $handoverBlockedReason;
 
         $data = [
@@ -409,8 +441,9 @@ class LoanController extends Controller
             'created_at_formatted' => $loan->created_at?->translatedFormat('d M Y'),
             'can_approve' => false,
             'can_reject' => false,
-            'can_mark_borrowed' => $approvedAlat && $markBorrowedBlockedReason === null,
+            'can_mark_borrowed' => $approvedForHandover && $markBorrowedBlockedReason === null,
             'mark_borrowed_blocked_reason' => $markBorrowedBlockedReason,
+            'is_taken' => $loan->item_type === 'bahan' && $loan->status === 'diambil',
             'can_return' => $loan->isAlat() && in_array($loan->status, ['dipinjam', 'terlambat'], true),
             'can_inspect' => $loan->status === 'menunggu_inspeksi',
             'can_set_queue_priority' => $loan->status === 'antrian'

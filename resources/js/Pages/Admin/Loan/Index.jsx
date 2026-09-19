@@ -8,38 +8,54 @@ import { Input } from "@/Components/ui/input";
 import { Select } from "@/Components/ui/select";
 import { Head, router, useForm } from "@inertiajs/react";
 import {
-    CalendarDays,
-    ClipboardList,
+    ClipboardCheck,
+    Hand,
     ListOrdered,
+    PackageCheck,
     Search,
+    SearchCheck,
     SlidersHorizontal,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import InspectReturnDialog from "../Collateral/Components/InspectReturnDialog";
 import LoanTable from "./Components/LoanTable";
 import LoanWorkList from "./Components/LoanWorkList";
-import ReturnLoanDialog from "./Components/ReturnLoanDialog";
+import SubmissionDecisionDialog from "./Components/SubmissionDecisionDialog";
 
 const SCOPE_TABS = [
-    { key: "action", label: "Perlu diproses", icon: ClipboardList },
+    { key: "approval", label: "Persetujuan", icon: ClipboardCheck },
     { key: "queue", label: "Antrian", icon: ListOrdered },
-    { key: "today", label: "Hari ini", icon: CalendarDays },
+    { key: "handover", label: "Serah Terima", icon: Hand },
+    { key: "borrowed", label: "Dalam Penggunaan", icon: PackageCheck },
+    { key: "returns", label: "Pengembalian", icon: SearchCheck },
     { key: "all", label: "Semua", icon: Search },
 ];
 
 const EMPTY_COPY = {
-    action: {
-        title: "Tidak ada yang perlu diproses",
+    approval: {
+        title: "Tidak ada pengajuan menunggu persetujuan",
         description:
-            "Pengajuan menunggu persetujuan, serah terima, atau inspeksi akan muncul di sini.",
+            "Pengajuan yang siap diputuskan (Setujui / Tolak) akan muncul di sini.",
     },
     queue: {
         title: "Antrian kosong",
-        description: "Tidak ada pengajuan yang sedang menunggu sisa stok.",
+        description:
+            "Pengajuan yang menunggu alat tersedia atau antrean stok tampil di sini.",
     },
-    today: {
-        title: "Tidak ada booking hari ini",
-        description: "Pengajuan dengan tanggal booking hari ini tampil di tab ini.",
+    handover: {
+        title: "Tidak ada serah terima",
+        description:
+            "Pengajuan yang sudah disetujui dan menunggu penyerahan alat/bahan tampil di sini.",
+    },
+    borrowed: {
+        title: "Tidak ada barang dalam penggunaan",
+        description:
+            "Alat yang sedang dipinjam/terlambat dan bahan yang sudah diambil tampil di tab ini untuk monitoring.",
+    },
+    returns: {
+        title: "Tidak ada pengembalian",
+        description:
+            "Pengajuan yang menunggu inspeksi pengembalian akan muncul di sini.",
     },
     all: {
         title: "Tidak ada pengajuan ditemukan",
@@ -55,7 +71,7 @@ export default function Index({
     kelasOptions = [],
     statusOptions = {},
 }) {
-    const scope = filters.scope ?? "action";
+    const scope = filters.scope ?? "approval";
     const isArchive = scope === "all";
     const { data, setData } = useForm({
         search: filters.search ?? "",
@@ -77,9 +93,10 @@ export default function Index({
                 filters.date_to,
         ),
     );
-    const [returnTarget, setReturnTarget] = useState(null);
+    const [decisionTarget, setDecisionTarget] = useState(null);
+    const [decisionMode, setDecisionMode] = useState("review");
+    const [deciding, setDeciding] = useState(false);
     const [inspectTarget, setInspectTarget] = useState(null);
-    const [returning, setReturning] = useState(false);
     const [inspecting, setInspecting] = useState(false);
 
     useEffect(() => {
@@ -136,17 +153,38 @@ export default function Index({
         );
     };
 
-    const handleReturn = (note) => {
-        if (!returnTarget) return;
-        setReturning(true);
+    const openDecide = (submission, intent) => {
+        setDecisionTarget(submission);
+        setDecisionMode(intent === "reject" ? "reject" : "review");
+    };
+
+    const handleApprove = () => {
+        if (!decisionTarget) return;
+        setDeciding(true);
         router.post(
-            route("admin.loans.return", returnTarget.id),
-            { note: note ?? "" },
+            route("admin.loans.submission.approve", decisionTarget.code),
+            {},
             {
                 preserveScroll: true,
                 onFinish: () => {
-                    setReturning(false);
-                    setReturnTarget(null);
+                    setDeciding(false);
+                    setDecisionTarget(null);
+                },
+            },
+        );
+    };
+
+    const handleReject = (reason) => {
+        if (!decisionTarget) return;
+        setDeciding(true);
+        router.post(
+            route("admin.loans.submission.reject", decisionTarget.code),
+            { rejection_reason: reason },
+            {
+                preserveScroll: true,
+                onFinish: () => {
+                    setDeciding(false);
+                    setDecisionTarget(null);
                 },
             },
         );
@@ -175,7 +213,7 @@ export default function Index({
             <div className="animate-fade-in">
                 <PageHeader
                     title="Peminjaman"
-                    subtitle="Kerjakan pengajuan yang menunggu tindakan, lalu cari arsip jika perlu"
+                    subtitle="Ikuti tahap kerja: persetujuan, serah terima, peminjaman, lalu pengembalian"
                 />
 
                 <div className="mb-4 flex w-full flex-wrap items-center gap-1.5 rounded-[10px] border border-border bg-card p-1.5 shadow-[var(--shadow-card)]">
@@ -188,14 +226,14 @@ export default function Index({
                                 type="button"
                                 onClick={() => switchScope(key)}
                                 className={cn(
-                                    "flex min-h-10 flex-1 items-center justify-center gap-2 rounded-[8px] px-3 py-2 text-sm font-medium transition-colors sm:flex-none sm:px-4",
+                                    "flex min-h-10 flex-1 items-center justify-center gap-2 rounded-[8px] px-2.5 py-2 text-sm font-medium transition-colors sm:flex-none sm:px-3",
                                     active
                                         ? "bg-primary text-primary-foreground shadow-sm"
                                         : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
                                 )}
                             >
-                                <Icon className="h-4 w-4" />
-                                {label}
+                                <Icon className="h-4 w-4 shrink-0" />
+                                <span className="whitespace-nowrap">{label}</span>
                                 {typeof count === "number" ? (
                                     <span
                                         className={cn(
@@ -320,28 +358,30 @@ export default function Index({
                         <LoanWorkList
                             items={list}
                             pagination={loans}
-                            onReturn={setReturnTarget}
+                            scope={scope}
+                            onDecide={openDecide}
                             onInspect={setInspectTarget}
                         />
                     )
                 ) : (
                     <EmptyState
-                        icon={ClipboardList}
+                        icon={ClipboardCheck}
                         title={empty.title}
                         description={empty.description}
                     />
                 )}
             </div>
 
-            <ReturnLoanDialog
-                open={Boolean(returnTarget)}
+            <SubmissionDecisionDialog
+                open={Boolean(decisionTarget)}
                 onOpenChange={(open) => {
-                    if (!open) setReturnTarget(null);
+                    if (!open) setDecisionTarget(null);
                 }}
-                itemName={returnTarget?.code}
-                requiresInspection={returnTarget?.requires_return_inspection}
-                onConfirm={handleReturn}
-                loading={returning}
+                submission={decisionTarget}
+                mode={decisionMode}
+                loading={deciding}
+                onApprove={handleApprove}
+                onReject={handleReject}
             />
             <InspectReturnDialog
                 open={Boolean(inspectTarget)}

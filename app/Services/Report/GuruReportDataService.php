@@ -181,7 +181,7 @@ class GuruReportDataService
                 'compensation_pending' => $compensationPending,
                 'bahan_diambil' => (clone $loanBase)
                     ->where('item_type', 'bahan')
-                    ->where('status', 'dipinjam')
+                    ->where('status', 'diambil')
                     ->count(),
             ],
             'highlights' => [

@@ -6,13 +6,14 @@ import { Link, router } from "@inertiajs/react";
 import {
     BookOpen,
     Calendar,
+    Check,
     Clock,
     CreditCard,
     Eye,
     Package,
     PackageCheck,
-    RotateCcw,
     SearchCheck,
+    X,
 } from "lucide-react";
 
 const LOAN_TYPE_STYLE = {
@@ -221,11 +222,21 @@ function InsightLine({ members }) {
     );
 }
 
-function CardActions({ submission, members, onReturn, onInspect }) {
-    const handoverLoan = members.find((m) => m.can_mark_borrowed);
+function CardActions({
+    scope,
+    submission,
+    members,
+    onDecide,
+    onInspect,
+}) {
+    const canMarkBorrowed = submission.can_mark_borrowed === true;
+    const markBorrowedBlockedReason =
+        submission.mark_borrowed_blocked_reason || null;
+    const showSerahkan =
+        scope === "handover" &&
+        (canMarkBorrowed || Boolean(markBorrowedBlockedReason));
     const cardLoan = members.find((m) => m.can_receive_card);
     const inspectLoan = members.find((m) => m.can_inspect);
-    const returnLoan = members.find((m) => m.can_return);
     const detailHref =
         submission.show_url ||
         route("admin.loans.submission", submission.code);
@@ -233,6 +244,11 @@ function CardActions({ submission, members, onReturn, onInspect }) {
     const post = (routeName, id) => {
         router.post(route(routeName, id), {}, { preserveScroll: true });
     };
+
+    const showApprove = scope === "approval" && submission.can_approve;
+    const showReject = scope === "approval" && submission.can_reject;
+    const showHandover = scope === "handover";
+    const showInspect = scope === "returns";
 
     return (
         <div className="flex flex-wrap items-center justify-end gap-2.5">
@@ -247,21 +263,45 @@ function CardActions({ submission, members, onReturn, onInspect }) {
                     Detail
                 </Link>
             </Button>
-            {handoverLoan ? (
+            {showReject ? (
+                <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 border-red-300 bg-white px-3 text-red-600 shadow-none hover:bg-red-50 hover:text-red-700"
+                    onClick={() => onDecide?.(submission, "reject")}
+                >
+                    <X className="mr-1.5 h-3.5 w-3.5" />
+                    Tolak
+                </Button>
+            ) : null}
+            {showApprove ? (
+                <Button
+                    size="sm"
+                    className="h-8 bg-emerald-600 px-3 text-white hover:bg-emerald-700"
+                    onClick={() => onDecide?.(submission, "approve")}
+                >
+                    <Check className="mr-1.5 h-3.5 w-3.5" />
+                    Setujui
+                </Button>
+            ) : null}
+            {showSerahkan ? (
                 <Button
                     size="sm"
                     className="h-8 px-3"
+                    disabled={!canMarkBorrowed}
+                    title={markBorrowedBlockedReason || undefined}
                     onClick={() =>
-                        post("admin.loans.mark-borrowed", handoverLoan.id)
+                        post(
+                            "admin.loans.submission.mark-borrowed",
+                            submission.code,
+                        )
                     }
                 >
                     <PackageCheck className="mr-1.5 h-3.5 w-3.5" />
-                    {handoverLoan.item_type === "bahan"
-                        ? "Tandai diambil"
-                        : "Serahkan"}
+                    Serahkan
                 </Button>
             ) : null}
-            {cardLoan ? (
+            {showHandover && cardLoan ? (
                 <Button
                     size="sm"
                     variant="outline"
@@ -274,7 +314,7 @@ function CardActions({ submission, members, onReturn, onInspect }) {
                     </Link>
                 </Button>
             ) : null}
-            {inspectLoan ? (
+            {showInspect && inspectLoan ? (
                 <Button
                     size="sm"
                     className="h-8 px-3"
@@ -284,24 +324,14 @@ function CardActions({ submission, members, onReturn, onInspect }) {
                     Inspeksi
                 </Button>
             ) : null}
-            {returnLoan ? (
-                <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 border-border bg-white px-3 shadow-none hover:bg-muted/60"
-                    onClick={() => onReturn(returnLoan)}
-                >
-                    <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
-                    Inspeksi
-                </Button>
-            ) : null}
         </div>
     );
 }
 
 export default function LoanWorkCard({
+    scope,
     submission,
-    onReturn,
+    onDecide,
     onInspect,
 }) {
     const members = (submission.package_members ?? []).filter(Boolean);
@@ -384,9 +414,10 @@ export default function LoanWorkCard({
             {members.length > 0 ? (
                 <div className="mt-2.5 border-t border-border/50 pt-2">
                     <CardActions
+                        scope={scope}
                         submission={submission}
                         members={members}
-                        onReturn={onReturn}
+                        onDecide={onDecide}
                         onInspect={onInspect}
                     />
                 </div>

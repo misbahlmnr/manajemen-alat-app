@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\DB;
  * Ketersediaan bahan untuk pengajuan siswa (bukan stok gudang mentah).
  *
  * remaining = equipment.available − qty pengajuan pending yang belum di-deduct.
- * Pengajuan disetujui/dipinjam sudah tercermin di equipment.available lewat deductStock.
+ * Pengajuan disetujui/diambil sudah tercermin di equipment.available lewat deductStock.
  */
 class LoanMaterialAvailabilityService
 {

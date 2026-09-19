@@ -5,6 +5,7 @@ namespace Tests\Feature\Loan;
 use App\Models\Equipment;
 use App\Models\Loan;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -12,6 +13,18 @@ use Tests\TestCase;
 class LoanQueueFlowTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        Carbon::setTestNow(Carbon::parse('2026-09-21 08:00:00', config('app.timezone')));
+    }
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+        parent::tearDown();
+    }
 
     public function test_siswa_can_submit_bahan_into_queue_when_stock_short(): void
     {
@@ -98,7 +111,8 @@ class LoanQueueFlowTest extends TestCase
             ->get(route('admin.loans.index', ['scope' => 'action']))
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('tabCounts.action', 0)
+                ->where('filters.scope', 'approval')
+                ->where('tabCounts.approval', 0)
             );
 
         $this->actingAs($admin)
@@ -121,7 +135,43 @@ class LoanQueueFlowTest extends TestCase
             ->assertRedirect();
 
         $this->assertSame('disetujui', $alatLoan->fresh()->status);
-        $this->assertSame('dipinjam', $bahanLoan->fresh()->status);
+        $this->assertSame('disetujui', $bahanLoan->fresh()->status);
+
+        $this->actingAs($admin)
+            ->get(route('admin.loans.index', ['scope' => 'handover']))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->has('loans.data', 1)
+                ->where('loans.data.0.code', $submission->code)
+            );
+
+        $this->actingAs($admin)
+            ->get(route('admin.loans.index', ['scope' => 'borrowed']))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->has('loans.data', 0)
+            );
+
+        $this->actingAs($admin)
+            ->post(route('admin.loans.submission.mark-borrowed', $submission))
+            ->assertRedirect();
+
+        $this->assertSame('dipinjam', $alatLoan->fresh()->status);
+        $this->assertSame('diambil', $bahanLoan->fresh()->status);
+        $this->assertNotNull($bahanLoan->fresh()->borrowed_at);
+
+        $this->actingAs($admin)
+            ->get(route('admin.loans.index', ['scope' => 'handover']))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->has('loans.data', 0));
+
+        $this->actingAs($admin)
+            ->get(route('admin.loans.index', ['scope' => 'borrowed']))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->has('loans.data', 1)
+                ->where('loans.data.0.code', $submission->code)
+            );
     }
 
     public function test_siswa_can_submit_package_alat_and_bahan(): void
@@ -176,7 +226,7 @@ class LoanQueueFlowTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Admin/Loan/Index')
-                ->where('filters.scope', 'action')
+                ->where('filters.scope', 'approval')
                 ->has('loans.data', 1)
                 ->where('loans.data.0.code', $loans[0]->submission->code)
                 ->where('loans.data.0.alat_count', 1)
@@ -229,12 +279,16 @@ class LoanQueueFlowTest extends TestCase
         $this->assertSame(7, (int) $alat->fresh()->available);
 
         $workflow->approve($bahanLoan->fresh(), $admin);
-        $this->assertSame('dipinjam', $bahanLoan->fresh()->status);
+        $this->assertSame('disetujui', $bahanLoan->fresh()->status);
         $this->assertSame(6, (int) $bahan->fresh()->available);
 
         $workflow->markBorrowed($alatLoan->fresh(), $admin);
         $this->assertSame('dipinjam', $alatLoan->fresh()->status);
         $this->assertSame(7, (int) $alat->fresh()->available);
+
+        $workflow->markBorrowed($bahanLoan->fresh(), $admin);
+        $this->assertSame('diambil', $bahanLoan->fresh()->status);
+        $this->assertSame(6, (int) $bahan->fresh()->available);
     }
 
     public function test_two_siswa_queue_positions_follow_queued_at_fifo(): void
@@ -382,27 +436,35 @@ class LoanQueueFlowTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Admin/Loan/Index')
-                ->where('filters.scope', 'action')
+                ->where('filters.scope', 'approval')
                 ->has('loans.data', 2)
                 ->where('loans.data.0.code', $loanB->submission->code)
                 ->where('loans.data.1.code', $loanA->submission->code)
             );
 
         $this->actingAs($admin)
-            ->post(route('admin.loans.approve', $loanA))
+            ->post(route('admin.loans.submission.approve', $loanA->submission))
             ->assertRedirect();
 
         $this->assertSame('disetujui', $loanA->fresh()->status);
 
         $this->actingAs($admin)
-            ->get(route('admin.loans.index'))
+            ->get(route('admin.loans.index', ['scope' => 'approval']))
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Admin/Loan/Index')
-                ->has('loans.data', 2)
+                ->has('loans.data', 1)
                 ->where('loans.data.0.code', $loanB->submission->code)
-                ->where('loans.data.1.code', $loanA->submission->code)
-                ->where('loans.data.1.package_members.0.status', 'disetujui')
+            );
+
+        $this->actingAs($admin)
+            ->get(route('admin.loans.index', ['scope' => 'handover']))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Admin/Loan/Index')
+                ->has('loans.data', 1)
+                ->where('loans.data.0.code', $loanA->submission->code)
+                ->where('loans.data.0.package_members.0.status', 'disetujui')
             );
     }
 

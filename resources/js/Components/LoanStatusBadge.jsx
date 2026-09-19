@@ -34,6 +34,7 @@ const loanConfig = {
     disetujui: { label: "Disetujui", ...tone.success },
     ditolak: { label: "Ditolak", ...tone.danger },
     dipinjam: { label: "Dipinjam", ...tone.active },
+    diambil: { label: "Diambil", ...tone.success },
     terlambat: { label: "Terlambat", ...tone.danger },
     menunggu_inspeksi: { label: "Menunggu Inspeksi", ...tone.warning },
     dikembalikan: { label: "Dikembalikan", ...tone.neutral },
@@ -48,11 +49,6 @@ const submissionConfig = {
     dibatalkan: { label: "Dibatalkan", ...tone.neutral },
 };
 
-const bahanStatusLabels = {
-    dipinjam: "Diambil",
-    dikembalikan: "Selesai",
-};
-
 export default function LoanStatusBadge({ status, itemType }) {
     const config =
         itemType === "submission" ? submissionConfig : loanConfig;
@@ -62,11 +58,6 @@ export default function LoanStatusBadge({ status, itemType }) {
         ...tone.neutral,
     };
 
-    const label =
-        itemType === "bahan" && bahanStatusLabels[status]
-            ? bahanStatusLabels[status]
-            : item.label;
-
     return (
         <span
             className={cn(
@@ -75,7 +66,7 @@ export default function LoanStatusBadge({ status, itemType }) {
             )}
         >
             <span className={cn("mr-1.5 h-1.5 w-1.5 shrink-0 rounded-full", item.dot)} />
-            {label}
+            {item.label}
         </span>
     );
 }

@@ -60,16 +60,8 @@ class LoanWorkflowService
                 // Alokasi stok segera saat disetujui. Force hanya untuk reservasi Bawa Pulang.
                 $this->deductStock($loan, force: $loan->isBawaPulang());
 
-                if ($loan->isAlat()) {
-                    $loan->update(['status' => 'disetujui']);
-                    $this->logStatus($loan, 'disetujui', 'Pengajuan disetujui admin. Stok dialokasikan.', $actor);
-                } else {
-                    $loan->update([
-                        'status' => 'dipinjam',
-                        'borrowed_at' => now(),
-                    ]);
-                    $this->logStatus($loan, 'dipinjam', 'Bahan disetujui dan diambil.', $actor);
-                }
+                $loan->update(['status' => 'disetujui']);
+                $this->logStatus($loan, 'disetujui', 'Pengajuan disetujui admin. Stok dialokasikan.', $actor);
 
                 $equipmentIds = $loan->items->pluck('equipment_id')->all();
                 $queue->demotePendingLoansForEquipments($equipmentIds, $actor, $loan->id);
@@ -118,15 +110,24 @@ class LoanWorkflowService
         });
     }
 
+    /**
+     * Serah fisik: disetujui → dipinjam (alat) atau diambil (bahan).
+     *
+     * `borrowed_at` is reused as the outbound timestamp for both item types
+     * (no separate taken_at column):
+     * - alat: waktu mulai dipinjam
+     * - bahan: waktu barang diambil/diserahkan dari laboratorium
+     * Semantics differ by `status`, not by the timestamp column name.
+     */
     public function markBorrowed(Loan $loan, User $actor): void
     {
-        if (! $loan->isAlat() || $loan->status !== 'disetujui') {
+        if ($loan->status !== 'disetujui') {
             throw ValidationException::withMessages([
-                'status' => 'Hanya peminjaman alat yang disetujui dapat ditandai dipinjam.',
+                'status' => 'Hanya pengajuan yang sudah disetujui dapat diserahkan.',
             ]);
         }
 
-        if ($loan->requiresCollateral()) {
+        if ($loan->isAlat() && $loan->requiresCollateral()) {
             $loan->loadMissing('collateral');
             if ($loan->collateral?->status !== 'ditahan') {
                 throw ValidationException::withMessages([
@@ -136,20 +137,31 @@ class LoanWorkflowService
         }
 
         DB::transaction(function () use ($loan, $actor) {
-            $borrowedAt = $loan->borrowed_at ?? now();
-            $dueAt = app(LoanQueueService::class)->clampDueAtToTimeSlice($loan, $borrowedAt);
-
             // Stok sudah dialokasikan saat Disetujui; serah terima hanya mengubah status.
             if (! $loan->stock_held) {
                 $this->deductStock($loan, force: true);
             }
 
+            $borrowedAt = $loan->borrowed_at ?? now();
+
+            if ($loan->isAlat()) {
+                $dueAt = app(LoanQueueService::class)->clampDueAtToTimeSlice($loan, $borrowedAt);
+
+                $loan->update([
+                    'status' => 'dipinjam',
+                    'borrowed_at' => $borrowedAt,
+                    'due_at' => $dueAt,
+                ]);
+                $this->logStatus($loan, 'dipinjam', 'Alat diserahkan ke peminjam.', $actor);
+
+                return;
+            }
+
             $loan->update([
-                'status' => 'dipinjam',
+                'status' => 'diambil',
                 'borrowed_at' => $borrowedAt,
-                'due_at' => $dueAt,
             ]);
-            $this->logStatus($loan, 'dipinjam', 'Alat diserahkan ke peminjam.', $actor);
+            $this->logStatus($loan, 'diambil', 'Bahan telah diambil.', $actor);
         });
     }
 

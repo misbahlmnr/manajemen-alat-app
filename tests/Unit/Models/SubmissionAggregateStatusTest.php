@@ -62,7 +62,7 @@ class SubmissionAggregateStatusTest extends TestCase
     {
         [$submission, $alat, $bahan] = $this->makePackageSubmission();
         $alat->update(['status' => 'dikembalikan']);
-        $bahan->update(['status' => 'dipinjam']);
+        $bahan->update(['status' => 'diambil']);
 
         $this->assertSame('selesai', $submission->fresh()->load('loans')->aggregateStatus());
         $this->assertSame(
@@ -91,7 +91,7 @@ class SubmissionAggregateStatusTest extends TestCase
 
         [$done, $doneAlat, $doneBahan] = $this->makePackageSubmission('done');
         $doneAlat->update(['status' => 'dikembalikan']);
-        $doneBahan->update(['status' => 'dipinjam']);
+        $doneBahan->update(['status' => 'diambil']);
 
         $this->assertTrue(
             Submission::query()->whereAggregateStatus('diminta')->whereKey($waiting->id)->exists(),

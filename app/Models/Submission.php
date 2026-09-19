@@ -224,7 +224,7 @@ class Submission extends Model
                                 ->where('status', '!=', 'dikembalikan');
                         })->orWhere(function ($bahan) {
                             $bahan->where('item_type', 'bahan')
-                                ->whereNotIn('status', ['dipinjam', 'dikembalikan']);
+                                ->whereNotIn('status', ['diambil', 'dikembalikan']);
                         });
                     });
                 }),
@@ -241,7 +241,7 @@ class Submission extends Model
                                 ->where('status', '!=', 'dikembalikan');
                         })->orWhere(function ($bahan) {
                             $bahan->where('item_type', 'bahan')
-                                ->whereNotIn('status', ['dipinjam', 'dikembalikan', 'menunggu_alat']);
+                                ->whereNotIn('status', ['diambil', 'dikembalikan', 'menunggu_alat']);
                         });
                     });
                 }),
@@ -277,11 +277,47 @@ class Submission extends Model
             ]));
     }
 
+    /** Submission waiting for admin decision (not blocked by tool queue). */
+    public function scopeNeedingApproval($query)
+    {
+        return $query
+            ->whereDoesntHaveBlockingTool()
+            ->whereHas('loans', fn ($q) => $q->where('status', 'diminta'));
+    }
+
+    /** Approved tools not yet handed over. */
+    public function scopeNeedingHandover($query)
+    {
+        return $query->whereHas('loans', fn ($q) => $q->where('status', 'disetujui'));
+    }
+
+    /**
+     * Barang di luar laboratorium (fase penggunaan):
+     * alat dipinjam/terlambat, bahan diambil — bukan karena bahan dianggap pinjaman.
+     */
+    public function scopeCurrentlyBorrowed($query)
+    {
+        return $query->whereHas('loans', fn ($q) => $q->whereIn('status', [
+            'dipinjam',
+            'terlambat',
+            'diambil',
+        ]));
+    }
+
+    /** Student requested return; awaiting inspection. */
+    public function scopeNeedingReturnInspection($query)
+    {
+        return $query->whereHas('loans', fn ($q) => $q->where('status', 'menunggu_inspeksi'));
+    }
+
     public function scopeInLoanQueue($query)
     {
         return $query->where(function ($q) {
             $q->whereHasBlockingTool()
-                ->orWhereHas('loans', fn ($l) => $l->where('status', 'antrian'));
+                ->orWhereHas('loans', fn ($l) => $l->whereIn('status', [
+                    'antrian',
+                    'menunggu_alat',
+                ]));
         });
     }
 
@@ -304,10 +340,33 @@ class Submission extends Model
         ")->latest('id');
     }
 
+    public function scopeOrderByLatestLoanActivity($query)
+    {
+        return $query->orderByRaw("
+            (
+                SELECT MAX(loans.updated_at)
+                FROM loans
+                WHERE loans.submission_id = submissions.id
+            ) DESC
+        ")->orderByDesc('submissions.id');
+    }
+
+    public function scopeOrderByLatestBorrowedAt($query)
+    {
+        return $query->orderByRaw("
+            (
+                SELECT MAX(loans.borrowed_at)
+                FROM loans
+                WHERE loans.submission_id = submissions.id
+                  AND loans.status IN ('dipinjam', 'terlambat', 'diambil')
+            ) DESC
+        ")->orderByDesc('submissions.id');
+    }
+
     private function loanIsFinishedForSubmission(Loan $loan): bool
     {
         if ($loan->item_type === 'bahan') {
-            return in_array($loan->status, ['dipinjam', 'dikembalikan'], true);
+            return in_array($loan->status, ['diambil', 'dikembalikan'], true);
         }
 
         return $loan->status === 'dikembalikan';
@@ -317,7 +376,7 @@ class Submission extends Model
     {
         if ($loan->item_type === 'bahan') {
             return match ($loan->status) {
-                'dipinjam' => 'Diambil',
+                'diambil' => 'Diambil',
                 'dikembalikan' => 'Selesai',
                 'menunggu_alat' => 'Menunggu Alat',
                 default => config("lab.loan_statuses.{$loan->status}", $loan->status),

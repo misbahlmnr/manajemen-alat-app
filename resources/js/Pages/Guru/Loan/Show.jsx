@@ -21,7 +21,8 @@ export default function Show({ loan }) {
         loan.status &&
         ["dikembalikan", "ditolak", "dibatalkan"].includes(loan.status)
             ? route("guru.loans.index", { scope: "history" })
-            : loan.item_type === "bahan" && loan.status === "dipinjam"
+            : loan.item_type === "bahan" &&
+                (loan.is_taken || loan.status === "diambil")
               ? route("guru.loans.index", { scope: "history" })
               : route("guru.loans.index");
 

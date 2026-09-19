@@ -63,10 +63,10 @@ class SubmissionDecisionServiceTest extends TestCase
         $queuedBahan->update(['status' => 'menunggu_alat']);
 
         $this->assertTrue(
-            Submission::query()->needsAdminAction()->whereKey($waiting->id)->exists(),
+            Submission::query()->needingApproval()->whereKey($waiting->id)->exists(),
         );
         $this->assertFalse(
-            Submission::query()->needsAdminAction()->whereKey($queued->id)->exists(),
+            Submission::query()->needingApproval()->whereKey($queued->id)->exists(),
         );
         $this->assertTrue(
             Submission::query()->inLoanQueue()->whereKey($queued->id)->exists(),

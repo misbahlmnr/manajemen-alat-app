@@ -70,6 +70,7 @@ return [
         'disetujui' => 'Disetujui',
         'ditolak' => 'Ditolak',
         'dipinjam' => 'Dipinjam',
+        'diambil' => 'Diambil',
         'terlambat' => 'Terlambat',
         'menunggu_inspeksi' => 'Menunggu Inspeksi',
         'dikembalikan' => 'Dikembalikan',

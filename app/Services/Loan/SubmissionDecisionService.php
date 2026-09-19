@@ -97,7 +97,7 @@ class SubmissionDecisionService
     private function isTerminal(Loan $loan): bool
     {
         return in_array($loan->status, ['ditolak', 'dibatalkan', 'dikembalikan'], true)
-            || ($loan->item_type === 'bahan' && $loan->status === 'dipinjam');
+            || ($loan->item_type === 'bahan' && $loan->status === 'diambil');
     }
 
     /**

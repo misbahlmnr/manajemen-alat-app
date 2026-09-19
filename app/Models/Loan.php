@@ -60,6 +60,7 @@ class Loan extends Model
     {
         return [
             'request_date' => 'date',
+            // Outbound timestamp: alat = mulai dipinjam; bahan = diambil dari lab (no taken_at).
             'borrowed_at' => 'datetime',
             'due_at' => 'datetime',
             'returned_at' => 'datetime',
