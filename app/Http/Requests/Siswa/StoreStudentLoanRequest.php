@@ -207,7 +207,9 @@ class StoreStudentLoanRequest extends FormRequest
             'practicum_schedule_id' => 'mata pelajaran',
             'item_type' => 'jenis barang',
             'loan_type' => 'jenis peminjaman',
-            'request_date' => 'tanggal pemakaian',
+            'request_date' => $this->input('borrow_scope') === 'bawa_pulang'
+                ? 'tanggal pengambilan'
+                : 'tanggal pemakaian',
             'due_at' => 'batas pengembalian',
             'purpose' => 'catatan',
             'notes' => 'catatan',

@@ -1171,7 +1171,9 @@ export default function Create({
                                     <div className="space-y-1.5">
                                         <label className="flex items-center gap-1.5 text-sm font-medium">
                                             <Calendar className="h-3.5 w-3.5" />{" "}
-                                            Tanggal Pemakaian
+                                            {isBawaPulang
+                                                ? "Tanggal Pengambilan"
+                                                : "Tanggal Pemakaian"}
                                         </label>
                                         <input
                                             type="date"
@@ -1489,7 +1491,7 @@ export default function Create({
                                                 <p className="text-xs text-muted-foreground">
                                                     Dihitung maksimal{" "}
                                                     {bawaPulangMaxDays} hari
-                                                    setelah tanggal pemakaian.
+                                                    setelah tanggal pengambilan.
                                                 </p>
                                             )}
                                             <InputError

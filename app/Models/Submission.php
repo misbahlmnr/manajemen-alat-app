@@ -303,15 +303,22 @@ class Submission extends Model
 
     /**
      * Barang di luar laboratorium (fase penggunaan):
-     * alat dipinjam/terlambat, bahan diambil — bukan karena bahan dianggap pinjaman.
+     * alat dipinjam/terlambat, atau bahan-only yang sudah diambil.
+     * Paket dengan alat sudah menunggu inspeksi / dikembalikan tidak ikut
+     * hanya karena bahan masih berstatus diambil (hindari overlap tab Pengembalian).
      */
     public function scopeCurrentlyBorrowed($query)
     {
-        return $query->whereHas('loans', fn ($q) => $q->whereIn('status', [
-            'dipinjam',
-            'terlambat',
-            'diambil',
-        ]));
+        return $query->where(function ($q) {
+            $q->whereHas('loans', fn ($l) => $l->whereIn('status', [
+                'dipinjam',
+                'terlambat',
+            ]))->orWhere(function ($bahanOnly) {
+                $bahanOnly
+                    ->whereHas('loans', fn ($l) => $l->where('item_type', 'bahan')->where('status', 'diambil'))
+                    ->whereDoesntHave('loans', fn ($l) => $l->where('item_type', 'alat'));
+            });
+        });
     }
 
     /** Student requested return; awaiting inspection. */
