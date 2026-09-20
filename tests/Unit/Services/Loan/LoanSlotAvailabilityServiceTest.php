@@ -138,14 +138,13 @@ class LoanSlotAvailabilityServiceTest extends TestCase
 
         $this->makeOccupyingLoan($equipment, 6, 'lab', 'reguler', '2026-09-14', $morning->id);
 
-        $pribadiWindow = $this->slots->windowFromContext([
+        // Satu booking praktikum: Reserved Campus = 6 → remaining pribadi = 14.
+        $this->assertSame(14, $this->slots->remainingForDraft($equipment, [
             'loan_type' => 'pribadi',
             'borrow_scope' => 'lab',
             'borrow_reason' => 'lanjutan',
             'request_date' => '2026-09-14',
-        ]);
-
-        $this->assertSame(14, $this->slots->remaining($equipment, $pribadiWindow[0], $pribadiWindow[1]));
+        ]));
 
         $this->assertSame('diminta', $this->queue->resolveInitialStatus(
             [['equipment_id' => $equipment->id, 'quantity' => 14]],
@@ -167,6 +166,125 @@ class LoanSlotAvailabilityServiceTest extends TestCase
                 'borrow_reason' => 'lanjutan',
                 'request_date' => '2026-09-14',
             ],
+        ));
+    }
+
+    public function test_pribadi_uses_reserved_campus_sum_not_peak_concurrent(): void
+    {
+        $this->travelTo(Carbon::parse('2026-09-09 10:00:00'));
+
+        $equipment = $this->makeEquipment(10);
+        $guru = $this->makeUser('guru', 'guru-slot-rc');
+        $morning = $this->makeSchedule($guru, '2026-09-14', '08:00:00', '10:00:00', 'JDW-RC-A');
+        $afternoon = $this->makeSchedule($guru, '2026-09-14', '10:00:00', '12:00:00', 'JDW-RC-B');
+
+        $this->makeOccupyingLoan($equipment, 6, 'lab', 'reguler', '2026-09-14', $morning->id);
+        $this->makeOccupyingLoan($equipment, 2, 'lab', 'reguler', '2026-09-14', $afternoon->id);
+
+        // Peak Concurrent for personal window would still be 6 → remaining 4.
+        $pribadiWindow = $this->slots->windowFromContext([
+            'loan_type' => 'pribadi',
+            'request_date' => '2026-09-14',
+        ]);
+        $this->assertSame(4, $this->slots->remaining($equipment, $pribadiWindow[0], $pribadiWindow[1]));
+
+        // Reserved Campus = 8 → remaining pribadi = 2.
+        $this->assertSame(2, $this->slots->remainingForDraft($equipment, [
+            'loan_type' => 'pribadi',
+            'borrow_scope' => 'lab',
+            'borrow_reason' => 'lanjutan',
+            'request_date' => '2026-09-14',
+        ]));
+
+        $this->assertSame('diminta', $this->queue->resolveInitialStatus(
+            [['equipment_id' => $equipment->id, 'quantity' => 2]],
+            'alat',
+            [
+                'loan_type' => 'pribadi',
+                'borrow_scope' => 'lab',
+                'borrow_reason' => 'lanjutan',
+                'request_date' => '2026-09-14',
+            ],
+        ));
+
+        $this->assertSame('antrian', $this->queue->resolveInitialStatus(
+            [['equipment_id' => $equipment->id, 'quantity' => 3]],
+            'alat',
+            [
+                'loan_type' => 'pribadi',
+                'borrow_scope' => 'lab',
+                'borrow_reason' => 'lanjutan',
+                'request_date' => '2026-09-14',
+            ],
+        ));
+
+        // Praktikum peak path unchanged: morning still sees only morning occupancy.
+        $this->assertSame(4, $this->slots->remaining($equipment, $pribadiWindow[0], $pribadiWindow[1]));
+        $morningWindow = $this->slots->windowFromContext([
+            'loan_type' => 'praktikum',
+            'request_date' => '2026-09-14',
+            'practicum_schedule_id' => $morning->id,
+        ], $morning);
+        $this->assertSame(4, $this->slots->remaining($equipment, $morningWindow[0], $morningWindow[1]));
+    }
+
+    public function test_pribadi_reserved_campus_includes_lomba_loan_excludes_bawa_pulang(): void
+    {
+        $this->travelTo(Carbon::parse('2026-09-09 10:00:00'));
+
+        $equipment = $this->makeEquipment(10);
+        $guru = $this->makeUser('guru', 'guru-slot-lomba-rc');
+        $morning = $this->makeSchedule($guru, '2026-09-14', '08:00:00', '10:00:00', 'JDW-RC-L');
+
+        $this->makeOccupyingLoan($equipment, 4, 'lab', 'reguler', '2026-09-14', $morning->id);
+        $this->makeOccupyingLoan(
+            $equipment,
+            3,
+            'bawa_pulang',
+            'lomba',
+            '2026-09-14',
+            dueAt: Carbon::parse('2026-09-15 17:00:00'),
+        );
+        $this->makeOccupyingLoan(
+            $equipment,
+            2,
+            'bawa_pulang',
+            'lanjutan',
+            '2026-09-14',
+            dueAt: Carbon::parse('2026-09-15 17:00:00'),
+        );
+
+        // Reserved Campus = praktikum 4 + lomba 3 = 7 (bawa_pulang ignored).
+        $this->assertSame(3, $this->slots->remainingForDraft($equipment, [
+            'loan_type' => 'pribadi',
+            'borrow_scope' => 'lab',
+            'borrow_reason' => 'lanjutan',
+            'request_date' => '2026-09-14',
+        ]));
+    }
+
+    public function test_pribadi_other_personal_reduces_remaining_without_double_count(): void
+    {
+        $this->travelTo(Carbon::parse('2026-09-09 10:00:00'));
+
+        $equipment = $this->makeEquipment(10);
+        $guru = $this->makeUser('guru', 'guru-slot-op');
+        $morning = $this->makeSchedule($guru, '2026-09-14', '08:00:00', '10:00:00', 'JDW-RC-OP');
+
+        $this->makeOccupyingLoan($equipment, 6, 'lab', 'reguler', '2026-09-14', $morning->id);
+        $this->makeOccupyingLoan($equipment, 2, 'lab', 'lanjutan', '2026-09-14');
+
+        // Reserved Campus 6 + otherPersonal 2 = 8 → remaining 2.
+        $this->assertSame(2, $this->slots->remainingForDraft($equipment, [
+            'loan_type' => 'pribadi',
+            'borrow_scope' => 'lab',
+            'borrow_reason' => 'lanjutan',
+            'request_date' => '2026-09-14',
+        ]));
+
+        $this->assertSame(8, $this->slots->committedForPersonal(
+            $equipment->id,
+            '2026-09-14',
         ));
     }
 

@@ -216,7 +216,8 @@ class LoanSlotAvailabilityService
 
     /**
      * Puncak pemakaian bersamaan di jendela — bukan jumlah semua booking yang overlap.
-     * Pagi 6 + siang 6 tidak saling makan; pribadi all-day hanya berebut sisa di jam tabrakan.
+     * Pagi 6 + siang 6 tidak saling makan (Peak Concurrent untuk non-pribadi).
+     * Remaining Pribadi memakai committedForPersonal (Reserved Campus), bukan method ini.
      *
      * @param  array<int, array{0: Carbon, 1: Carbon, 2: int}>  $extraIntervals
      */
@@ -234,6 +235,56 @@ class LoanSlotAvailabilityService
         ];
 
         return $this->peakConcurrent($intervals, $start, $end);
+    }
+
+    /**
+     * Committed qty for loan_type=pribadi: Reserved Campus (praktikum + lomba on request_date)
+     * plus other occupying pribadi. Does not use Peak Concurrent. No double count.
+     *
+     * Date basis: request_date in school timezone (not created_at / updated_at / due_at).
+     * Bawa pulang excluded. Lomba counts only after a Loan exists (Delayed Activation).
+     */
+    public function committedForPersonal(
+        int $equipmentId,
+        string $requestDate,
+        int|array|null $exceptLoanIds = null,
+        bool $includePending = true,
+    ): int {
+        $except = $this->normalizeExceptIds($exceptLoanIds);
+        $statuses = $includePending ? Loan::SLOT_OCCUPYING_STATUSES : Loan::SLOT_FIRM_STATUSES;
+        $date = PracticumSchedule::inSchoolTimezone($requestDate)->toDateString();
+
+        $loans = Loan::query()
+            ->where('item_type', 'alat')
+            ->whereIn('status', $statuses)
+            ->whereDate('request_date', $date)
+            ->when($except !== [], fn ($q) => $q->whereNotIn('id', $except))
+            ->whereHas('items', fn ($q) => $q->where('equipment_id', $equipmentId))
+            ->with([
+                'items' => fn ($q) => $q->where('equipment_id', $equipmentId),
+            ])
+            ->get();
+
+        $reservedCampus = 0;
+        $otherPersonal = 0;
+
+        foreach ($loans as $loan) {
+            $quantity = (int) $loan->items->sum('quantity');
+
+            if ($quantity <= 0) {
+                continue;
+            }
+
+            $loanType = $loan->resolvedLoanType();
+
+            if (in_array($loanType, ['praktikum', 'lomba'], true)) {
+                $reservedCampus += $quantity;
+            } elseif ($loanType === 'pribadi') {
+                $otherPersonal += $quantity;
+            }
+        }
+
+        return $reservedCampus + $otherPersonal;
     }
 
     /**
@@ -293,6 +344,32 @@ class LoanSlotAvailabilityService
                 return false;
             }
 
+            if ($draft->isPribadi()) {
+                $context = [
+                    'loan_type' => 'pribadi',
+                    'borrow_scope' => $draft->borrow_scope,
+                    'borrow_reason' => $draft->borrow_reason,
+                    'request_date' => $draft->request_date?->toDateString(),
+                ];
+
+                foreach ($draft->items as $item) {
+                    if (! $item->equipment) {
+                        continue;
+                    }
+
+                    if ($this->remainingForDraft(
+                        $item->equipment,
+                        $context,
+                        $exceptLoanIds,
+                        $includePending,
+                    ) < (int) $item->quantity) {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
             [$start, $end] = $this->windowFor($draft);
 
             foreach ($draft->items as $item) {
@@ -329,6 +406,28 @@ class LoanSlotAvailabilityService
             return false;
         }
 
+        $loanType = $draft['loan_type']
+            ?? Loan::resolveTypeFromLegacy(
+                $draft['borrow_scope'] ?? null,
+                $draft['borrow_reason'] ?? null,
+            );
+
+        if ($loanType === 'pribadi') {
+            foreach ($items as $row) {
+                $equipment = Equipment::query()->find($row['equipment_id'] ?? null);
+
+                if (! $equipment) {
+                    continue;
+                }
+
+                if ($this->remainingForDraft($equipment, $draft, $exceptLoanIds, $includePending) < (int) ($row['quantity'] ?? 0)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         [$start, $end] = $this->windowFromContext($draft);
 
         foreach ($items as $row) {
@@ -349,16 +448,38 @@ class LoanSlotAvailabilityService
     /**
      * @param  array<string, mixed>  $context
      */
-    public function remainingForDraft(Equipment $equipment, array $context, int|array|null $exceptLoanIds = null): int
-    {
+    public function remainingForDraft(
+        Equipment $equipment,
+        array $context,
+        int|array|null $exceptLoanIds = null,
+        bool $includePending = true,
+    ): int {
         if ($equipment->item_type !== 'alat') {
             return app(LoanMaterialAvailabilityService::class)
-                ->remaining($equipment, $exceptLoanIds);
+                ->remaining($equipment, $exceptLoanIds, $includePending);
+        }
+
+        $loanType = $context['loan_type']
+            ?? Loan::resolveTypeFromLegacy(
+                $context['borrow_scope'] ?? null,
+                $context['borrow_reason'] ?? null,
+            );
+
+        if ($loanType === 'pribadi') {
+            $capacity = max(0, (int) $equipment->qty_baik);
+            $committed = $this->committedForPersonal(
+                $equipment->id,
+                $this->contextDate($context),
+                $exceptLoanIds,
+                $includePending,
+            );
+
+            return max(0, $capacity - $committed);
         }
 
         [$start, $end] = $this->windowFromContext($context);
 
-        return $this->remaining($equipment, $start, $end, $exceptLoanIds);
+        return $this->remaining($equipment, $start, $end, $exceptLoanIds, [], $includePending);
     }
 
     /**
