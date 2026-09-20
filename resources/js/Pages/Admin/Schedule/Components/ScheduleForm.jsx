@@ -20,6 +20,7 @@ export default function ScheduleForm({
     guruOptions = [],
     siswaOptions = [],
     equipmentOptions = [],
+    bahanOptions = [],
     kelasOptions = [],
     subjectOptions = [],
     dayOptions = {},
@@ -41,6 +42,7 @@ export default function ScheduleForm({
                 ruangan: "",
                 mata_kuliah: data.mata_kuliah || data.title || "Lomba",
                 items: data.items?.length ? data.items : [],
+                bahan_items: data.bahan_items?.length ? data.bahan_items : [],
                 participant_ids: data.participant_ids ?? [],
             });
             return;
@@ -54,6 +56,7 @@ export default function ScheduleForm({
             penanggung_jawab_id: "",
             participant_ids: [],
             items: [],
+            bahan_items: [],
         });
     };
 
@@ -107,6 +110,26 @@ export default function ScheduleForm({
         setData(
             "items",
             (data.items ?? []).filter((_, i) => i !== index),
+        );
+    };
+
+    const addBahanRow = () => {
+        setData("bahan_items", [
+            ...(data.bahan_items ?? []),
+            { equipment_id: "", quantity: 1 },
+        ]);
+    };
+
+    const updateBahanItem = (index, field, value) => {
+        const next = [...(data.bahan_items ?? [])];
+        next[index] = { ...next[index], [field]: value };
+        setData("bahan_items", next);
+    };
+
+    const removeBahanItem = (index) => {
+        setData(
+            "bahan_items",
+            (data.bahan_items ?? []).filter((_, i) => i !== index),
         );
     };
 
@@ -432,10 +455,10 @@ export default function ScheduleForm({
 
                     <Card className="rounded-[10px] border-border/60 shadow-card">
                         <CardHeader>
-                            <CardTitle>Daftar Alat *</CardTitle>
+                            <CardTitle>Daftar Alat</CardTitle>
                             <CardDescription>
-                                Alat dialokasikan untuk event; loan dibuat atas
-                                nama Ketua Tim.
+                                Opsional jika Event hanya membutuhkan bahan.
+                                Loan dibuat atas nama Ketua Tim.
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-3">
@@ -497,6 +520,76 @@ export default function ScheduleForm({
                                 Tambah alat
                             </Button>
                             <InputError message={errors.items} />
+                        </CardContent>
+                    </Card>
+
+                    <Card className="rounded-[10px] border-border/60 shadow-card">
+                        <CardHeader>
+                            <CardTitle>Daftar Bahan</CardTitle>
+                            <CardDescription>
+                                Opsional jika Event hanya membutuhkan alat.
+                                Loan bahan dibuat dalam paket yang sama.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                            {(data.bahan_items ?? []).map((row, index) => (
+                                <div
+                                    key={index}
+                                    className="grid gap-2 sm:grid-cols-[1fr_100px_auto]"
+                                >
+                                    <Select
+                                        value={String(row.equipment_id || "")}
+                                        onChange={(e) =>
+                                            updateBahanItem(
+                                                index,
+                                                "equipment_id",
+                                                e.target.value,
+                                            )
+                                        }
+                                        disabled={processing}
+                                    >
+                                        <option value="">Pilih bahan</option>
+                                        {bahanOptions.map((item) => (
+                                            <option
+                                                key={item.id}
+                                                value={item.id}
+                                            >
+                                                {item.label}
+                                            </option>
+                                        ))}
+                                    </Select>
+                                    <Input
+                                        type="number"
+                                        min={1}
+                                        value={row.quantity ?? 1}
+                                        onChange={(e) =>
+                                            updateBahanItem(
+                                                index,
+                                                "quantity",
+                                                e.target.value,
+                                            )
+                                        }
+                                        disabled={processing}
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => removeBahanItem(index)}
+                                        disabled={processing}
+                                    >
+                                        Hapus
+                                    </Button>
+                                </div>
+                            ))}
+                            <Button
+                                type="button"
+                                variant="secondary"
+                                onClick={addBahanRow}
+                                disabled={processing}
+                            >
+                                Tambah bahan
+                            </Button>
+                            <InputError message={errors.bahan_items} />
                         </CardContent>
                     </Card>
                 </>

@@ -8,6 +8,7 @@ export default function Create({
     guruOptions,
     siswaOptions = [],
     equipmentOptions = [],
+    bahanOptions = [],
     kelasOptions,
     subjectOptions,
     dayOptions,
@@ -30,6 +31,7 @@ export default function Create({
         penanggung_jawab_id: "",
         participant_ids: [],
         items: [],
+        bahan_items: [],
         priority: "normal",
         notes: "",
     });
@@ -58,6 +60,7 @@ export default function Create({
                         guruOptions={guruOptions}
                         siswaOptions={siswaOptions}
                         equipmentOptions={equipmentOptions}
+                        bahanOptions={bahanOptions}
                         kelasOptions={kelasOptions}
                         subjectOptions={subjectOptions}
                         dayOptions={dayOptions}

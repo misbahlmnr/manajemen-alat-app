@@ -258,6 +258,43 @@ export default function Show({ schedule }) {
                                         )}
                                     </CardContent>
                                 </Card>
+
+                                <Card className="rounded-[10px] border-border/60 shadow-card">
+                                    <CardHeader>
+                                        <CardTitle>Daftar Bahan</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        {(schedule.bahan_items ?? []).length ===
+                                        0 ? (
+                                            <p className="text-sm text-muted-foreground">
+                                                Belum ada bahan.
+                                            </p>
+                                        ) : (
+                                            <ul className="divide-y divide-border rounded-md border border-border">
+                                                {(
+                                                    schedule.bahan_items ?? []
+                                                ).map((item) => (
+                                                    <li
+                                                        key={item.equipment_id}
+                                                        className="flex items-center justify-between gap-3 px-3 py-2 text-sm"
+                                                    >
+                                                        <span>
+                                                            {item.equipment_code
+                                                                ? `${item.equipment_code} — `
+                                                                : ""}
+                                                            {
+                                                                item.equipment_name
+                                                            }
+                                                        </span>
+                                                        <span className="text-muted-foreground">
+                                                            ×{item.quantity}
+                                                        </span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        )}
+                                    </CardContent>
+                                </Card>
                             </>
                         )}
                     </div>

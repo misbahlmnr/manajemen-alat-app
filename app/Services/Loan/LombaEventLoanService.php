@@ -10,6 +10,7 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 
@@ -23,14 +24,16 @@ class LombaEventLoanService
     /**
      * @param  array<int, array{equipment_id: int, quantity: int}>  $items
      * @param  array<int>  $participantIds
+     * @param  array<int, array{equipment_id: int, quantity: int}>  $bahanItems
      */
     public function syncEquipmentAndParticipants(
         PracticumSchedule $schedule,
         array $items,
         array $participantIds,
+        array $bahanItems = [],
     ): void {
         $syncEquipment = [];
-        foreach ($items as $row) {
+        foreach ([...$items, ...$bahanItems] as $row) {
             $equipmentId = (int) ($row['equipment_id'] ?? 0);
             $quantity = max(1, (int) ($row['quantity'] ?? 1));
             if ($equipmentId > 0) {
@@ -58,23 +61,38 @@ class LombaEventLoanService
 
         $schedule->loadMissing(['equipmentItems', 'penanggungJawab', 'guru']);
 
-        $items = $schedule->equipmentItems->map(fn (Equipment $equipment) => [
-            'equipment_id' => $equipment->id,
-            'quantity' => (int) ($equipment->pivot->quantity ?? 1),
-        ])->values()->all();
+        [$alatItems, $bahanItems] = $this->splitEquipmentItems($schedule);
 
-        if ($items === []) {
+        if ($alatItems === [] && $bahanItems === []) {
             throw ValidationException::withMessages([
-                'items' => 'Event lomba harus memiliki minimal satu alat.',
+                'items' => 'Event lomba harus memiliki minimal satu alat atau bahan.',
             ]);
         }
 
-        $this->queue->validateItemsForSubmit($items, 'alat', $schedule->penanggung_jawab_id, 'lomba');
-
         $pj = $schedule->penanggungJawab;
         $requestDate = $schedule->tanggal?->toDateString() ?? now()->toDateString();
+        $legacy = Loan::legacyFieldsForType('lomba');
 
-        return DB::transaction(function () use ($schedule, $items, $pj, $requestDate, $actor) {
+        return DB::transaction(function () use ($schedule, $alatItems, $bahanItems, $pj, $requestDate, $actor, $legacy) {
+            // Validate inside the transaction so a failure never leaves partial rows.
+            if ($alatItems !== []) {
+                $this->queue->validateItemsForSubmit(
+                    $alatItems,
+                    'alat',
+                    $schedule->penanggung_jawab_id,
+                    'lomba',
+                );
+            }
+
+            if ($bahanItems !== []) {
+                $this->queue->validateItemsForSubmit(
+                    $bahanItems,
+                    'bahan',
+                    $schedule->penanggung_jawab_id,
+                    'lomba',
+                );
+            }
+
             $submission = Submission::createForBorrower($pj, [
                 'supervisor_id' => $schedule->guru_id,
                 'purpose' => $schedule->title ?: 'Event Lomba',
@@ -82,41 +100,108 @@ class LombaEventLoanService
                 'request_date' => $requestDate,
             ]);
 
-            $legacy = Loan::legacyFieldsForType('lomba');
+            $groupId = (string) Str::uuid();
+            $primary = null;
 
-            $loan = Loan::create([
-                'code' => Loan::generateCode(),
-                'submission_id' => $submission->id,
-                'borrower_id' => $pj->id,
-                'borrower_class' => $pj->class,
-                'supervisor_id' => $schedule->guru_id,
-                'practicum_schedule_id' => $schedule->id,
-                'item_type' => 'alat',
-                'loan_type' => 'lomba',
-                'status' => 'diminta',
-                'request_date' => $requestDate,
-                'purpose' => $schedule->title ?: 'Event Lomba',
-                'notes' => $schedule->notes,
-                'borrow_scope' => $legacy['borrow_scope'],
-                'borrow_reason' => $legacy['borrow_reason'],
-            ]);
+            if ($alatItems !== []) {
+                $slotContext = [
+                    'item_type' => 'alat',
+                    'loan_type' => 'lomba',
+                    'borrow_scope' => $legacy['borrow_scope'],
+                    'borrow_reason' => $legacy['borrow_reason'],
+                    'request_date' => $requestDate,
+                    'practicum_schedule_id' => $schedule->id,
+                ];
+                $status = $this->queue->resolveInitialStatus($alatItems, 'alat', $slotContext);
 
-            foreach ($items as $row) {
-                $loan->items()->create([
-                    'equipment_id' => $row['equipment_id'],
-                    'quantity' => $row['quantity'],
+                $alatLoan = Loan::create([
+                    'code' => Loan::generateCode(),
+                    'loan_group_id' => $groupId,
+                    'submission_id' => $submission->id,
+                    'borrower_id' => $pj->id,
+                    'borrower_class' => $pj->class,
+                    'supervisor_id' => $schedule->guru_id,
+                    'practicum_schedule_id' => $schedule->id,
+                    'item_type' => 'alat',
+                    'loan_type' => 'lomba',
+                    'status' => $status,
+                    'queued_at' => $status === 'antrian' ? now() : null,
+                    'request_date' => $requestDate,
+                    'purpose' => $schedule->title ?: 'Event Lomba',
+                    'notes' => $schedule->notes,
+                    'borrow_scope' => $legacy['borrow_scope'],
+                    'borrow_reason' => $legacy['borrow_reason'],
                 ]);
+
+                foreach ($alatItems as $row) {
+                    $alatLoan->items()->create([
+                        'equipment_id' => $row['equipment_id'],
+                        'quantity' => $row['quantity'],
+                    ]);
+                }
+
+                $this->queue->applyDueAtForLoan($alatLoan->fresh());
+                $this->workflow->logStatus(
+                    $alatLoan,
+                    $status,
+                    'Pengajuan lomba dibuat otomatis dari Event Lomba.',
+                    $actor,
+                );
+                $primary = $alatLoan;
             }
 
-            $this->queue->applyDueAtForLoan($loan->fresh());
-            $this->workflow->logStatus(
-                $loan,
-                'diminta',
-                'Pengajuan lomba dibuat otomatis dari Event Lomba.',
-                $actor,
-            );
+            if ($bahanItems !== []) {
+                $slotContext = [
+                    'item_type' => 'bahan',
+                    'loan_type' => 'lomba',
+                    'borrow_scope' => 'lab',
+                    'borrow_reason' => null,
+                    'request_date' => $requestDate,
+                    'practicum_schedule_id' => $schedule->id,
+                ];
+                $status = $this->queue->resolveInitialStatus($bahanItems, 'bahan', $slotContext);
 
-            return $loan->fresh(['items.equipment', 'borrower', 'submission']);
+                $bahanLoan = Loan::create([
+                    'code' => Loan::generateCode(),
+                    'loan_group_id' => $groupId,
+                    'submission_id' => $submission->id,
+                    'borrower_id' => $pj->id,
+                    'borrower_class' => $pj->class,
+                    'supervisor_id' => $schedule->guru_id,
+                    'practicum_schedule_id' => $schedule->id,
+                    'item_type' => 'bahan',
+                    'loan_type' => 'lomba',
+                    'status' => $status,
+                    'queued_at' => $status === 'antrian' ? now() : null,
+                    'request_date' => $requestDate,
+                    'purpose' => $schedule->title ?: 'Event Lomba',
+                    'notes' => $schedule->notes,
+                    'borrow_scope' => 'lab',
+                    'borrow_reason' => null,
+                ]);
+
+                foreach ($bahanItems as $row) {
+                    $bahanLoan->items()->create([
+                        'equipment_id' => $row['equipment_id'],
+                        'quantity' => $row['quantity'],
+                    ]);
+                }
+
+                $this->workflow->logStatus(
+                    $bahanLoan,
+                    $status,
+                    'Pengajuan lomba dibuat otomatis dari Event Lomba.',
+                    $actor,
+                );
+                $primary ??= $bahanLoan;
+            }
+
+            $submission = $submission->fresh(['loans.items.equipment']);
+            if ($submission) {
+                $this->queue->syncBahanGateForSubmission($submission, $actor);
+            }
+
+            return $primary->fresh(['items.equipment', 'borrower', 'submission']);
         });
     }
 
@@ -200,53 +285,168 @@ class LombaEventLoanService
     }
 
     /**
-     * Sync participants always. Sync PJ/items only while loan is still diminta/antrian.
-     * Does not create a loan before scheduled activation.
+     * Sync participants always. Sync loan contents only while ALL active event loans
+     * are still diminta/antrian. Does not create a loan before scheduled activation.
      *
      * @param  array<int, array{equipment_id: int, quantity: int}>  $items
      * @param  array<int>  $participantIds
+     * @param  array<int, array{equipment_id: int, quantity: int}>  $bahanItems
      */
     public function updateEvent(
         PracticumSchedule $schedule,
         array $items,
         array $participantIds,
         ?User $actor = null,
+        array $bahanItems = [],
     ): void {
-        $this->syncEquipmentAndParticipants($schedule, $items, $participantIds);
+        $this->syncEquipmentAndParticipants($schedule, $items, $participantIds, $bahanItems);
 
-        $loan = Loan::query()
+        $activeLoans = Loan::query()
             ->where('practicum_schedule_id', $schedule->id)
             ->where('loan_type', 'lomba')
             ->whereNotIn('status', ['ditolak', 'dibatalkan', 'dikembalikan'])
-            ->latest('id')
-            ->first();
+            ->orderBy('id')
+            ->get();
 
-        if (! $loan) {
+        if ($activeLoans->isEmpty()) {
             return;
         }
 
-        if (! in_array($loan->status, ['diminta', 'antrian'], true)) {
+        // Only sync loan contents while every active loan is still editable.
+        if ($activeLoans->contains(fn (Loan $loan) => ! in_array($loan->status, ['diminta', 'antrian'], true))) {
             return;
         }
 
-        if ($schedule->penanggung_jawab_id && (int) $loan->borrower_id !== (int) $schedule->penanggung_jawab_id) {
-            $pj = User::query()->findOrFail($schedule->penanggung_jawab_id);
-            $loan->update([
+        $schedule->loadMissing(['equipmentItems', 'penanggungJawab']);
+        [$alatItems, $bahanPivotItems] = $this->splitEquipmentItems($schedule);
+
+        $submission = $activeLoans->first()?->submission;
+        $groupId = $activeLoans->first()?->loan_group_id ?: (string) Str::uuid();
+        $requestDate = $schedule->tanggal?->toDateString() ?? now()->toDateString();
+        $legacy = Loan::legacyFieldsForType('lomba');
+        $pj = $schedule->penanggungJawab;
+
+        if ($pj && $submission) {
+            $submission->update([
                 'borrower_id' => $pj->id,
                 'borrower_class' => $pj->class,
-            ]);
-            $loan->submission?->update([
-                'borrower_id' => $pj->id,
-                'borrower_class' => $pj->class,
+                'supervisor_id' => $schedule->guru_id,
+                'purpose' => $schedule->title ?: $submission->purpose,
+                'notes' => $schedule->notes,
+                'request_date' => $requestDate,
             ]);
         }
 
-        $loan->update([
+        $alatLoan = $activeLoans->firstWhere('item_type', 'alat');
+        $bahanLoan = $activeLoans->firstWhere('item_type', 'bahan');
+
+        if ($alatItems !== []) {
+            $alatLoan = $this->upsertPackageLoan(
+                existing: $alatLoan,
+                schedule: $schedule,
+                submission: $submission,
+                pj: $pj,
+                groupId: $groupId,
+                itemType: 'alat',
+                items: $alatItems,
+                requestDate: $requestDate,
+                legacy: $legacy,
+            );
+        } elseif ($alatLoan) {
+            $alatLoan->delete();
+            $alatLoan = null;
+        }
+
+        if ($bahanPivotItems !== []) {
+            $this->upsertPackageLoan(
+                existing: $bahanLoan,
+                schedule: $schedule,
+                submission: $submission,
+                pj: $pj,
+                groupId: $groupId,
+                itemType: 'bahan',
+                items: $bahanPivotItems,
+                requestDate: $requestDate,
+                legacy: $legacy,
+            );
+        } elseif ($bahanLoan) {
+            $bahanLoan->delete();
+        }
+
+        if ($alatLoan) {
+            $this->queue->applyDueAtForLoan($alatLoan->fresh());
+        }
+
+        if ($submission) {
+            $this->queue->syncBahanGateForSubmission($submission->fresh(['loans.items.equipment']), $actor);
+        }
+    }
+
+    /**
+     * @return array{0: list<array{equipment_id: int, quantity: int}>, 1: list<array{equipment_id: int, quantity: int}>}
+     */
+    private function splitEquipmentItems(PracticumSchedule $schedule): array
+    {
+        $alatItems = [];
+        $bahanItems = [];
+
+        foreach ($schedule->equipmentItems as $equipment) {
+            $row = [
+                'equipment_id' => $equipment->id,
+                'quantity' => (int) ($equipment->pivot->quantity ?? 1),
+            ];
+
+            if ($equipment->item_type === 'bahan') {
+                $bahanItems[] = $row;
+            } else {
+                $alatItems[] = $row;
+            }
+        }
+
+        return [$alatItems, $bahanItems];
+    }
+
+    /**
+     * @param  list<array{equipment_id: int, quantity: int}>  $items
+     * @param  array{borrow_scope: string, borrow_reason: string|null}  $legacy
+     */
+    private function upsertPackageLoan(
+        ?Loan $existing,
+        PracticumSchedule $schedule,
+        ?Submission $submission,
+        ?User $pj,
+        string $groupId,
+        string $itemType,
+        array $items,
+        string $requestDate,
+        array $legacy,
+    ): Loan {
+        $payload = [
+            'loan_group_id' => $groupId,
+            'submission_id' => $submission?->id,
+            'borrower_id' => $pj?->id ?? $existing?->borrower_id,
+            'borrower_class' => $pj?->class ?? $existing?->borrower_class,
             'supervisor_id' => $schedule->guru_id,
-            'purpose' => $schedule->title ?: $loan->purpose,
+            'practicum_schedule_id' => $schedule->id,
+            'item_type' => $itemType,
+            'loan_type' => 'lomba',
+            'request_date' => $requestDate,
+            'purpose' => $schedule->title ?: ($existing?->purpose ?: 'Event Lomba'),
             'notes' => $schedule->notes,
-            'request_date' => $schedule->tanggal?->toDateString() ?? $loan->request_date,
-        ]);
+            'borrow_scope' => $itemType === 'alat' ? $legacy['borrow_scope'] : 'lab',
+            'borrow_reason' => $itemType === 'alat' ? $legacy['borrow_reason'] : null,
+        ];
+
+        if ($existing) {
+            $existing->update($payload);
+            $loan = $existing;
+        } else {
+            $loan = Loan::create([
+                ...$payload,
+                'code' => Loan::generateCode(),
+                'status' => 'diminta',
+            ]);
+        }
 
         $loan->items()->delete();
         foreach ($items as $row) {
@@ -256,6 +456,6 @@ class LombaEventLoanService
             ]);
         }
 
-        $this->queue->applyDueAtForLoan($loan->fresh());
+        return $loan->fresh();
     }
 }

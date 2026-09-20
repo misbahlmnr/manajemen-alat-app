@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Models\Equipment;
 use App\Models\User;
 use App\Support\ClassOptions;
 use Illuminate\Foundation\Http\FormRequest;
@@ -42,10 +43,13 @@ class StorePracticumScheduleRequest extends FormRequest
 
             $merge['participant_ids'] = $participantIds;
             $merge['penanggung_jawab_id'] = $ketuaId > 0 ? $ketuaId : null;
+            $merge['items'] = $this->normalizeItemRows($this->input('items', []));
+            $merge['bahan_items'] = $this->normalizeItemRows($this->input('bahan_items', []));
         } else {
             $merge['penanggung_jawab_id'] = null;
             $merge['participant_ids'] = [];
             $merge['items'] = [];
+            $merge['bahan_items'] = [];
             $merge['priority'] = 'normal';
 
             if ($this->input('type') === 'mingguan') {
@@ -116,14 +120,25 @@ class StorePracticumScheduleRequest extends FormRequest
                 'integer',
                 Rule::exists(User::class, 'id')->where('role', 'siswa'),
             ],
-            'items' => [$isLomba ? 'required' : 'exclude', 'array', 'min:1'],
+            'items' => [$isLomba ? 'nullable' : 'exclude', 'array'],
             'items.*.equipment_id' => [
-                Rule::requiredIf($isLomba),
+                'required',
                 'integer',
                 'exists:equipment,id',
             ],
             'items.*.quantity' => [
-                Rule::requiredIf($isLomba),
+                'required',
+                'integer',
+                'min:1',
+            ],
+            'bahan_items' => [$isLomba ? 'nullable' : 'exclude', 'array'],
+            'bahan_items.*.equipment_id' => [
+                'required',
+                'integer',
+                'exists:equipment,id',
+            ],
+            'bahan_items.*.quantity' => [
+                'required',
                 'integer',
                 'min:1',
             ],
@@ -148,6 +163,19 @@ class StorePracticumScheduleRequest extends FormRequest
                     'Ketua Tim harus dipilih dari daftar Peserta Lomba.',
                 );
             }
+
+            $alatItems = (array) $this->input('items', []);
+            $bahanItems = (array) $this->input('bahan_items', []);
+
+            if ($alatItems === [] && $bahanItems === []) {
+                $validator->errors()->add(
+                    'items',
+                    'Event lomba harus memiliki minimal satu alat atau bahan.',
+                );
+            }
+
+            $this->assertEquipmentTypes($validator, $alatItems, 'alat', 'items');
+            $this->assertEquipmentTypes($validator, $bahanItems, 'bahan', 'bahan_items');
         });
     }
 
@@ -168,8 +196,72 @@ class StorePracticumScheduleRequest extends FormRequest
             'penanggung_jawab_id' => 'ketua tim',
             'participant_ids' => 'peserta lomba',
             'items' => 'daftar alat',
+            'bahan_items' => 'daftar bahan',
             'priority' => 'prioritas',
             'notes' => 'catatan',
         ];
+    }
+
+    /**
+     * @param  mixed  $rows
+     * @return list<array{equipment_id: int, quantity: int}>
+     */
+    private function normalizeItemRows(mixed $rows): array
+    {
+        $normalized = [];
+
+        foreach ((array) $rows as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $equipmentId = (int) ($row['equipment_id'] ?? 0);
+            if ($equipmentId <= 0) {
+                continue;
+            }
+
+            $normalized[] = [
+                'equipment_id' => $equipmentId,
+                'quantity' => max(1, (int) ($row['quantity'] ?? 1)),
+            ];
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * @param  list<array{equipment_id?: int}>  $rows
+     */
+    private function assertEquipmentTypes(
+        Validator $validator,
+        array $rows,
+        string $expectedType,
+        string $field,
+    ): void {
+        if ($rows === []) {
+            return;
+        }
+
+        $ids = array_values(array_unique(array_map(
+            fn ($row) => (int) ($row['equipment_id'] ?? 0),
+            $rows,
+        )));
+
+        $types = Equipment::query()
+            ->whereIn('id', $ids)
+            ->pluck('item_type', 'id');
+
+        foreach ($ids as $id) {
+            if ((string) ($types[$id] ?? '') !== $expectedType) {
+                $validator->errors()->add(
+                    $field,
+                    $expectedType === 'alat'
+                        ? 'Daftar alat hanya boleh berisi peralatan (alat).'
+                        : 'Daftar bahan hanya boleh berisi bahan.',
+                );
+
+                return;
+            }
+        }
     }
 }

@@ -104,10 +104,11 @@ class PracticumScheduleController extends Controller
     {
         $validated = $request->validated();
         $items = $validated['items'] ?? [];
+        $bahanItems = $validated['bahan_items'] ?? [];
         $participantIds = $validated['participant_ids'] ?? [];
-        unset($validated['items'], $validated['participant_ids']);
+        unset($validated['items'], $validated['bahan_items'], $validated['participant_ids']);
 
-        $schedule = DB::transaction(function () use ($validated, $items, $participantIds, $request) {
+        $schedule = DB::transaction(function () use ($validated, $items, $bahanItems, $participantIds) {
             $schedule = PracticumSchedule::create([
                 ...$validated,
                 'code' => PracticumSchedule::generateCode(),
@@ -116,7 +117,12 @@ class PracticumScheduleController extends Controller
             ]);
 
             if ($schedule->isLombaEvent()) {
-                $this->lombaEvents->syncEquipmentAndParticipants($schedule, $items, $participantIds);
+                $this->lombaEvents->syncEquipmentAndParticipants(
+                    $schedule,
+                    $items,
+                    $participantIds,
+                    $bahanItems,
+                );
             }
 
             return $schedule;
@@ -137,7 +143,7 @@ class PracticumScheduleController extends Controller
             'guru:id,name,nip',
             'penanggungJawab:id,name,class',
             'participants:id,name,class',
-            'equipmentItems:id,code,name',
+            'equipmentItems:id,code,name,item_type',
         ]);
 
         return Inertia::render('Admin/Schedule/Show', [
@@ -152,7 +158,7 @@ class PracticumScheduleController extends Controller
         $schedule->load([
             'penanggungJawab:id,name,class',
             'participants:id,name,class',
-            'equipmentItems:id,code,name',
+            'equipmentItems:id,code,name,item_type',
         ]);
 
         return Inertia::render('Admin/Schedule/Edit', [
@@ -165,10 +171,11 @@ class PracticumScheduleController extends Controller
     {
         $validated = $request->validated();
         $items = $validated['items'] ?? [];
+        $bahanItems = $validated['bahan_items'] ?? [];
         $participantIds = $validated['participant_ids'] ?? [];
-        unset($validated['items'], $validated['participant_ids']);
+        unset($validated['items'], $validated['bahan_items'], $validated['participant_ids']);
 
-        DB::transaction(function () use ($schedule, $validated, $items, $participantIds, $request) {
+        DB::transaction(function () use ($schedule, $validated, $items, $bahanItems, $participantIds, $request) {
             $schedule->update([
                 ...$validated,
                 'jurusan' => config('lab.jurusan_default'),
@@ -181,6 +188,7 @@ class PracticumScheduleController extends Controller
                     $items,
                     $participantIds,
                     $request->user(),
+                    $bahanItems,
                 );
             } else {
                 $schedule->equipmentItems()->sync([]);
@@ -211,6 +219,7 @@ class PracticumScheduleController extends Controller
             'guruOptions' => $this->guruOptions(),
             'siswaOptions' => $this->siswaOptions(),
             'equipmentOptions' => $this->equipmentOptions(),
+            'bahanOptions' => $this->bahanOptions(),
             'kelasOptions' => ClassOptions::names(),
             'subjectOptions' => config('lab.practicum_subjects'),
             'dayOptions' => config('lab.schedule_days'),
@@ -254,8 +263,21 @@ class PracticumScheduleController extends Controller
 
     private function equipmentOptions(): array
     {
-        return Equipment::query()
-            ->alat()
+        return $this->inventoryOptions(Equipment::query()->alat());
+    }
+
+    private function bahanOptions(): array
+    {
+        return $this->inventoryOptions(Equipment::query()->bahan());
+    }
+
+    /**
+     * @param  \Illuminate\Database\Eloquent\Builder<\App\Models\Equipment>  $query
+     * @return list<array{id: int, code: string, name: string, available: int, label: string}>
+     */
+    private function inventoryOptions($query): array
+    {
+        return $query
             ->orderBy('name')
             ->get(['id', 'code', 'name', 'available', 'qty_baik'])
             ->map(fn (Equipment $item) => [
@@ -317,14 +339,27 @@ class PracticumScheduleController extends Controller
                     'class' => $u->class,
                 ])->values()->all()
                 : [];
-            $data['items'] = $schedule->relationLoaded('equipmentItems')
-                ? $schedule->equipmentItems->map(fn (Equipment $e) => [
+            if ($schedule->relationLoaded('equipmentItems')) {
+                $mapItem = fn (Equipment $e) => [
                     'equipment_id' => $e->id,
                     'equipment_name' => $e->name,
                     'equipment_code' => $e->code,
                     'quantity' => (int) ($e->pivot->quantity ?? 1),
-                ])->values()->all()
-                : [];
+                ];
+                $data['items'] = $schedule->equipmentItems
+                    ->filter(fn (Equipment $e) => $e->item_type !== 'bahan')
+                    ->map($mapItem)
+                    ->values()
+                    ->all();
+                $data['bahan_items'] = $schedule->equipmentItems
+                    ->filter(fn (Equipment $e) => $e->item_type === 'bahan')
+                    ->map($mapItem)
+                    ->values()
+                    ->all();
+            } else {
+                $data['items'] = [];
+                $data['bahan_items'] = [];
+            }
         }
 
         return $data;

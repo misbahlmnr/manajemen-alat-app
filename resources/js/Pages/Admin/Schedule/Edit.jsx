@@ -9,6 +9,7 @@ export default function Edit({
     guruOptions,
     siswaOptions = [],
     equipmentOptions = [],
+    bahanOptions = [],
     kelasOptions,
     subjectOptions,
     dayOptions,
@@ -33,6 +34,10 @@ export default function Edit({
             : "",
         participant_ids: schedule.participant_ids ?? [],
         items: (schedule.items ?? []).map((row) => ({
+            equipment_id: String(row.equipment_id),
+            quantity: row.quantity,
+        })),
+        bahan_items: (schedule.bahan_items ?? []).map((row) => ({
             equipment_id: String(row.equipment_id),
             quantity: row.quantity,
         })),
@@ -61,6 +66,7 @@ export default function Edit({
                         guruOptions={guruOptions}
                         siswaOptions={siswaOptions}
                         equipmentOptions={equipmentOptions}
+                        bahanOptions={bahanOptions}
                         kelasOptions={kelasOptions}
                         subjectOptions={subjectOptions}
                         dayOptions={dayOptions}
