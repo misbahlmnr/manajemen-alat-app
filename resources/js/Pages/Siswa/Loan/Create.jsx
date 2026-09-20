@@ -519,6 +519,17 @@ export default function Create({
         [scheduleList, data.practicum_schedule_id],
     );
 
+    // Match Admin ScheduleForm: include current schedule/form room if missing from catalog.
+    const effectiveRoomOptions = useMemo(() => {
+        const options = [...labRoomOptions];
+        for (const room of [data.usage_room, selectedSchedule?.ruangan]) {
+            if (room && !options.includes(room)) {
+                options.push(room);
+            }
+        }
+        return options;
+    }, [labRoomOptions, data.usage_room, selectedSchedule?.ruangan]);
+
     const applySchedule = (scheduleId) => {
         if (!scheduleId) {
             setData((prev) => ({
@@ -1383,7 +1394,7 @@ export default function Create({
                                             <option value="">
                                                 Pilih ruang/lab...
                                             </option>
-                                            {labRoomOptions.map((room) => (
+                                            {effectiveRoomOptions.map((room) => (
                                                 <option key={room} value={room}>
                                                     {room}
                                                 </option>
