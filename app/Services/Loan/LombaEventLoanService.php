@@ -7,8 +7,11 @@ use App\Models\Loan;
 use App\Models\PracticumSchedule;
 use App\Models\Submission;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class LombaEventLoanService
 {
@@ -109,7 +112,7 @@ class LombaEventLoanService
             $this->workflow->logStatus(
                 $loan,
                 'diminta',
-                'Pengajuan lomba dibuat dari Event Lomba oleh admin.',
+                'Pengajuan lomba dibuat otomatis dari Event Lomba.',
                 $actor,
             );
 
@@ -118,7 +121,87 @@ class LombaEventLoanService
     }
 
     /**
+     * Activate due Event Lomba: create Submission/Loan when activation window has started.
+     * Idempotent — skips events that already have an active lomba loan.
+     *
+     * @return int Number of events successfully activated
+     */
+    public function activateDueEvents(?User $actor = null): int
+    {
+        $activated = 0;
+
+        foreach ($this->dueLombaEventsForActivation() as $schedule) {
+            try {
+                $this->createLoanForEvent($schedule, $actor);
+                $activated++;
+            } catch (Throwable $e) {
+                Log::warning('Gagal mengaktifkan Event Lomba.', [
+                    'schedule_id' => $schedule->id,
+                    'schedule_code' => $schedule->code,
+                    'message' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        return $activated;
+    }
+
+    /**
+     * @return list<PracticumSchedule>
+     */
+    public function dueLombaEventsForActivation(): array
+    {
+        $now = now();
+        $today = $now->toDateString();
+        $days = max(0, (int) config('lab.lomba_activation_days', 1));
+        $time = (string) config('lab.lomba_activation_time', '17:00');
+
+        return PracticumSchedule::query()
+            ->where('schedule_kind', 'lomba')
+            ->whereNotNull('penanggung_jawab_id')
+            ->whereNotNull('tanggal')
+            ->whereDate('tanggal', '>=', $today)
+            ->whereDoesntHave('loans', function ($q) {
+                $q->where('loan_type', 'lomba')
+                    ->whereNotIn('status', ['ditolak', 'dibatalkan', 'dikembalikan']);
+            })
+            ->orderBy('tanggal')
+            ->orderBy('id')
+            ->get()
+            ->filter(function (PracticumSchedule $schedule) use ($now, $days, $time) {
+                $activationAt = $this->activationAtFor($schedule, $days, $time);
+
+                return $activationAt !== null && $activationAt->lte($now);
+            })
+            ->values()
+            ->all();
+    }
+
+    public function activationAtFor(
+        PracticumSchedule $schedule,
+        ?int $days = null,
+        ?string $time = null,
+    ): ?Carbon {
+        if (! $schedule->tanggal) {
+            return null;
+        }
+
+        $days ??= max(0, (int) config('lab.lomba_activation_days', 1));
+        $time ??= (string) config('lab.lomba_activation_time', '17:00');
+        $timezone = (string) config('lab.school_timezone', config('app.timezone', 'Asia/Jakarta'));
+
+        $date = $schedule->tanggal->copy()->timezone($timezone)->subDays($days)->toDateString();
+
+        try {
+            return Carbon::parse($date.' '.$time, $timezone);
+        } catch (Throwable) {
+            return Carbon::parse($date.' 17:00', $timezone);
+        }
+    }
+
+    /**
      * Sync participants always. Sync PJ/items only while loan is still diminta/antrian.
+     * Does not create a loan before scheduled activation.
      *
      * @param  array<int, array{equipment_id: int, quantity: int}>  $items
      * @param  array<int>  $participantIds
@@ -139,14 +222,8 @@ class LombaEventLoanService
             ->first();
 
         if (! $loan) {
-            if ($schedule->isLombaEvent()) {
-                $this->createLoanForEvent($schedule->fresh(), $actor);
-            }
-
             return;
         }
-
-        $schedule->participants(); // already synced
 
         if (! in_array($loan->status, ['diminta', 'antrian'], true)) {
             return;

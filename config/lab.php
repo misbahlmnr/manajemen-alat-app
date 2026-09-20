@@ -132,6 +132,13 @@ return [
     // Empty / unset = jam nyata. Restart PHP (and config:clear if cached) after changing.
     'fake_now' => env('LAB_FAKE_NOW'),
 
+    // Event Lomba: create Submission/Loan at H-{days} after this time (default = school close).
+    'lomba_activation_days' => (int) env('LAB_LOMBA_ACTIVATION_DAYS', 1),
+    'lomba_activation_time' => env(
+        'LAB_LOMBA_ACTIVATION_TIME',
+        env('LAB_SCHOOL_CLOSE_TIME', '17:00'),
+    ),
+
     'queue' => [
         'lab_open_time' => env('LAB_OPEN_TIME', '07:00'),
         'school_close_time' => env('LAB_SCHOOL_CLOSE_TIME', '17:00'),

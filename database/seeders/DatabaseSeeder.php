@@ -85,7 +85,7 @@ class DatabaseSeeder extends Seeder
             EquipmentSeeder::class,
             SupplySeeder::class,
             ScheduleSeeder::class,
-            LoanSeeder::class,
+            // LoanSeeder::class,
         ]);
     }
 }

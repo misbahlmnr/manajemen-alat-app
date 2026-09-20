@@ -49,7 +49,7 @@ export default function Edit({
         <AppLayout>
             <Head title={`Edit ${schedule.title}`} />
 
-            <div className="animate-fade-in">
+            <div className="animate-fade-in mx-auto max-w-3xl">
                 <PageHeader title="Edit Jadwal" subtitle={schedule.code} />
 
                 <form onSubmit={submit} className="space-y-6">

@@ -117,7 +117,6 @@ class PracticumScheduleController extends Controller
 
             if ($schedule->isLombaEvent()) {
                 $this->lombaEvents->syncEquipmentAndParticipants($schedule, $items, $participantIds);
-                $this->lombaEvents->createLoanForEvent($schedule->fresh(), $request->user());
             }
 
             return $schedule;
@@ -126,7 +125,7 @@ class PracticumScheduleController extends Controller
         return redirect()
             ->route('admin.schedules.show', $schedule)
             ->with('success', $schedule->isLombaEvent()
-                ? 'Event lomba berhasil dibuat beserta pengajuan Ketua Tim.'
+                ? 'Event berhasil dibuat. Pengajuan peminjaman akan dibuat otomatis sesuai waktu aktivasi.'
                 : 'Jadwal praktikum berhasil ditambahkan.');
     }
 
