@@ -1,196 +1,369 @@
 import LoanStatusBadge from "@/Components/LoanStatusBadge";
+import { Badge } from "@/Components/ui/badge";
 import { Button } from "@/Components/ui/button";
 import { cn } from "@/lib/utils";
 import { Link, router } from "@inertiajs/react";
 import {
+    BookOpen,
+    Calendar,
     Check,
     Clock,
     CreditCard,
     Eye,
+    Package,
     PackageCheck,
-    RotateCcw,
     SearchCheck,
     X,
 } from "lucide-react";
 
-function ItemPreview({ loan }) {
-    const items = loan.items ?? [];
-    if (items.length > 0) {
+const LOAN_TYPE_STYLE = {
+    praktikum: { label: "Praktik Lab", className: "bg-sky-50 text-sky-700" },
+    pribadi: { label: "Pribadi", className: "bg-muted text-muted-foreground" },
+    bawa_pulang: {
+        label: "Bawa Pulang",
+        className: "bg-amber-50 text-amber-800",
+    },
+    lomba: { label: "Lomba", className: "bg-primary/10 text-primary" },
+};
+
+function TypeChip({ loan }) {
+    if (!loan) return null;
+
+    if (loan.item_type === "bahan") {
         return (
-            <ul className="space-y-0.5">
-                {items.slice(0, 3).map((item) => (
-                    <li
-                        key={item.id ?? item.equipment_id}
-                        className="text-sm font-semibold text-foreground"
-                    >
-                        {item.quantity}× {item.equipment_name ?? "Item"}
-                    </li>
-                ))}
-                {items.length > 3 ? (
-                    <li className="text-xs text-muted-foreground">
-                        +{items.length - 3} item lain
-                    </li>
-                ) : null}
-            </ul>
+            <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide bg-muted text-muted-foreground">
+                Bahan
+            </span>
         );
     }
 
-    return (
-        <p className="text-sm font-semibold text-foreground">
-            {loan.items_summary || "—"}
-        </p>
-    );
-}
-
-function LoanActions({ loan, onReject, onReturn, onInspect }) {
-    const isBahan = loan.item_type === "bahan";
-    const post = (routeName) => {
-        router.post(route(routeName, loan.id), {}, { preserveScroll: true });
+    const key = loan.loan_type || loan.queue_type_key;
+    const config = LOAN_TYPE_STYLE[key] ?? {
+        label: loan.loan_type_label || "Alat",
+        className: "bg-muted text-muted-foreground",
     };
 
     return (
-        <div className="flex flex-wrap items-center gap-2">
-            {loan.can_approve && (
-                <Button
-                    size="sm"
-                    className="bg-emerald-600 text-white hover:bg-emerald-700"
-                    onClick={() => post("admin.loans.approve")}
+        <span
+            className={cn(
+                "inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide",
+                config.className,
+            )}
+        >
+            {config.label}
+        </span>
+    );
+}
+
+function collectItems(members) {
+    const rows = [];
+    for (const loan of members) {
+        const items = loan.items ?? [];
+        if (items.length === 0 && loan.items_summary && loan.items_summary !== "—") {
+            rows.push({
+                key: `${loan.id}-summary`,
+                name: loan.items_summary,
+                quantity: null,
+            });
+            continue;
+        }
+        for (const item of items) {
+            rows.push({
+                key: `${loan.id}-${item.id ?? item.equipment_id}`,
+                name: item.equipment_name ?? "Item",
+                quantity: item.quantity,
+            });
+        }
+    }
+    return rows;
+}
+
+function ItemList({ members }) {
+    const rows = collectItems(members);
+    if (rows.length === 0) {
+        return (
+            <p className="text-sm text-muted-foreground">Tidak ada item.</p>
+        );
+    }
+
+    const visible = rows.slice(0, 3);
+    const rest = rows.length - visible.length;
+
+    return (
+        <ul className="space-y-0.5">
+            {visible.map((row) => (
+                <li
+                    key={row.key}
+                    className="flex items-baseline gap-1.5 text-[15px] font-semibold leading-snug text-foreground"
                 >
-                    <Check className="mr-1.5 h-3.5 w-3.5" />
-                    Setujui
-                </Button>
-            )}
-            {loan.can_reject && (
-                <Button
-                    size="sm"
-                    variant="outline"
-                    className="border-destructive/20 bg-destructive/5 text-destructive hover:bg-destructive/10"
-                    onClick={() => onReject(loan)}
+                    <Package className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                    <span>
+                        {row.name}
+                        {row.quantity != null ? (
+                            <span className="font-medium text-muted-foreground">
+                                {" "}
+                                ×{row.quantity}
+                            </span>
+                        ) : null}
+                    </span>
+                </li>
+            ))}
+            {rest > 0 ? (
+                <li className="pl-5 text-xs text-muted-foreground">
+                    +{rest} item lainnya
+                </li>
+            ) : null}
+        </ul>
+    );
+}
+
+function MetaLines({ members, bookingDate }) {
+    const alat = members.find((m) => m.item_type === "alat") ?? members[0];
+    const slot = alat?.slot_label;
+    const schedule = alat?.schedule_title;
+    const isTakeHome =
+        alat?.loan_type === "bawa_pulang" || alat?.loan_type === "lomba";
+
+    const lines = [];
+
+    if (bookingDate) {
+        lines.push({
+            key: "date",
+            icon: Calendar,
+            text: bookingDate,
+        });
+    }
+
+    if (slot) {
+        lines.push({
+            key: "slot",
+            icon: Clock,
+            text: slot,
+        });
+    } else if (isTakeHome && alat?.due_at_formatted && alat.due_at_formatted !== "—") {
+        lines.push({
+            key: "due",
+            icon: Calendar,
+            text: `Kembali ${alat.due_at_formatted}`,
+        });
+    }
+
+    if (schedule) {
+        lines.push({
+            key: "schedule",
+            icon: BookOpen,
+            text: schedule,
+        });
+    }
+
+    if (lines.length === 0) return null;
+
+    return (
+        <div className="space-y-0.5">
+            {lines.map(({ key, icon: Icon, text }) => (
+                <p
+                    key={key}
+                    className="flex items-center gap-1.5 text-xs text-muted-foreground"
                 >
-                    <X className="mr-1.5 h-3.5 w-3.5" />
-                    Tolak
-                </Button>
-            )}
-            {loan.can_mark_borrowed && (
-                <Button size="sm" onClick={() => post("admin.loans.mark-borrowed")}>
-                    <PackageCheck className="mr-1.5 h-3.5 w-3.5" />
-                    {isBahan ? "Tandai diambil" : "Serahkan"}
-                </Button>
-            )}
-            {loan.can_receive_card && (
-                <Button size="sm" variant="outline" asChild>
-                    <Link href={route("admin.loans.show", loan.id)}>
-                        <CreditCard className="mr-1.5 h-3.5 w-3.5" />
-                        Terima kartu
-                    </Link>
-                </Button>
-            )}
-            {loan.can_inspect && (
-                <Button size="sm" onClick={() => onInspect(loan)}>
-                    <SearchCheck className="mr-1.5 h-3.5 w-3.5" />
-                    Inspeksi
-                </Button>
-            )}
-            {loan.can_return && (
-                <Button size="sm" variant="outline" onClick={() => onReturn(loan)}>
-                    <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
-                    Ajukan inspeksi
-                </Button>
-            )}
-            <Button size="sm" variant="outline" asChild>
-                <Link href={route("admin.loans.show", loan.id)}>
-                    <Eye className="mr-1.5 h-3.5 w-3.5" />
-                    Detail
-                </Link>
-            </Button>
+                    <Icon className="h-3 w-3 shrink-0" />
+                    <span className="truncate">{text}</span>
+                </p>
+            ))}
         </div>
     );
 }
 
-function MemberBlock({ loan, showStatus, onReject, onReturn, onInspect }) {
-    const isBahan = loan.item_type === "bahan";
-    const categoryLabel = isBahan ? null : loan.queue_type_label;
-    const activityParts = [loan.slot_label, loan.schedule_title].filter(Boolean);
+function InsightLine({ members }) {
+    const parts = [];
+
+    for (const loan of members) {
+        if (loan.status === "antrian" && loan.queue_position) {
+            parts.push(`Antrean #${loan.queue_position}`);
+        } else if (loan.status === "antrian") {
+            parts.push("Dalam antrean");
+        }
+        if (loan.status === "menunggu_alat") {
+            parts.push("Menunggu Alat");
+        }
+        if (loan.queue_waiting_stock) {
+            parts.push(loan.queue_status_label || "Menunggu stok");
+        }
+        if (loan.requires_collateral && loan.can_receive_card) {
+            parts.push("Perlu terima jaminan kartu");
+        } else if (
+            loan.requires_collateral &&
+            (loan.status === "diminta" || loan.status === "disetujui") &&
+            loan.collateral_status !== "ditahan"
+        ) {
+            parts.push("Jaminan kartu pelajar");
+        }
+        if (loan.mark_borrowed_blocked_reason) {
+            parts.push(loan.mark_borrowed_blocked_reason);
+        }
+    }
+
+    const unique = [...new Set(parts)].slice(0, 2);
+    if (unique.length === 0) return null;
 
     return (
-        <div className="space-y-3 rounded-[8px] border border-border/60 bg-muted/20 p-3 sm:p-4">
-            <div className="flex flex-wrap items-center gap-1.5">
-                <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-secondary-foreground">
-                    {loan.item_type_label || (isBahan ? "Bahan" : "Alat")}
+        <div className="flex flex-wrap gap-1">
+            {unique.map((label) => (
+                <span
+                    key={label}
+                    className="inline-flex items-center gap-1 rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-900"
+                >
+                    {(label.includes("jaminan") || label.includes("kartu")) && (
+                        <CreditCard className="h-2.5 w-2.5" />
+                    )}
+                    {label}
                 </span>
-                {categoryLabel ? (
-                    <span className="rounded-full bg-secondary/70 px-2 py-0.5 text-[11px] font-medium text-secondary-foreground">
-                        {categoryLabel}
-                    </span>
-                ) : null}
-                {showStatus ? (
-                    <LoanStatusBadge
-                        status={loan.status}
-                        itemType={loan.item_type}
-                    />
-                ) : null}
-            </div>
+            ))}
+        </div>
+    );
+}
 
-            {activityParts.length > 0 ? (
-                <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <Clock className="h-3 w-3 shrink-0" />
-                    {activityParts.join(" | ")}
-                </p>
-            ) : null}
+function CardActions({
+    scope,
+    submission,
+    members,
+    onDecide,
+    onInspect,
+}) {
+    const canMarkBorrowed = submission.can_mark_borrowed === true;
+    const markBorrowedBlockedReason =
+        submission.mark_borrowed_blocked_reason || null;
+    const showSerahkan =
+        scope === "handover" &&
+        (canMarkBorrowed || Boolean(markBorrowedBlockedReason));
+    const cardLoan = members.find((m) => m.can_receive_card);
+    const inspectLoan = members.find((m) => m.can_inspect);
+    const detailHref =
+        submission.show_url ||
+        route("admin.loans.submission", submission.code);
 
-            {loan.status === "antrian" && loan.queue_position ? (
-                <p className="text-xs text-amber-800">
-                    Antrian #{loan.queue_position}
-                </p>
-            ) : null}
-            {loan.mark_borrowed_blocked_reason ? (
-                <p className="text-xs text-amber-800">
-                    {loan.mark_borrowed_blocked_reason}
-                </p>
-            ) : null}
+    const post = (routeName, id) => {
+        router.post(route(routeName, id), {}, { preserveScroll: true });
+    };
 
-            <ItemPreview loan={loan} />
-            <LoanActions
-                loan={loan}
-                onReject={onReject}
-                onReturn={onReturn}
-                onInspect={onInspect}
-            />
+    const showApprove = scope === "approval" && submission.can_approve;
+    const showReject = scope === "approval" && submission.can_reject;
+    const showHandover = scope === "handover";
+    const showInspect = scope === "returns";
+
+    return (
+        <div className="flex flex-wrap items-center justify-end gap-2.5">
+            <Button
+                size="sm"
+                variant="outline"
+                className="h-8 border-border bg-white px-3 text-foreground shadow-none hover:bg-muted/60"
+                asChild
+            >
+                <Link href={detailHref}>
+                    <Eye className="mr-1.5 h-3.5 w-3.5" />
+                    Detail
+                </Link>
+            </Button>
+            {showReject ? (
+                <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 border-red-300 bg-white px-3 text-red-600 shadow-none hover:bg-red-50 hover:text-red-700"
+                    onClick={() => onDecide?.(submission, "reject")}
+                >
+                    <X className="mr-1.5 h-3.5 w-3.5" />
+                    Tolak
+                </Button>
+            ) : null}
+            {showApprove ? (
+                <Button
+                    size="sm"
+                    className="h-8 bg-emerald-600 px-3 text-white hover:bg-emerald-700"
+                    onClick={() => onDecide?.(submission, "approve")}
+                >
+                    <Check className="mr-1.5 h-3.5 w-3.5" />
+                    Setujui
+                </Button>
+            ) : null}
+            {showSerahkan ? (
+                <Button
+                    size="sm"
+                    className="h-8 px-3"
+                    disabled={!canMarkBorrowed}
+                    title={markBorrowedBlockedReason || undefined}
+                    onClick={() =>
+                        post(
+                            "admin.loans.submission.mark-borrowed",
+                            submission.code,
+                        )
+                    }
+                >
+                    <PackageCheck className="mr-1.5 h-3.5 w-3.5" />
+                    Serahkan
+                </Button>
+            ) : null}
+            {showHandover && cardLoan ? (
+                <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 border-border bg-white px-3 shadow-none hover:bg-muted/60"
+                    asChild
+                >
+                    <Link href={route("admin.loans.show", cardLoan.id)}>
+                        <CreditCard className="mr-1.5 h-3.5 w-3.5" />
+                        Terima kartu
+                    </Link>
+                </Button>
+            ) : null}
+            {showInspect && inspectLoan ? (
+                <Button
+                    size="sm"
+                    className="h-8 px-3"
+                    onClick={() => onInspect(inspectLoan)}
+                >
+                    <SearchCheck className="mr-1.5 h-3.5 w-3.5" />
+                    Inspeksi
+                </Button>
+            ) : null}
         </div>
     );
 }
 
 export default function LoanWorkCard({
+    scope,
     submission,
-    onReject,
-    onReturn,
+    onDecide,
     onInspect,
 }) {
     const members = (submission.package_members ?? []).filter(Boolean);
     const isUrgent = members.some(
-        (loan) => loan.status === "terlambat" || loan.is_overdue,
+        (m) => m.status === "terlambat" || m.is_overdue,
     );
-    const statuses = new Set(members.map((loan) => loan.status));
-    const mixedStatus = statuses.size > 1;
+    const alat = members.find((m) => m.item_type === "alat");
+    const bahan = members.find((m) => m.item_type === "bahan");
+    const typeSource = alat ?? bahan ?? members[0];
+    const bookingDate = submission.request_date_formatted || null;
 
     return (
         <article
             className={cn(
-                "overflow-hidden rounded-[10px] border bg-card shadow-card",
+                "rounded-lg border bg-card px-3.5 py-3 shadow-sm",
                 isUrgent
                     ? "border-destructive/30 ring-1 ring-destructive/10"
-                    : "border-border/60",
+                    : "border-border/70",
             )}
         >
-            <div className="border-b bg-muted/30 px-4 py-3 sm:px-5">
+            <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                         <Link
                             href={
                                 submission.show_url ||
-                                route("admin.loans.submission", submission.code)
+                                route(
+                                    "admin.loans.submission",
+                                    submission.code,
+                                )
                             }
-                            className="font-mono text-sm font-semibold text-primary hover:underline"
+                            className="font-mono text-xs font-semibold text-primary hover:underline"
                         >
                             {submission.code}
                         </Link>
@@ -199,43 +372,68 @@ export default function LoanWorkCard({
                             itemType="submission"
                         />
                     </div>
-                    <p className="mt-1 font-medium text-foreground">
-                        {submission.borrower_name}
+                    <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                        <p className="text-sm font-medium text-foreground">
+                            {submission.borrower_name}
+                        </p>
                         {submission.borrower_class ? (
-                            <span className="font-normal text-muted-foreground">
-                                {" "}
-                                · {submission.borrower_class}
-                            </span>
+                            <p className="text-xs text-muted-foreground">
+                                {submission.borrower_class}
+                            </p>
                         ) : null}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                        Booking: {submission.request_date_formatted || "—"}
-                        {submission.supervisor_name
-                            ? ` · Guru: ${submission.supervisor_name}`
-                            : ""}
-                    </p>
+                    </div>
+                    {submission.supervisor_name ? (
+                        <p className="text-[11px] text-muted-foreground">
+                            Guru: {submission.supervisor_name}
+                        </p>
+                    ) : null}
                 </div>
             </div>
-            <div className="space-y-3 p-4 sm:p-5">
-                {members.length > 0 ? (
-                    members.map((loan) => (
-                        <MemberBlock
-                            key={loan.id}
-                            loan={loan}
-                            showStatus={
-                                mixedStatus || loan.status !== submission.status
-                            }
-                            onReject={onReject}
-                            onReturn={onReturn}
-                            onInspect={onInspect}
-                        />
-                    ))
-                ) : (
-                    <p className="text-sm text-muted-foreground">
-                        Tidak ada item pada pengajuan ini.
-                    </p>
-                )}
+
+            <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                <TypeChip loan={typeSource} />
+                {alat && bahan ? (
+                    <Badge
+                        variant="muted"
+                        className="h-5 px-1.5 text-[10px] font-medium"
+                    >
+                        Paket alat + bahan
+                    </Badge>
+                ) : null}
+                {submission.is_praktikum && submission.group_size ? (
+                    <Badge
+                        variant="muted"
+                        className="h-5 px-1.5 text-[10px] font-medium"
+                    >
+                        Peserta · {submission.group_size} Orang
+                    </Badge>
+                ) : null}
             </div>
+
+            <div className="mt-2">
+                <ItemList members={members} />
+            </div>
+
+            <div className="mt-2 space-y-1.5">
+                <MetaLines members={members} bookingDate={bookingDate} />
+                <InsightLine members={members} />
+            </div>
+
+            {members.length > 0 ? (
+                <div className="mt-2.5 border-t border-border/50 pt-2">
+                    <CardActions
+                        scope={scope}
+                        submission={submission}
+                        members={members}
+                        onDecide={onDecide}
+                        onInspect={onInspect}
+                    />
+                </div>
+            ) : (
+                <p className="mt-2 text-sm text-muted-foreground">
+                    Tidak ada item pada pengajuan ini.
+                </p>
+            )}
         </article>
     );
 }

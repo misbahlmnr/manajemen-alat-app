@@ -8,7 +8,7 @@ export default function Index(props) {
             <Head title="Laporan" />
             <ReportWorkspace
                 indexRoute="guru.reports.index"
-                pageSubtitle="Generate laporan peminjaman siswa bimbingan dan inventaris lab"
+                pageSubtitle="Pantau aktivitas peminjaman siswa bimbingan serta kondisi inventaris laboratorium berdasarkan periode yang dipilih."
                 showUsersTab={props.showUsersTab ?? false}
                 {...props}
             />

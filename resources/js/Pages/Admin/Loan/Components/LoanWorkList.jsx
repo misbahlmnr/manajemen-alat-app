@@ -4,24 +4,24 @@ import LoanWorkCard from "./LoanWorkCard";
 export default function LoanWorkList({
     items,
     pagination,
-    onReject,
-    onReturn,
+    scope,
+    onDecide,
     onInspect,
 }) {
     return (
-        <div className="space-y-3">
-            <div className="mx-auto w-full max-w-4xl space-y-3">
+        <div className="space-y-2">
+            <div className="mx-auto w-full max-w-3xl space-y-2">
                 {(items ?? []).map((submission) => (
                     <LoanWorkCard
                         key={submission.id ?? submission.code}
+                        scope={scope}
                         submission={submission}
-                        onReject={onReject}
-                        onReturn={onReturn}
+                        onDecide={onDecide}
                         onInspect={onInspect}
                     />
                 ))}
             </div>
-            <div className="mx-auto w-full max-w-4xl">
+            <div className="mx-auto w-full max-w-3xl">
                 <DataPagination pagination={pagination} />
             </div>
         </div>

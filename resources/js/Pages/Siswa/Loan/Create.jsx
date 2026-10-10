@@ -1,11 +1,13 @@
 import AppLayout from "@/Layouts/AppLayout";
 import Checkbox from "@/Components/Checkbox";
 import InputError from "@/Components/InputError";
+import { Alert, AlertDescription, AlertTitle } from "@/Components/ui/alert";
 import { paginatorTotal } from "@/lib/paginator";
 import { useAppClock } from "@/lib/appClock";
 import { cn } from "@/lib/utils";
 import { Head, Link, router, useForm } from "@inertiajs/react";
 import LoanCatalogTable from "./Components/LoanCatalogTable";
+import GroupMemberMultiSelect from "./Components/GroupMemberMultiSelect";
 import {
     AlertTriangle,
     Calendar,
@@ -110,17 +112,19 @@ function itemTypeOf(eq, fallback) {
         : fallback;
 }
 
-function CartLine({ item, maxQty, onUpdateQty, processing }) {
+function CartLine({ item, maxQty, onUpdateQty, processing, showQueueStatus = false }) {
     const isBahan = item.item_type === "bahan";
     const availableNow = Number(
         isBahan
             ? (item.equipment.available ?? 0)
             : (item.equipment.slot_remaining ?? item.equipment.available ?? 0),
     );
-    const willQueue = item.quantity > availableNow;
+    const unit = item.equipment.unit ?? "unit";
+    const willQueue = showQueueStatus && item.quantity > availableNow;
+    const max = maxQty(item.equipment);
 
     return (
-        <div className="flex flex-col gap-2 rounded-lg bg-secondary/50 p-3 sm:flex-row sm:items-center">
+        <div className="flex flex-col gap-2 rounded-lg border border-border/60 bg-background p-3 sm:flex-row sm:items-center">
             <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-1.5">
                     <p className="text-sm font-medium leading-snug">
@@ -137,17 +141,22 @@ function CartLine({ item, maxQty, onUpdateQty, processing }) {
                         {isBahan ? "Bahan" : "Alat"}
                     </span>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                    {isBahan ? "Tersedia saat ini" : "Sisa di jam ini"}:{" "}
-                    {availableNow}{" "}
-                    {item.equipment.unit ?? "unit"} · Max:{" "}
-                    {maxQty(item.equipment)}
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                    Maksimal {max} {unit}
                 </p>
                 {willQueue && (
-                    <p className="mt-1 text-xs text-amber-800">
-                        Pengajuan akan masuk antrean apabila stok belum
-                        mencukupi.
-                    </p>
+                    <div className="mt-1.5 space-y-0.5">
+                        <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                            Status
+                        </p>
+                        <p className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-800">
+                            <span
+                                className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500"
+                                aria-hidden
+                            />
+                            Akan masuk antrean
+                        </p>
+                    </div>
                 )}
             </div>
             <div className="flex shrink-0 items-center justify-between gap-1 sm:justify-end">
@@ -169,10 +178,7 @@ function CartLine({ item, maxQty, onUpdateQty, processing }) {
                     onClick={() =>
                         onUpdateQty(item.equipment.id, item.quantity + 1)
                     }
-                    disabled={
-                        processing ||
-                        item.quantity >= maxQty(item.equipment)
-                    }
+                    disabled={processing || item.quantity >= max}
                     className="h-6 w-6 rounded border text-sm disabled:opacity-50"
                 >
                     +
@@ -199,6 +205,7 @@ export default function Create({
     catalogFilters,
     defaults,
     supervisorOptions = [],
+    classmateOptions = [],
     todaySchedules = [],
     bookableSchedules = [],
     labRoomOptions = [],
@@ -436,22 +443,17 @@ export default function Create({
     const isBawaPulang = needsAlatFields && data.borrow_scope === "bawa_pulang";
     const isPribadi = needsAlatFields && data.borrow_reason === "lanjutan" && !isBawaPulang;
     const isPakaiDiLab = needsAlatFields && !isBawaPulang && !isPribadi;
-    const isBawaPulangLomba = isBawaPulang && data.borrow_reason === "lomba";
     const scheduleRequired = isPakaiDiLab;
-    const scheduleList = (isPakaiDiLab || isBawaPulang)
+    const scheduleList = isPakaiDiLab
         ? allSchedules.filter((schedule) =>
               scheduleMatchesDate(schedule, data.request_date),
           )
         : [];
-    const showSupervisor =
-        isPakaiDiLab ||
-        (isBawaPulang && Boolean(data.practicum_schedule_id));
+    const showSupervisor = isPakaiDiLab;
     const showUsageRoom = needsAlatFields && !isBawaPulang;
 
     const usageLocation = isBawaPulang
-        ? isBawaPulangLomba
-            ? "bawa_pulang_lomba"
-            : "bawa_pulang_project"
+        ? "bawa_pulang"
         : isPribadi
           ? "pribadi"
           : "pakai_di_lab";
@@ -459,15 +461,16 @@ export default function Create({
     const setUsageLocation = (location) => {
         const requestDate = data.request_date || today;
 
-        if (location === "bawa_pulang_lomba" || location === "bawa_pulang_project") {
+        if (location === "bawa_pulang") {
             setData((prev) => ({
                 ...prev,
                 borrow_scope: "bawa_pulang",
-                borrow_reason:
-                    location === "bawa_pulang_lomba" ? "lomba" : "lanjutan",
+                borrow_reason: "lanjutan",
+                loan_type: "bawa_pulang",
                 practicum_schedule_id: "",
                 supervisor_id: "",
                 usage_room: "",
+                member_ids: [],
                 collateral_agreed: false,
                 due_at: addDaysDateTime(
                     requestDate,
@@ -483,9 +486,11 @@ export default function Create({
                 ...prev,
                 borrow_scope: "lab",
                 borrow_reason: "lanjutan",
+                loan_type: "pribadi",
                 practicum_schedule_id: "",
                 supervisor_id: "",
                 usage_room: "",
+                member_ids: [],
                 collateral_agreed: false,
                 due_at: buildDueAt(requestDate, schoolCloseTime, appNow),
             }));
@@ -496,9 +501,11 @@ export default function Create({
             ...prev,
             borrow_scope: "lab",
             borrow_reason: "reguler",
+            loan_type: "praktikum",
             practicum_schedule_id: "",
             supervisor_id: "",
             usage_room: "",
+            member_ids: [],
             collateral_agreed: false,
             due_at: "",
         }));
@@ -511,6 +518,17 @@ export default function Create({
             ),
         [scheduleList, data.practicum_schedule_id],
     );
+
+    // Match Admin ScheduleForm: include current schedule/form room if missing from catalog.
+    const effectiveRoomOptions = useMemo(() => {
+        const options = [...labRoomOptions];
+        for (const room of [data.usage_room, selectedSchedule?.ruangan]) {
+            if (room && !options.includes(room)) {
+                options.push(room);
+            }
+        }
+        return options;
+    }, [labRoomOptions, data.usage_room, selectedSchedule?.ruangan]);
 
     const applySchedule = (scheduleId) => {
         if (!scheduleId) {
@@ -616,6 +634,25 @@ export default function Create({
     const collateralRequired =
         needsAlatFields && data.borrow_scope === "bawa_pulang";
 
+    const cartHasQueueShortage = cart.some((item) => {
+        const allowsQueue =
+            item.item_type === "bahan" ||
+            (item.item_type === "alat" && isPribadi);
+        if (!allowsQueue) {
+            return false;
+        }
+        const availableNow = Number(
+            item.item_type === "bahan"
+                ? (item.equipment.available ?? 0)
+                : (item.equipment.slot_remaining ??
+                      item.equipment.available ??
+                      0),
+        );
+        return item.quantity > availableNow;
+    });
+
+    const showPribadiQueueAlert = isPribadi && cartHasQueueShortage;
+
     const buildPayload = (itemType, formData, cartItems) => {
         const purpose =
             formData.notes?.trim() || formData.purpose?.trim() || "Peminjaman";
@@ -637,10 +674,17 @@ export default function Create({
         }
 
         if (itemType !== "bahan") {
+            payload.loan_type =
+                formData.loan_type ||
+                (formData.borrow_scope === "bawa_pulang"
+                    ? "bawa_pulang"
+                    : formData.borrow_reason === "lanjutan"
+                      ? "pribadi"
+                      : "praktikum");
             payload.borrow_scope = formData.borrow_scope;
             payload.borrow_reason =
                 formData.borrow_scope === "bawa_pulang"
-                    ? formData.borrow_reason || "lanjutan"
+                    ? "lanjutan"
                     : formData.borrow_reason || "reguler";
             if (formData.practicum_schedule_id) {
                 payload.practicum_schedule_id = formData.practicum_schedule_id;
@@ -654,6 +698,9 @@ export default function Create({
                 formData.usage_room
             ) {
                 payload.usage_room = formData.usage_room;
+            }
+            if (payload.loan_type === "praktikum") {
+                payload.member_ids = (formData.member_ids ?? []).map(Number);
             }
         }
 
@@ -732,8 +779,7 @@ export default function Create({
                 data.due_at &&
                 (!showUsageRoom || data.usage_room?.trim()) &&
                 (!collateralRequired || data.collateral_agreed))) &&
-        !scheduleEnded &&
-        (data.notes?.trim() || data.purpose?.trim());
+        !scheduleEnded;
 
     return (
         <AppLayout>
@@ -849,8 +895,8 @@ export default function Create({
                     <Info className="mt-0.5 h-4 w-4 flex-shrink-0" />
                     <p>
                         {catalogIsBahan
-                            ? "Katalog bahan habis pakai. Tidak perlu dikembalikan. Stok berkurang setelah disetujui."
-                            : "Katalog alat. Harus dikembalikan sebelum batas waktu."}{" "}
+                            ? "Katalog bahan habis pakai. Tidak perlu dikembalikan. Jumlah tersedia berkurang setelah disetujui."
+                            : "Katalog alat. Angka ketersediaan mengikuti tanggal/jadwal yang dipilih. Harus dikembalikan sebelum batas waktu."}{" "}
                         {!isEdit &&
                             "Tambah ke keranjang, pindah kategori jika perlu, lalu ajukan sekali."}
                     </p>
@@ -959,6 +1005,7 @@ export default function Create({
                                                     maxQty={maxQty}
                                                     onUpdateQty={updateQty}
                                                     processing={busy}
+                                                    showQueueStatus={isPribadi}
                                                 />
                                             ))}
                                         </div>
@@ -977,6 +1024,7 @@ export default function Create({
                                                     maxQty={maxQty}
                                                     onUpdateQty={updateQty}
                                                     processing={busy}
+                                                    showQueueStatus
                                                 />
                                             ))}
                                         </div>
@@ -989,9 +1037,9 @@ export default function Create({
                                 </p>
                             )}
 
-                            <form onSubmit={submit} className="space-y-4">
+                            <form onSubmit={submit} className="space-y-6">
                                 {needsAlatFields && (
-                                    <div className="space-y-2">
+                                    <div className="space-y-3">
                                         <label className="flex items-center gap-1.5 text-sm font-medium">
                                             <MapPin className="h-3.5 w-3.5" />{" "}
                                             Kebutuhan Penggunaan
@@ -1024,13 +1072,11 @@ export default function Create({
                                                 />
                                                 <div className="text-sm">
                                                     <p className="font-medium">
-                                                        Praktek Lab
+                                                        Praktik Lab
                                                     </p>
                                                     <p className="text-xs text-muted-foreground">
-                                                        Praktikum sesuai jadwal
-                                                        mapel. Diajukan ketua
-                                                        kelompok. Bisa booking
-                                                        sebelum hari H.
+                                                        Mengikuti jadwal
+                                                        praktikum.
                                                     </p>
                                                 </div>
                                             </label>
@@ -1063,9 +1109,8 @@ export default function Create({
                                                         Pribadi
                                                     </p>
                                                     <p className="text-xs text-muted-foreground">
-                                                        Pakai di lab di luar jam
-                                                        mapel. Tanpa jaminan
-                                                        kartu.
+                                                        Digunakan di luar jam
+                                                        pelajaran.
                                                     </p>
                                                 </div>
                                             </label>
@@ -1073,7 +1118,7 @@ export default function Create({
                                                 className={cn(
                                                     "flex cursor-pointer items-start gap-2 rounded-lg border p-2.5",
                                                     usageLocation ===
-                                                        "bawa_pulang_lomba"
+                                                        "bawa_pulang"
                                                         ? "border-warning bg-warning/5"
                                                         : "border-border",
                                                 )}
@@ -1081,51 +1126,14 @@ export default function Create({
                                                 <input
                                                     type="radio"
                                                     name="usage_location"
-                                                    value="bawa_pulang_lomba"
+                                                    value="bawa_pulang"
                                                     checked={
                                                         usageLocation ===
-                                                        "bawa_pulang_lomba"
+                                                        "bawa_pulang"
                                                     }
                                                     onChange={() =>
                                                         setUsageLocation(
-                                                            "bawa_pulang_lomba",
-                                                        )
-                                                    }
-                                                    className="mt-0.5"
-                                                    disabled={busy}
-                                                />
-                                                <div className="text-sm">
-                                                    <p className="font-medium">
-                                                        Lomba
-                                                    </p>
-                                                    <p className="text-xs text-muted-foreground">
-                                                        Boleh diambil hari itu
-                                                        setelah disetujui dan
-                                                        kartu ditahan. Wajib
-                                                        jaminan kartu.
-                                                    </p>
-                                                </div>
-                                            </label>
-                                            <label
-                                                className={cn(
-                                                    "flex cursor-pointer items-start gap-2 rounded-lg border p-2.5",
-                                                    usageLocation ===
-                                                        "bawa_pulang_project"
-                                                        ? "border-warning bg-warning/5"
-                                                        : "border-border",
-                                                )}
-                                            >
-                                                <input
-                                                    type="radio"
-                                                    name="usage_location"
-                                                    value="bawa_pulang_project"
-                                                    checked={
-                                                        usageLocation ===
-                                                        "bawa_pulang_project"
-                                                    }
-                                                    onChange={() =>
-                                                        setUsageLocation(
-                                                            "bawa_pulang_project",
+                                                            "bawa_pulang",
                                                         )
                                                     }
                                                     className="mt-0.5"
@@ -1136,13 +1144,31 @@ export default function Create({
                                                         Bawa pulang
                                                     </p>
                                                     <p className="text-xs text-muted-foreground">
-                                                        Prioritas paling
-                                                        belakang. Wajib jaminan
-                                                        kartu pelajar.
+                                                        Membawa alat ke luar
+                                                        sekolah.
                                                     </p>
                                                 </div>
                                             </label>
                                         </div>
+                                        {showPribadiQueueAlert && (
+                                            <Alert variant="warning">
+                                                <Info className="h-4 w-4" />
+                                                <AlertTitle>
+                                                    Stok alat sedang tidak
+                                                    tersedia.
+                                                </AlertTitle>
+                                                <AlertDescription>
+                                                    Pengajuan tetap dapat
+                                                    dilakukan dan akan masuk
+                                                    antrean. Permintaan akan
+                                                    diproses setelah unit
+                                                    tersedia.
+                                                </AlertDescription>
+                                            </Alert>
+                                        )}
+                                        <InputError
+                                            message={errors.loan_type}
+                                        />
                                         <InputError
                                             message={errors.borrow_scope}
                                         />
@@ -1156,7 +1182,9 @@ export default function Create({
                                     <div className="space-y-1.5">
                                         <label className="flex items-center gap-1.5 text-sm font-medium">
                                             <Calendar className="h-3.5 w-3.5" />{" "}
-                                            Tanggal Pemakaian
+                                            {isBawaPulang
+                                                ? "Tanggal Pengambilan"
+                                                : "Tanggal Pemakaian"}
                                         </label>
                                         <input
                                             type="date"
@@ -1198,11 +1226,9 @@ export default function Create({
                                             className="form-input"
                                             disabled={busy}
                                         />
-                                        <p className="text-xs text-muted-foreground">
+                                        <p className="mb-3 text-xs text-muted-foreground">
                                             Bisa booking hingga{" "}
                                             {bookingHorizonDays} hari ke depan.
-                                            Pilih tanggal dulu, lalu pilih mapel
-                                            yang ada di hari itu.
                                         </p>
                                         <InputError
                                             message={errors.request_date}
@@ -1210,44 +1236,26 @@ export default function Create({
                                     </div>
                                 )}
 
-                                {needsAlatFields && !isPribadi && (
+                                {isPakaiDiLab && (
                                     <div className="space-y-1.5">
                                         <label className="flex items-center gap-1.5 text-sm font-medium">
                                             <CalendarDays className="h-3.5 w-3.5" />{" "}
                                             Mata Pelajaran
-                                            {isBawaPulang ? (
-                                                <span className="text-xs font-normal text-muted-foreground">
-                                                    (opsional)
-                                                </span>
-                                            ) : (
-                                                <span className="text-destructive">
-                                                    *
-                                                </span>
-                                            )}
+                                            <span className="text-destructive">
+                                                *
+                                            </span>
                                         </label>
-                                        {(isPakaiDiLab || isBawaPulang) && (
-                                            <p className="text-xs text-muted-foreground">
-                                                Jadwal mapel kelas Anda pada
-                                                tanggal yang dipilih.
-                                                {isBawaPulang
-                                                    ? " Kosongkan jika tidak perlu mapel."
-                                                    : ""}
-                                            </p>
-                                        )}
+                                        <p className="text-xs text-muted-foreground">
+                                            Jadwal mapel kelas Anda pada tanggal
+                                            yang dipilih.
+                                        </p>
                                         {scheduleList.length === 0 ? (
-                                            <div
-                                                className={cn(
-                                                    "flex items-start gap-2 rounded-lg p-2.5 text-xs",
-                                                    isBawaPulang
-                                                        ? "bg-secondary/60 text-muted-foreground"
-                                                        : "bg-destructive/10 text-destructive",
-                                                )}
-                                            >
+                                            <div className="flex items-start gap-2 rounded-lg bg-destructive/10 p-2.5 text-xs text-destructive">
                                                 <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
                                                 <span>
-                                                    {isBawaPulang
-                                                        ? "Tidak ada jadwal mapel di tanggal itu — Anda tetap bisa mengajukan tanpa memilih mapel."
-                                                        : "Tidak ada jadwal mapel di tanggal itu untuk kelas Anda."}
+                                                    Tidak ada jadwal mapel di
+                                                    tanggal itu untuk kelas
+                                                    Anda.
                                                 </span>
                                             </div>
                                         ) : (
@@ -1264,9 +1272,7 @@ export default function Create({
                                                 disabled={busy}
                                             >
                                                 <option value="">
-                                                    {isBawaPulang
-                                                        ? "Tanpa mapel / pilih jika ada..."
-                                                        : "Pilih mata pelajaran..."}
+                                                    Pilih mata pelajaran...
                                                 </option>
                                                 {scheduleList.map((s) => (
                                                     <option
@@ -1388,7 +1394,7 @@ export default function Create({
                                             <option value="">
                                                 Pilih ruang/lab...
                                             </option>
-                                            {labRoomOptions.map((room) => (
+                                            {effectiveRoomOptions.map((room) => (
                                                 <option key={room} value={room}>
                                                     {room}
                                                 </option>
@@ -1439,6 +1445,31 @@ export default function Create({
                                 </div>
                                 )}
 
+                                {isPakaiDiLab ? (
+                                    <div className="space-y-1.5">
+                                        <label className="text-sm font-medium">
+                                            Anggota Kelompok (Opsional)
+                                        </label>
+                                        <p className="text-xs text-muted-foreground">
+                                            Isi jika praktikum dilakukan secara
+                                            berkelompok. Kosongkan jika
+                                            praktikum dilakukan secara individu.
+                                        </p>
+                                        <GroupMemberMultiSelect
+                                            options={classmateOptions}
+                                            value={data.member_ids ?? []}
+                                            onChange={(ids) =>
+                                                setData("member_ids", ids)
+                                            }
+                                            disabled={busy}
+                                            error={
+                                                errors.member_ids ||
+                                                errors["member_ids.0"]
+                                            }
+                                        />
+                                    </div>
+                                ) : null}
+
                                 {needsAlatFields && (
                                     <>
                                         <div className="space-y-1.5">
@@ -1469,11 +1500,9 @@ export default function Create({
                                             )}
                                             {isBawaPulang && (
                                                 <p className="text-xs text-muted-foreground">
-                                                    Maksimal {bawaPulangMaxDays}{" "}
-                                                    hari setelah tanggal
-                                                    pengajuan, pukul{" "}
-                                                    {schoolCloseTime}. Tidak
-                                                    dapat diubah.
+                                                    Dihitung maksimal{" "}
+                                                    {bawaPulangMaxDays} hari
+                                                    setelah tanggal pengambilan.
                                                 </p>
                                             )}
                                             <InputError
@@ -1482,34 +1511,24 @@ export default function Create({
                                         </div>
 
                                         {collateralRequired && (
-                                            <div className="space-y-2 rounded-lg border border-warning/30 bg-warning/10 p-3">
-                                                <div className="flex items-start gap-2">
-                                                    <AlertTriangle className="mt-0.5 h-4 w-4 text-warning" />
-                                                    <div className="space-y-1">
-                                                        <p className="text-xs font-semibold">
-                                                            Bawa Pulang
-                                                        </p>
-                                                        <p className="text-xs">
-                                                            Peminjaman ini
-                                                            memerlukan jaminan{" "}
-                                                            <strong>
-                                                                kartu pelajar
-                                                            </strong>
-                                                            .
-                                                        </p>
-                                                        <p className="text-xs text-muted-foreground">
-                                                            Kartu diserahkan
-                                                            kepada admin
-                                                            laboratorium saat
-                                                            pengambilan alat
-                                                            dan akan
-                                                            dikembalikan
-                                                            setelah alat
-                                                            dikembalikan.
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                <label className="flex cursor-pointer items-start gap-2 border-t border-warning/20 pt-2">
+                                            <div className="space-y-3">
+                                                <Alert variant="warning">
+                                                    <AlertTriangle className="h-4 w-4" />
+                                                    <AlertTitle>
+                                                        Jaminan Kartu Pelajar
+                                                    </AlertTitle>
+                                                    <AlertDescription>
+                                                        Peminjaman bawa pulang
+                                                        memerlukan kartu pelajar
+                                                        sebagai jaminan. Kartu
+                                                        diserahkan saat
+                                                        pengambilan alat dan
+                                                        dikembalikan setelah
+                                                        alat dinyatakan selesai
+                                                        diperiksa.
+                                                    </AlertDescription>
+                                                </Alert>
+                                                <label className="flex cursor-pointer items-start gap-2">
                                                     <Checkbox
                                                         checked={
                                                             data.collateral_agreed
@@ -1523,11 +1542,10 @@ export default function Create({
                                                         }
                                                         className="mt-0.5"
                                                     />
-                                                    <span className="text-xs font-medium">
-                                                        Saya memahami bahwa
-                                                        peminjaman ini
-                                                        memerlukan jaminan
-                                                        kartu pelajar
+                                                    <span className="text-sm">
+                                                        Saya bersedia
+                                                        menyerahkan kartu
+                                                        pelajar sebagai jaminan.
                                                     </span>
                                                 </label>
                                                 <InputError
@@ -1550,9 +1568,8 @@ export default function Create({
                                         onChange={(e) =>
                                             setData("notes", e.target.value)
                                         }
-                                        placeholder="Contoh: Praktikum Penguat Transistor"
+                                        placeholder="Tambahkan keperluan peminjaman (opsional)."
                                         className="form-input min-h-[72px] resize-none"
-                                        required
                                         disabled={busy}
                                     />
                                     <InputError message={errors.purpose} />
@@ -1561,18 +1578,28 @@ export default function Create({
 
                                 <InputError message={errors.items} />
 
-                                <button
-                                    type="submit"
-                                    disabled={!canSubmit || busy}
-                                    className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-50"
+                                <span
+                                    className="block w-full"
+                                    title={
+                                        collateralRequired &&
+                                        !data.collateral_agreed
+                                            ? "Konfirmasi jaminan kartu pelajar terlebih dahulu."
+                                            : undefined
+                                    }
                                 >
-                                    <Send className="mr-2 h-4 w-4" />
-                                    {busy
-                                        ? "Menyimpan..."
-                                        : isEdit
-                                          ? "Simpan Perubahan"
-                                          : "Ajukan Pengajuan"}
-                                </button>
+                                    <button
+                                        type="submit"
+                                        disabled={!canSubmit || busy}
+                                        className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-50"
+                                    >
+                                        <Send className="mr-2 h-4 w-4" />
+                                        {busy
+                                            ? "Menyimpan..."
+                                            : isEdit
+                                              ? "Simpan Perubahan"
+                                              : "Ajukan Pengajuan"}
+                                    </button>
+                                </span>
                                 {!isEdit && cart.length > 0 && (
                                     <p className="text-xs text-muted-foreground">
                                         {isMixed

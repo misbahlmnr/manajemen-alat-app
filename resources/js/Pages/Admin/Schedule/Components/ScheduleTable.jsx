@@ -1,5 +1,4 @@
 import DataTable from "@/Components/DataTable";
-import SchedulePriorityBadge from "@/Components/SchedulePriorityBadge";
 import TableRowActions from "@/Components/TableRowActions";
 
 export default function ScheduleTable({ items, pagination, onDelete }) {
@@ -52,11 +51,6 @@ export default function ScheduleTable({ items, pagination, onDelete }) {
             accessorKey: "ruangan",
             header: "Ruang",
             cell: ({ getValue }) => getValue() || "—",
-        },
-        {
-            accessorKey: "priority",
-            header: "Prioritas",
-            cell: ({ getValue }) => <SchedulePriorityBadge priority={getValue()} />,
         },
         {
             accessorKey: "created_at_formatted",

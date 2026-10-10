@@ -5,7 +5,6 @@ import { paginatorTotal } from "@/lib/paginator";
 import { Button } from "@/Components/ui/button";
 import { Input } from "@/Components/ui/input";
 import { Select } from "@/Components/ui/select";
-import WeekScheduleOverview from "@/Pages/Admin/Schedule/Components/WeekScheduleOverview";
 import { Head, router, useForm } from "@inertiajs/react";
 import { CalendarDays, Search } from "lucide-react";
 import { useEffect, useRef } from "react";
@@ -13,7 +12,6 @@ import GuruScheduleTable from "./Components/GuruScheduleTable";
 
 export default function Index({
     schedules,
-    weekSchedules,
     filters,
     kelasOptions,
     subjectOptions,
@@ -45,13 +43,7 @@ export default function Index({
         }, 400);
 
         return () => clearTimeout(timeout);
-    }, [
-        data.search,
-        data.type,
-        data.kelas,
-        data.mata_kuliah,
-        data.hari,
-    ]);
+    }, [data.search, data.type, data.kelas, data.mata_kuliah, data.hari]);
 
     const list = schedules.data ?? [];
     const total = paginatorTotal(schedules);
@@ -76,11 +68,6 @@ export default function Index({
                     subtitle={`${total} jadwal Anda`}
                 />
 
-                <WeekScheduleOverview
-                    schedules={weekSchedules ?? []}
-                    scheduleShowRoute="guru.schedules.show"
-                />
-
                 <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                     <div className="relative sm:col-span-2">
                         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -93,9 +80,7 @@ export default function Index({
                     </div>
                     <Select
                         value={data.mata_kuliah}
-                        onChange={(e) =>
-                            setData("mata_kuliah", e.target.value)
-                        }
+                        onChange={(e) => setData("mata_kuliah", e.target.value)}
                         className="rounded-[8px] border-border/60 bg-card shadow-sm"
                     >
                         <option value="all">Semua mapel</option>

@@ -107,7 +107,9 @@ export default function SiswaDashboard({
                     icon={ClipboardCheck}
                     iconTone="success"
                     actionLabel="Lihat Semua"
-                    actionHref={route("siswa.loans.index", { scope: "history" })}
+                    actionHref={route("siswa.loans.index", {
+                        scope: "history",
+                    })}
                     actionVariant="outline"
                     className="mt-8"
                 >
@@ -119,7 +121,7 @@ export default function SiswaDashboard({
                 title="Inventaris Aktif"
                 description={
                     inventorySummary
-                        ? `${inventorySummary.tersedia ?? 0} tersedia · ${inventorySummary.sedang_dipinjam ?? 0} stok kosong · ${inventorySummary.antrean_aktif ?? 0} antrean aktif Anda`
+                        ? `${inventorySummary.requestableCount ?? 0} dapat dipinjam · ${inventorySummary.emptyCount ?? 0} stok kosong · ${inventorySummary.activeQueueCount ?? 0} antrean aktif Anda`
                         : `${availableEquipment.length} alat lab`
                 }
                 icon={FileText}

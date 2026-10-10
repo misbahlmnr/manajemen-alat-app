@@ -50,33 +50,47 @@ export default function SupplyCatalogTable({ items, pagination }) {
         },
         {
             id: "stock",
-            header: "Stok",
+            header: "Ketersediaan",
             accessorFn: (row) => row.available,
-            cell: ({ row }) => (
-                <div>
-                    <span
-                        className={cn(
-                            "tabular-nums font-medium",
-                            row.original.is_low_stock && "text-warning",
-                        )}
-                    >
-                        {row.original.available}
-                    </span>
-                    <span className="text-muted-foreground">
-                        {" "}
-                        {row.original.unit}
-                    </span>
-                    {row.original.min_stock != null && (
-                        <p className="text-xs text-muted-foreground">
-                            Min. {row.original.min_stock} {row.original.unit}
+            cell: ({ row }) => {
+                const remain = Number(
+                    row.original.slot_remaining ?? row.original.available ?? 0,
+                );
+                const unit = row.original.unit || "unit";
+                const outOfStock = remain <= 0;
+
+                return (
+                    <div className="space-y-1.5">
+                        <span
+                            className={cn(
+                                "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold leading-none",
+                                outOfStock
+                                    ? "border-transparent bg-destructive/10 text-destructive"
+                                    : "border-transparent bg-emerald-50 text-emerald-700",
+                            )}
+                        >
+                            {outOfStock ? "Tidak tersedia" : "Tersedia"}
+                        </span>
+                        <p
+                            className={cn(
+                                "text-xs tabular-nums text-muted-foreground",
+                                row.original.is_low_stock &&
+                                    !outOfStock &&
+                                    "text-warning",
+                            )}
+                        >
+                            {remain} {unit}
+                            {row.original.is_low_stock && !outOfStock
+                                ? " · Menipis"
+                                : ""}
                         </p>
-                    )}
-                </div>
-            ),
+                    </div>
+                );
+            },
         },
         {
             id: "stock_status",
-            header: "Ketersediaan",
+            header: "Status",
             accessorFn: (row) => row.stock_label,
             enableSorting: false,
             cell: ({ row }) => (

@@ -373,16 +373,12 @@ class LoanQueueStressAndEdgeCaseTest extends TestCase
 
     public function test_azka_cannot_skip_queue_after_lomba_preempts_santi_during_praktikum(): void
     {
-        $this->travelTo(Carbon::parse('2026-09-14 08:00:00'));
-        $state = $this->submitDemoThroughAzki();
-        $this->assertAzkaJoinsQueueBehindSantiAndMisbah($state, Carbon::parse('2026-09-14 08:00:00'));
+        $this->markTestSkipped('Preempt lintas tipe dihapus; RR hanya Pribadi.');
     }
 
     public function test_azka_cannot_skip_queue_after_lomba_preempts_santi_once_praktikum_ended(): void
     {
-        $this->travelTo(Carbon::parse('2026-09-14 08:00:00'));
-        $state = $this->submitDemoThroughAzki();
-        $this->assertAzkaJoinsQueueBehindSantiAndMisbah($state, Carbon::parse('2026-09-14 10:00:00'));
+        $this->markTestSkipped('Preempt lintas tipe dihapus; RR hanya Pribadi.');
     }
 
     public function test_approve_does_not_create_second_diminta_when_stock_is_exhausted(): void

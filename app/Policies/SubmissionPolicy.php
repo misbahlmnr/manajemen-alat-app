@@ -25,4 +25,19 @@ class SubmissionPolicy
 
         return (int) $submission->borrower_id === (int) $user->id;
     }
+
+    public function approve(User $user, Submission $submission): bool
+    {
+        return $user->isAdmin();
+    }
+
+    public function reject(User $user, Submission $submission): bool
+    {
+        return $user->isAdmin();
+    }
+
+    public function markBorrowed(User $user, Submission $submission): bool
+    {
+        return $user->isAdmin();
+    }
 }

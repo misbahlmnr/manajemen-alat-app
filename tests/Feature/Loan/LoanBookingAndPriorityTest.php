@@ -122,7 +122,7 @@ class LoanBookingAndPriorityTest extends TestCase
         ])->assertSessionHasErrors('practicum_schedule_id');
     }
 
-    public function test_bawa_pulang_lomba_persists_borrow_reason(): void
+    public function test_siswa_cannot_submit_lomba_loan(): void
     {
         $this->travelTo(Carbon::parse('2026-09-09 10:00:00'));
 
@@ -131,6 +131,7 @@ class LoanBookingAndPriorityTest extends TestCase
 
         $this->actingAs($siswa)->post(route('siswa.loans.store'), [
             'item_type' => 'alat',
+            'loan_type' => 'lomba',
             'request_date' => '2026-09-09',
             'purpose' => 'Lomba speaker',
             'notes' => 'Lomba speaker',
@@ -141,12 +142,9 @@ class LoanBookingAndPriorityTest extends TestCase
             'items' => [
                 ['equipment_id' => $alat->id, 'quantity' => 1],
             ],
-        ])->assertRedirect(route('siswa.loans.index', ['scope' => 'active']));
+        ])->assertSessionHasErrors();
 
-        $loan = Loan::query()->where('borrower_id', $siswa->id)->latest('id')->first();
-        $this->assertSame('bawa_pulang', $loan->borrow_scope);
-        $this->assertSame('lomba', $loan->borrow_reason);
-        $this->assertSame('bawa_pulang_lomba', $loan->queueTypeKey());
+        $this->assertNull(Loan::query()->where('borrower_id', $siswa->id)->first());
     }
 
     public function test_pribadi_due_at_is_forced_to_lab_close_time(): void

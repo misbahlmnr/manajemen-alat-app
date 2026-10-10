@@ -119,35 +119,38 @@ export default function Show({ supply }) {
 
                         <Card className="rounded-[10px] border-border/60 shadow-card">
                             <CardHeader>
-                                <CardTitle>Stok</CardTitle>
+                                <CardTitle>Ketersediaan</CardTitle>
                                 <CardDescription>
-                                    Ketersediaan bahan untuk penggunaan praktikum
+                                    Jumlah bahan yang dapat diajukan
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <div className="grid gap-4 sm:grid-cols-3">
                                     <StockStat
                                         label="Tersedia"
-                                        value={supply.available}
+                                        value={
+                                            supply.slot_remaining ??
+                                            supply.available
+                                        }
                                         unit={supply.unit}
                                         highlight
                                     />
                                     {supply.min_stock != null && (
                                         <StockStat
-                                            label="Stok minimum"
+                                            label="Batas minimum"
                                             value={supply.min_stock}
                                             unit={supply.unit}
                                         />
                                     )}
                                     <StockStat
-                                        label="Total stok"
+                                        label="Total"
                                         value={supply.stock}
                                         unit={supply.unit}
                                     />
                                 </div>
                                 {supply.is_low_stock && (
                                     <p className="mt-4 text-sm text-amber-700">
-                                        Stok bahan menipis. Segera ajukan
+                                        Ketersediaan menipis. Segera ajukan
                                         pengambilan jika diperlukan untuk
                                         praktikum.
                                     </p>

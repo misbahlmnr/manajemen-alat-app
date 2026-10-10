@@ -6,6 +6,8 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PracticumSchedule extends Model
 {
@@ -13,6 +15,7 @@ class PracticumSchedule extends Model
 
     protected $fillable = [
         'code',
+        'schedule_kind',
         'title',
         'mata_kuliah',
         'jurusan',
@@ -24,6 +27,7 @@ class PracticumSchedule extends Model
         'jam_selesai',
         'ruangan',
         'guru_id',
+        'penanggung_jawab_id',
         'priority',
         'notes',
     ];
@@ -38,6 +42,45 @@ class PracticumSchedule extends Model
     public function guru(): BelongsTo
     {
         return $this->belongsTo(User::class, 'guru_id');
+    }
+
+    public function penanggungJawab(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'penanggung_jawab_id');
+    }
+
+    public function equipmentItems(): BelongsToMany
+    {
+        return $this->belongsToMany(Equipment::class, 'practicum_schedule_equipment')
+            ->withPivot('quantity')
+            ->withTimestamps();
+    }
+
+    public function participants(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'practicum_schedule_participants')
+            ->withTimestamps();
+    }
+
+    public function loans(): HasMany
+    {
+        return $this->hasMany(Loan::class, 'practicum_schedule_id');
+    }
+
+    public function isLombaEvent(): bool
+    {
+        return ($this->schedule_kind ?? 'praktikum') === 'lomba';
+    }
+
+    public function isPraktikumKind(): bool
+    {
+        return ! $this->isLombaEvent();
+    }
+
+    public function scheduleKindLabel(): string
+    {
+        return config('lab.schedule_kinds.'.($this->schedule_kind ?? 'praktikum'))
+            ?? ($this->isLombaEvent() ? 'Lomba' : 'Praktik Lab');
     }
 
     public function isMingguan(): bool
@@ -189,19 +232,24 @@ class PracticumSchedule extends Model
 
     public function scopeForStudentSelection(Builder $query, bool $futureOnly = true): Builder
     {
-        return $query->where(function (Builder $q) use ($futureOnly) {
-            $q->where('type', 'mingguan');
+        return $query
+            ->where(function (Builder $kind) {
+                $kind->where('schedule_kind', 'praktikum')
+                    ->orWhereNull('schedule_kind');
+            })
+            ->where(function (Builder $q) use ($futureOnly) {
+                $q->where('type', 'mingguan');
 
-            $q->orWhere(function (Builder $special) use ($futureOnly) {
-                $special->where('type', 'khusus');
+                $q->orWhere(function (Builder $special) use ($futureOnly) {
+                    $special->where('type', 'khusus');
 
-                if ($futureOnly) {
-                    $special->whereDate('tanggal', '>=', now()->toDateString());
-                } else {
-                    $special->whereDate('tanggal', '>=', now()->subDays(60)->toDateString());
-                }
+                    if ($futureOnly) {
+                        $special->whereDate('tanggal', '>=', now()->toDateString());
+                    } else {
+                        $special->whereDate('tanggal', '>=', now()->subDays(60)->toDateString());
+                    }
+                });
             });
-        });
     }
 
     public function scopeOrderByHari(Builder $query): Builder

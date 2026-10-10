@@ -7,6 +7,7 @@ import { Button } from "@/Components/ui/button";
 import { Card, CardContent } from "@/Components/ui/card";
 import { Head, Link } from "@inertiajs/react";
 import { ArrowLeft, Package, Wrench } from "lucide-react";
+import PracticumParticipants from "@/Components/PracticumParticipants";
 
 export default function Submission({ submission }) {
     return (
@@ -25,6 +26,12 @@ export default function Submission({ submission }) {
                         </Link>
                     </Button>
                 </PageHeader>
+
+                {submission.group_role === "member" ? (
+                    <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+                        Anda adalah anggota kelompok praktikum ini.
+                    </div>
+                ) : null}
 
                 <Card className="mb-6 rounded-[10px] border-border/60 shadow-card">
                     <CardContent className="grid gap-4 p-6 sm:grid-cols-2">
@@ -86,6 +93,10 @@ export default function Submission({ submission }) {
                         </div>
                     </CardContent>
                 </Card>
+
+                <div className="mb-6">
+                    <PracticumParticipants submission={submission} />
+                </div>
 
                 <div className="grid gap-6 lg:grid-cols-2">
                     <SubmissionTypeCard

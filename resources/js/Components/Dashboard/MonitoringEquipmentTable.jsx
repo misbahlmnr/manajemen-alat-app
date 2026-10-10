@@ -14,7 +14,7 @@ export function MonitoringEquipmentTable({
     if (!equipment.length) {
         return (
             <p className="py-8 text-center text-sm text-muted-foreground">
-                Semua alat tersedia — tidak ada stok yang sedang dipinjam
+                Tidak ada alat dengan stok sedang dipinjam
             </p>
         );
     }
@@ -22,7 +22,7 @@ export function MonitoringEquipmentTable({
     return (
         <div className="data-table overflow-hidden">
             <div className="-mx-1 overflow-x-auto px-1 sm:mx-0 sm:px-0">
-                <table className="w-full min-w-[720px]">
+                <table className="w-full min-w-[820px]">
                     <thead>
                         <tr className="border-b bg-muted/50">
                             <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -35,7 +35,10 @@ export function MonitoringEquipmentTable({
                                 Kategori
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                                Stok
+                                Total
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                Tersedia
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                                 Dipinjam
@@ -75,20 +78,20 @@ export function MonitoringEquipmentTable({
                                 <td className="px-4 py-4 text-sm text-muted-foreground">
                                     {item.category}
                                 </td>
+                                <td className="px-4 py-4 text-sm tabular-nums text-muted-foreground">
+                                    {item.qty_baik ?? item.stock ?? 0}
+                                </td>
                                 <td className="px-4 py-4 text-sm tabular-nums">
                                     <span className="font-medium text-foreground">
                                         {item.available}
-                                    </span>
-                                    <span className="text-muted-foreground">
-                                        {" "}
-                                        / {item.stock}
                                     </span>
                                 </td>
                                 <td className="px-4 py-4 text-sm font-medium tabular-nums text-warning">
                                     {item.borrowed ??
                                         Math.max(
                                             0,
-                                            item.stock - item.available,
+                                            (item.qty_baik ?? item.stock ?? 0) -
+                                                (item.available ?? 0),
                                         )}
                                 </td>
                                 <td className="px-4 py-4">

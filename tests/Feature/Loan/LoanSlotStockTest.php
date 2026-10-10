@@ -153,7 +153,7 @@ class LoanSlotStockTest extends TestCase
             ->get(route('siswa.loans.show', $loan))
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('loan.queue_type_label', 'Praktek Lab')
+                ->where('loan.queue_type_label', 'Praktik Lab')
                 ->where('loan.slot_label', '07:00–09:30')
                 ->where('loan.request_date', $monday)
             );
@@ -162,7 +162,7 @@ class LoanSlotStockTest extends TestCase
             ->get(route('admin.loans.show', $loan))
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('loan.queue_type_label', 'Praktek Lab')
+                ->where('loan.queue_type_label', 'Praktik Lab')
                 ->where('loan.slot_label', '07:00–09:30')
                 ->where('loan.request_date', $monday)
             );

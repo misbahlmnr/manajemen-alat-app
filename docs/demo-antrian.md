@@ -74,7 +74,7 @@ Login `santi` → Ajukan alat:
 
 **Yang harus kelihatan:** juga **Menunggu Persetujuan**. Batas kembali terpaksa **17:00**.
 
-Ke dospem: pribadi memakai sisa jam, bukan stok terpisah. Peak overlap = 6 + 14 = 20, slot penuh.
+Ke dospem: pribadi memakai sisa setelah **Reserved Campus** (jumlah booking Praktikum/Lomba pada tanggal yang sama). Satu kelas pagi × 6 → sisa 14; Peak Concurrent lama (max overlap) tidak dipakai untuk pribadi.
 
 Logout.
 

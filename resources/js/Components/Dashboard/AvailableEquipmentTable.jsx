@@ -31,7 +31,7 @@ export function AvailableEquipmentTable({ equipment = [], limit = 5 }) {
                                 Kategori
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                                Stok
+                                Dapat Dipinjam
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                                 Kondisi
@@ -72,12 +72,18 @@ export function AvailableEquipmentTable({ equipment = [], limit = 5 }) {
                                     {item.category}
                                 </td>
                                 <td className="px-4 py-4 text-sm tabular-nums">
-                                    <span className="font-medium text-foreground">
-                                        {item.available}
+                                    <span
+                                        className={
+                                            Number(item.available) > 0
+                                                ? "font-medium text-foreground"
+                                                : "font-medium text-muted-foreground"
+                                        }
+                                    >
+                                        {Number(item.available ?? 0)}
                                     </span>
                                     <span className="text-muted-foreground">
                                         {" "}
-                                        / {item.stock}
+                                        {item.unit || "unit"}
                                     </span>
                                 </td>
                                 <td className="px-4 py-4">

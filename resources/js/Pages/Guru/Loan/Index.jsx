@@ -97,8 +97,8 @@ export default function Index({
             <Head
                 title={
                     isHistory
-                        ? "Riwayat Peminjaman Siswa"
-                        : "Peminjaman Siswa"
+                        ? "Riwayat Pengajuan Siswa"
+                        : "Pengajuan Siswa"
                 }
             />
 
@@ -106,13 +106,13 @@ export default function Index({
                 <PageHeader
                     title={
                         isHistory
-                            ? "Riwayat Peminjaman Siswa"
-                            : "Peminjaman Siswa"
+                            ? "Riwayat Pengajuan Siswa"
+                            : "Pengajuan Siswa"
                     }
                     subtitle={
                         isHistory
-                            ? `${total} arsip peminjaman yang Anda bimbing`
-                            : `${total} peminjaman aktif siswa bimbingan Anda`
+                            ? "Arsip pengajuan peminjaman siswa bimbingan Anda."
+                            : "Pantau seluruh pengajuan peminjaman siswa bimbingan Anda."
                     }
                 />
 
@@ -176,20 +176,19 @@ export default function Index({
                     <GuruLoanCardList
                         items={list}
                         pagination={loans}
-                        isHistory={isHistory}
                     />
                 ) : (
                     <EmptyState
                         icon={isHistory ? History : ClipboardList}
                         title={
                             isHistory
-                                ? "Belum ada riwayat"
-                                : "Belum ada peminjaman aktif"
+                                ? "Belum ada riwayat pengajuan"
+                                : "Belum ada pengajuan aktif"
                         }
                         description={
                             isHistory
-                                ? "Peminjaman alat yang selesai dan bahan yang sudah diambil akan tampil di sini."
-                                : "Peminjaman siswa yang Anda bimbing akan muncul di halaman ini."
+                                ? "Pengajuan yang selesai, ditolak, atau dibatalkan akan tampil di sini."
+                                : "Pengajuan siswa yang Anda bimbing akan muncul di halaman ini."
                         }
                         action={
                             hasActiveFilters && (

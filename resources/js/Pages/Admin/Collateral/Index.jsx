@@ -3,11 +3,10 @@ import PageHeader from "@/Components/PageHeader";
 import EmptyState from "@/Components/EmptyState";
 import FilterToolbar from "@/Components/FilterToolbar";
 import { paginatorTotal } from "@/lib/paginator";
-import { Button } from "@/Components/ui/button";
 import { Input } from "@/Components/ui/input";
 import { Select } from "@/Components/ui/select";
-import { Head, Link, router, useForm } from "@inertiajs/react";
-import { CreditCard, Plus, Search } from "lucide-react";
+import { Head, router, useForm } from "@inertiajs/react";
+import { CreditCard, Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import CollateralTable from "./Components/CollateralTable";
 import DeleteCollateralDialog from "./Components/DeleteCollateralDialog";
@@ -106,14 +105,7 @@ export default function Index({
                 <PageHeader
                     title="Jaminan Kartu"
                     subtitle="Pipeline kartu pelajar untuk peminjaman bawa pulang"
-                >
-                    <Button asChild>
-                        <Link href={route("admin.collaterals.create")}>
-                            <Plus className="mr-2 h-4 w-4" />
-                            Tambah Jaminan
-                        </Link>
-                    </Button>
-                </PageHeader>
+                />
 
                 <FilterToolbar
                     title="Filter jaminan"
@@ -196,14 +188,6 @@ export default function Index({
                         icon={CreditCard}
                         title="Tidak ada jaminan kartu"
                         description="Belum ada kartu dititipkan atau ubah filter pencarian."
-                        action={
-                            <Button asChild variant="outline">
-                                <Link href={route("admin.collaterals.create")}>
-                                    <Plus className="mr-2 h-4 w-4" />
-                                    Tambah jaminan
-                                </Link>
-                            </Button>
-                        }
                     />
                 )}
             </div>

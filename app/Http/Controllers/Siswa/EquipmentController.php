@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Siswa;
 
 use App\Http\Controllers\Controller;
 use App\Models\Equipment;
+use App\Services\Loan\LoanRequestAvailabilityService;
 use App\Support\EquipmentFormatter;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -11,6 +12,10 @@ use Inertia\Response;
 
 class EquipmentController extends Controller
 {
+    public function __construct(
+        private LoanRequestAvailabilityService $requestAvailability,
+    ) {}
+
     public function index(Request $request): Response
     {
         $this->authorize('viewAny', Equipment::class);
@@ -20,6 +25,10 @@ class EquipmentController extends Controller
         $status = $request->string('status')->toString() ?: 'all';
         $condition = $request->string('condition')->toString() ?: 'all';
         $availability = $request->string('availability')->toString() ?: 'all';
+        $requestDate = $request->date('request_date')?->toDateString()
+            ?? now()->toDateString();
+
+        $slotContext = $this->requestAvailability->catalogSlotContext($request, $requestDate);
 
         $equipment = Equipment::query()
             ->alat()
@@ -39,7 +48,7 @@ class EquipmentController extends Controller
             ->orderBy('name')
             ->paginate(10)
             ->withQueryString()
-            ->through(fn (Equipment $item) => $this->formatEquipment($item));
+            ->through(fn (Equipment $item) => $this->formatEquipment($item, false, $slotContext));
 
         $categories = Equipment::alat()
             ->select('category')
@@ -55,18 +64,26 @@ class EquipmentController extends Controller
                 'status' => $status,
                 'condition' => $condition,
                 'availability' => $availability,
+                'request_date' => $requestDate,
             ],
             'categories' => $categories,
         ]);
     }
 
-    public function show(Equipment $equipment): Response
+    public function show(Request $request, Equipment $equipment): Response
     {
         $this->authorize('view', $equipment);
         $this->ensureAlat($equipment);
 
+        $requestDate = $request->date('request_date')?->toDateString()
+            ?? now()->toDateString();
+        $slotContext = $this->requestAvailability->catalogSlotContext($request, $requestDate);
+
         return Inertia::render('Siswa/Equipment/Show', [
-            'equipment' => $this->formatEquipment($equipment, true),
+            'equipment' => $this->formatEquipment($equipment, true, $slotContext),
+            'availabilityContext' => [
+                'request_date' => $requestDate,
+            ],
         ]);
     }
 
@@ -77,28 +94,53 @@ class EquipmentController extends Controller
         }
     }
 
-    private function formatEquipment(Equipment $equipment, bool $detailed = false): array
+    /**
+     * @param  array<string, mixed>  $slotContext
+     * @return array<string, mixed>
+     */
+    private function formatEquipment(Equipment $equipment, bool $detailed = false, array $slotContext = []): array
     {
-        $queueOpen = $equipment->status === 'tersedia' && $equipment->available <= 0;
+        $context = $slotContext !== []
+            ? $slotContext
+            : $this->requestAvailability->catalogSlotContext(request(), now()->toDateString());
+
+        $requestable = $this->requestAvailability->remainingForSubmit($equipment, $context);
+        $capacity = max(0, (int) $equipment->qty_baik);
+        $queueOpen = $equipment->status === 'tersedia' && $requestable <= 0;
 
         return [
             ...EquipmentFormatter::format($equipment, $detailed),
-            'borrowed' => max(0, $equipment->qty_baik - $equipment->available),
+            'slot_remaining' => $requestable,
+            'available' => $requestable,
+            'borrowed' => max(0, $capacity - $requestable),
+            'availability_label' => $this->requestAvailability->availabilityLabel($equipment, $requestable),
             'can_borrow' => $equipment->status === 'tersedia',
             'queue_open' => $queueOpen,
             'cta_label' => $queueOpen ? 'Ajukan' : 'Tambah',
-            'show_url' => route('siswa.equipment.show', $equipment),
-            'borrow_url' => $this->borrowUrl($equipment),
+            'show_url' => route('siswa.equipment.show', [
+                'equipment' => $equipment,
+                'request_date' => $context['request_date'] ?? null,
+            ]),
+            'borrow_url' => $this->borrowUrl($equipment, $context),
             'location' => $equipment->location ?? '—',
+            'availability_date' => $context['request_date'] ?? null,
         ];
     }
 
-    private function borrowUrl(Equipment $equipment): ?string
+    /**
+     * @param  array<string, mixed>  $context
+     */
+    private function borrowUrl(Equipment $equipment, array $context): ?string
     {
         if ($equipment->status !== 'tersedia') {
             return null;
         }
 
-        return route('siswa.loans.create', ['type' => 'alat', 'equipment_id' => $equipment->id]);
+        return route('siswa.loans.create', array_filter([
+            'type' => 'alat',
+            'equipment_id' => $equipment->id,
+            'request_date' => $context['request_date'] ?? null,
+            'practicum_schedule_id' => $context['practicum_schedule_id'] ?? null,
+        ], fn ($value) => $value !== null && $value !== ''));
     }
 }

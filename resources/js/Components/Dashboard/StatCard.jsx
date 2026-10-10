@@ -23,6 +23,7 @@ export function StatCard({
     value,
     icon: Icon,
     trend,
+    description,
     variant = "default",
     className,
 }) {
@@ -42,6 +43,11 @@ export function StatCard({
                     <p className="mt-2 font-display text-3xl font-bold tracking-tight text-foreground">
                         {value}
                     </p>
+                    {description ? (
+                        <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
+                            {description}
+                        </p>
+                    ) : null}
                     {trend && (
                         <p
                             className={cn(

@@ -13,8 +13,11 @@ use App\Models\Submission;
 use App\Models\User;
 use App\Services\Loan\CollateralWorkflowService;
 use App\Services\Loan\LoanQueueService;
+use App\Services\Loan\LoanRequestAvailabilityService;
 use App\Services\Loan\LoanSlotAvailabilityService;
 use App\Services\Loan\LoanWorkflowService;
+use App\Services\Loan\StudentLoanSubmissionService;
+use App\Services\Loan\SubmissionMemberService;
 use App\Services\Loan\SubmissionPresenter;
 use App\Services\Notification\LabNotificationService;
 use Illuminate\Http\JsonResponse;
@@ -22,6 +25,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -32,7 +36,10 @@ class LoanController extends Controller
         private CollateralWorkflowService $collateralWorkflow,
         private LoanQueueService $queueService,
         private LoanSlotAvailabilityService $slotAvailability,
+        private LoanRequestAvailabilityService $requestAvailability,
+        private StudentLoanSubmissionService $studentLoans,
         private SubmissionPresenter $submissions,
+        private SubmissionMemberService $memberService,
     ) {}
 
     public function index(Request $request): Response
@@ -121,11 +128,14 @@ class LoanController extends Controller
             ...$options,
             'defaults' => [
                 'item_type' => $type,
-                'request_date' => now()->toDateString(),
+                'loan_type' => 'praktikum',
+                'request_date' => $request->input('request_date') ?: now()->toDateString(),
                 'borrow_scope' => 'lab',
                 'borrow_reason' => 'reguler',
+                'group_member_count' => '',
+                'member_ids' => [],
                 'supervisor_id' => '',
-                'practicum_schedule_id' => '',
+                'practicum_schedule_id' => $request->input('practicum_schedule_id') ?: '',
                 'due_at' => '',
                 'purpose' => '',
                 'notes' => '',
@@ -178,7 +188,7 @@ class LoanController extends Controller
         $remaining = [];
 
         foreach ($query->get() as $equipment) {
-            $remaining[$equipment->id] = $this->slotAvailability->remainingForDraft(
+            $remaining[$equipment->id] = $this->requestAvailability->remainingForSubmit(
                 $equipment,
                 $context,
                 $validated['except_loan_id'] ?? null,
@@ -239,6 +249,7 @@ class LoanController extends Controller
         [$alatLoan, $submission] = DB::transaction(function () use ($alatPayload, $bahanPayload, $request, $groupId) {
             $submission = Submission::createForBorrower($request->user(), $alatPayload);
             $alatLoan = $this->createStudentLoan($alatPayload, $request->user(), $groupId, $submission);
+            $bahanPayload['loan_type'] = $alatLoan->loan_type ?? 'praktikum';
             $this->createStudentLoan($bahanPayload, $request->user(), $groupId, $submission);
 
             return [$alatLoan, $submission];
@@ -289,6 +300,11 @@ class LoanController extends Controller
                 'request_date' => $loan->request_date?->format('Y-m-d') ?? now()->toDateString(),
                 'borrow_scope' => $loan->borrow_scope ?? 'lab',
                 'borrow_reason' => $loan->borrow_reason ?? 'reguler',
+                'loan_type' => $loan->resolvedLoanType(),
+                'group_member_count' => $loan->group_member_count ?? '',
+                'member_ids' => $loan->submission_id
+                    ? $loan->submission()->with('members:id')->first()?->members->pluck('id')->all() ?? []
+                    : [],
                 'due_at' => $loan->due_at?->format('Y-m-d\TH:i') ?? '',
                 'purpose' => $loan->purpose ?? '',
                 'notes' => $loan->notes ?? $loan->purpose ?? '',
@@ -305,21 +321,40 @@ class LoanController extends Controller
 
         $validated = $request->validated();
         $items = $validated['items'];
-        unset($validated['items'], $validated['collateral_agreed'], $validated['item_type']);
+        $memberIds = array_values(array_map('intval', $validated['member_ids'] ?? []));
+        unset($validated['items'], $validated['collateral_agreed'], $validated['item_type'], $validated['member_ids']);
+
+        $submission = $loan->submission_id
+            ? $loan->submission()->with(['loans', 'members:id'])->first()
+            : null;
+
+        $wantsMemberSync = $submission
+            && $loan->resolvedLoanType() === 'praktikum'
+            && $request->exists('member_ids');
+
+        if ($wantsMemberSync && ! $this->memberService->canEditMembers($submission)) {
+            $currentIds = $submission->members->pluck('id')->map(fn ($id) => (int) $id)->sort()->values()->all();
+            $nextIds = collect($memberIds)->map(fn ($id) => (int) $id)->sort()->values()->all();
+            if ($currentIds !== $nextIds) {
+                throw ValidationException::withMessages([
+                    'member_ids' => 'Anggota kelompok tidak dapat diubah karena pengajuan sudah diproses.',
+                ]);
+            }
+            $wantsMemberSync = false;
+        }
 
         $this->queueService->validateItemsForSubmit(
             $items,
             $loan->item_type,
             $request->user()->id,
+            $loan->resolvedLoanType(),
         );
 
-        $slotContext = $this->slotContextFromPayload($validated, $loan->item_type);
-        $this->queueService->preemptLowerPriorityDiminta(
-            $items,
-            $loan->item_type,
-            $slotContext,
-            $loan->id,
-        );
+        $slotContext = $this->slotContextFromPayload([
+            ...$validated,
+            'loan_type' => $loan->resolvedLoanType(),
+            'item_type' => $loan->item_type,
+        ], $loan->item_type);
 
         $newStatus = in_array($loan->status, ['diminta', 'antrian'], true)
             ? $this->queueService->resolveInitialStatus(
@@ -378,6 +413,16 @@ class LoanController extends Controller
         }
 
         $this->collateralWorkflow->syncCollateralForLoan($loan->fresh());
+
+        if ($wantsMemberSync) {
+            $this->memberService->syncMembers(
+                $submission->fresh(['loans']),
+                $memberIds,
+                $request->user(),
+            );
+        } elseif ($submission && $loan->resolvedLoanType() !== 'praktikum') {
+            $this->memberService->syncMembers($submission->fresh(['loans']), [], $request->user());
+        }
 
         return redirect()
             ->route('siswa.loans.show', $loan)
@@ -483,6 +528,21 @@ class LoanController extends Controller
                 ->orderBy('name')
                 ->get(['id', 'name'])
                 ->map(fn (User $u) => ['id' => $u->id, 'name' => $u->name])
+                ->values()
+                ->all(),
+            'classmateOptions' => User::query()
+                ->where('role', 'siswa')
+                ->where('status', 'active')
+                ->where('class', $user->class)
+                ->whereKeyNot($user->id)
+                ->orderBy('name')
+                ->get(['id', 'name', 'nisn', 'class'])
+                ->map(fn (User $u) => [
+                    'id' => $u->id,
+                    'name' => $u->name,
+                    'nis' => $u->nisn,
+                    'class_name' => $u->class,
+                ])
                 ->values()
                 ->all(),
             'todaySchedules' => $schedules,
@@ -625,17 +685,14 @@ class LoanController extends Controller
     private function formatCatalogItem(Equipment $equipment, ?array $slotContext = null): array
     {
         $isBahan = $equipment->item_type === 'bahan';
-        $slotRemaining = $isBahan
-            ? (int) $equipment->available
-            : $this->slotAvailability->remainingForDraft(
-                $equipment,
-                $slotContext ?? [
-                    'item_type' => 'alat',
-                    'borrow_scope' => 'lab',
-                    'borrow_reason' => 'reguler',
-                    'request_date' => now()->toDateString(),
-                ],
-            );
+        $context = $slotContext ?? [
+            'item_type' => $isBahan ? 'bahan' : 'alat',
+            'borrow_scope' => 'lab',
+            'borrow_reason' => 'reguler',
+            'request_date' => now()->toDateString(),
+        ];
+
+        $requestable = $this->requestAvailability->remainingForSubmit($equipment, $context);
 
         return [
             'id' => $equipment->id,
@@ -643,16 +700,17 @@ class LoanController extends Controller
             'name' => $equipment->name,
             'category' => $equipment->category,
             'item_type' => $equipment->item_type,
-            'available' => $equipment->available,
+            // Angka yang ditampilkan siswa = sisa yang bisa diajukan (bukan stok gudang).
+            'available' => $requestable,
             'qty_baik' => $equipment->qty_baik,
             'stock' => $equipment->stock,
-            'slot_remaining' => $slotRemaining,
+            'slot_remaining' => $requestable,
             'unit' => $equipment->unit ?? ($isBahan ? 'pcs' : 'unit'),
             'min_stock' => $equipment->min_stock,
             'image_url' => $equipment->image_url,
             'is_low_stock' => $isBahan
                 && $equipment->min_stock !== null
-                && $equipment->available <= $equipment->min_stock,
+                && $requestable <= $equipment->min_stock,
         ];
     }
 
@@ -682,22 +740,9 @@ class LoanController extends Controller
         ];
     }
 
-    /**
-     * @param  array<string, mixed>  $payload
-     * @return array<string, mixed>
-     */
     private function slotContextFromPayload(array $payload, ?string $itemType = null): array
     {
-        $type = $itemType ?? ($payload['item_type'] ?? 'alat');
-
-        return [
-            'item_type' => $type,
-            'borrow_scope' => $payload['borrow_scope'] ?? 'lab',
-            'borrow_reason' => $payload['borrow_reason'] ?? 'reguler',
-            'request_date' => $payload['request_date'] ?? now()->toDateString(),
-            'practicum_schedule_id' => $payload['practicum_schedule_id'] ?? null,
-            'due_at' => $payload['due_at'] ?? null,
-        ];
+        return $this->studentLoans->slotContextFromPayload($payload, $itemType);
     }
 
     private function formatLoan(Loan $loan, bool $detailed = false): array
@@ -743,7 +788,11 @@ class LoanController extends Controller
             'schedule_priority' => $loan->schedule?->priority,
             'item_type' => $loan->item_type,
             'item_type_label' => $loan->item_type === 'alat' ? 'Alat' : 'Bahan',
+            'loan_type' => $loan->resolvedLoanType(),
+            'loan_type_label' => $loan->loanTypeLabel(),
+            'group_member_count' => $loan->group_member_count,
             'status' => $loan->status,
+            'is_taken' => $loan->item_type === 'bahan' && $loan->status === 'diambil',
             'request_date' => $loan->request_date?->format('Y-m-d'),
             'request_date_formatted' => $loan->request_date?->translatedFormat('d M Y'),
             'borrowed_at_formatted' => $loan->borrowed_at?->translatedFormat('d M Y H:i') ?: '—',
@@ -844,7 +893,7 @@ class LoanController extends Controller
             $query->where(function ($q) {
                 $q->whereIn('status', ['dikembalikan', 'ditolak', 'dibatalkan'])
                     ->orWhere(function ($inner) {
-                        $inner->where('item_type', 'bahan')->where('status', 'dipinjam');
+                        $inner->where('item_type', 'bahan')->where('status', 'diambil');
                     });
             });
 
@@ -855,7 +904,7 @@ class LoanController extends Controller
             $q->whereNotIn('status', ['dikembalikan', 'ditolak', 'dibatalkan'])
                 ->where(function ($inner) {
                     $inner->where('item_type', 'alat')
-                        ->orWhere('status', '!=', 'dipinjam');
+                        ->orWhere('status', '!=', 'diambil');
                 });
         });
     }
@@ -865,70 +914,7 @@ class LoanController extends Controller
      */
     public function createStudentLoan(array $validated, User $user, ?string $loanGroupId = null, ?Submission $submission = null): Loan
     {
-        $items = $validated['items'];
-        unset($validated['items'], $validated['collateral_agreed']);
-
-        $this->queueService->validateItemsForSubmit(
-            $items,
-            $validated['item_type'],
-            $user->id,
-        );
-
-        $slotContext = $this->slotContextFromPayload($validated);
-
-        $this->queueService->preemptLowerPriorityDiminta(
-            $items,
-            $validated['item_type'],
-            $slotContext,
-        );
-
-        $initialStatus = $this->queueService->resolveInitialStatus(
-            $items,
-            $validated['item_type'],
-            $slotContext,
-        );
-
-        $submission ??= Submission::createForBorrower($user, $validated);
-
-        $loan = Loan::create([
-            ...$validated,
-            'loan_group_id' => $loanGroupId,
-            'submission_id' => $submission->id,
-            'borrower_id' => $user->id,
-            'borrower_class' => $user->class,
-            'code' => Loan::generateCode(),
-            'status' => $initialStatus,
-            'queued_at' => $initialStatus === 'antrian' ? now() : null,
-            'borrow_scope' => $validated['item_type'] === 'alat'
-                ? ($validated['borrow_scope'] ?? 'lab')
-                : 'lab',
-            'borrow_reason' => $validated['item_type'] === 'alat'
-                ? ($validated['borrow_reason'] ?? (($validated['borrow_scope'] ?? 'lab') === 'bawa_pulang' ? 'lanjutan' : 'reguler'))
-                : null,
-            'usage_room' => $validated['usage_room'] ?? null,
-            'due_at' => $validated['item_type'] === 'alat' ? ($validated['due_at'] ?? null) : null,
-        ]);
-        $loan->setRelation('submission', $submission);
-
-        $this->syncItems($loan, $items);
-
-        if ($loan->isAlat()) {
-            $this->queueService->applyDueAtForLoan($loan);
-        }
-
-        if ($initialStatus === 'antrian') {
-            $this->queueService->enqueue($loan->fresh(), $user);
-        } else {
-            $this->workflow->logStatus($loan, 'diminta', 'Pengajuan peminjaman dibuat oleh siswa.', $user);
-        }
-
-        if ($loan->requiresCollateral()) {
-            $this->collateralWorkflow->registerPendingCollateral($loan->fresh());
-        }
-
-        app(LabNotificationService::class)->loanSubmitted($loan->fresh(['borrower', 'supervisor', 'items.equipment', 'submission']));
-
-        return $loan->fresh();
+        return $this->studentLoans->create($validated, $user, $loanGroupId, $submission);
     }
 
     /**
@@ -959,22 +945,29 @@ class LoanController extends Controller
     {
         if ($loan->status === 'antrian') {
             $position = $this->queueService->getQueuePosition($loan);
-            $base = 'Pengajuan berhasil dikirim. Stok saat ini belum mencukupi sehingga pengajuan Anda masuk antrian (prioritas tipe, jatah sampai batas kembali).';
+            $lines = [
+                'Pengajuan berhasil dibuat.',
+                'Karena stok alat belum tersedia, pengajuan Anda telah masuk antrean.',
+                'Silakan menunggu hingga admin memproses antrean.',
+            ];
 
-            return $position
-                ? "{$base} Posisi antrian: #{$position}."
-                : $base;
+            if ($position) {
+                $lines[] = "Posisi antrean: #{$position}";
+            }
+
+            return implode("\n", $lines);
         }
 
-        if ($loan->item_type === 'bahan') {
-            return 'Pengajuan berhasil dikirim dan menunggu persetujuan admin.';
+        $lines = [
+            'Pengajuan berhasil dibuat.',
+            'Menunggu persetujuan admin.',
+        ];
+
+        if ($loan->requiresCollateral()) {
+            $lines[] = 'Siapkan kartu pelajar saat pengambilan alat.';
         }
 
-        if ($loan->borrow_scope === 'bawa_pulang') {
-            return 'Pengajuan berhasil dikirim dan menunggu persetujuan admin. Siapkan kartu pelajar saat pengambilan alat.';
-        }
-
-        return 'Pengajuan berhasil dikirim dan menunggu persetujuan admin.';
+        return implode("\n", $lines);
     }
 
     /**

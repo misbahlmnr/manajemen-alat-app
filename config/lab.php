@@ -66,9 +66,11 @@ return [
     'loan_statuses' => [
         'diminta' => 'Menunggu Persetujuan',
         'antrian' => 'Antrian',
+        'menunggu_alat' => 'Menunggu Alat',
         'disetujui' => 'Disetujui',
         'ditolak' => 'Ditolak',
         'dipinjam' => 'Dipinjam',
+        'diambil' => 'Diambil',
         'terlambat' => 'Terlambat',
         'menunggu_inspeksi' => 'Menunggu Inspeksi',
         'dikembalikan' => 'Dikembalikan',
@@ -94,8 +96,20 @@ return [
         'PKK (Produk Kreatif dan Kewirausahaan)',
     ],
 
+    'loan_types' => [
+        'praktikum' => 'Praktik Lab',
+        'lomba' => 'Lomba',
+        'pribadi' => 'Pribadi',
+        'bawa_pulang' => 'Bawa pulang',
+    ],
+
+    'schedule_kinds' => [
+        'praktikum' => 'Praktik Lab',
+        'lomba' => 'Lomba',
+    ],
+
     'borrow_reasons' => [
-        'reguler' => 'Praktek Lab',
+        'reguler' => 'Praktik Lab',
         'lanjutan' => 'Pribadi',
         'lomba' => 'Lomba',
     ],
@@ -118,17 +132,18 @@ return [
     // Empty / unset = jam nyata. Restart PHP (and config:clear if cached) after changing.
     'fake_now' => env('LAB_FAKE_NOW'),
 
+    // Event Lomba: create Submission/Loan at H-{days} after this time (default = school close).
+    'lomba_activation_days' => (int) env('LAB_LOMBA_ACTIVATION_DAYS', 1),
+    'lomba_activation_time' => env(
+        'LAB_LOMBA_ACTIVATION_TIME',
+        env('LAB_SCHOOL_CLOSE_TIME', '17:00'),
+    ),
+
     'queue' => [
         'lab_open_time' => env('LAB_OPEN_TIME', '07:00'),
         'school_close_time' => env('LAB_SCHOOL_CLOSE_TIME', '17:00'),
         'bawa_pulang_max_days' => (int) env('LAB_BAWA_PULANG_MAX_DAYS', 1),
         'booking_horizon_days' => (int) env('LAB_BOOKING_HORIZON_DAYS', 7),
-        'type_scores' => [
-            'bawa_pulang_lomba' => 400,
-            'praktikum' => 300,
-            'pribadi' => 200,
-            'bawa_pulang_project' => 100,
-        ],
     ],
 
     'schedule_types' => [

@@ -99,7 +99,7 @@ const guruMenuItems = [
     },
     {
         icon: ClipboardList,
-        label: "Peminjaman Siswa",
+        label: "Pengajuan Siswa",
         routeName: "guru.loans.index",
     },
     {

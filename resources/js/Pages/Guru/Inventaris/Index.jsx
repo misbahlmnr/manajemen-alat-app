@@ -2,7 +2,6 @@ import AppLayout from "@/Layouts/AppLayout";
 import PageHeader from "@/Components/PageHeader";
 import EmptyState from "@/Components/EmptyState";
 import FilterToolbar from "@/Components/FilterToolbar";
-import CatalogCardGrid from "@/Components/CatalogCardGrid";
 import { paginatorTotal } from "@/lib/paginator";
 import { cn } from "@/lib/utils";
 import { Button } from "@/Components/ui/button";
@@ -11,6 +10,7 @@ import { Select } from "@/Components/ui/select";
 import { Head, router, useForm } from "@inertiajs/react";
 import { Box, Package, Search, Wrench } from "lucide-react";
 import { useEffect, useRef } from "react";
+import GuruEquipmentTable from "./Components/GuruEquipmentTable";
 import GuruSupplyTable from "./Components/GuruSupplyTable";
 
 const typeTabs = [
@@ -225,17 +225,9 @@ export default function Index({
                     isBahan ? (
                         <GuruSupplyTable items={list} pagination={supplies} />
                     ) : (
-                        <CatalogCardGrid
-                            items={list.map((item) => ({
-                                ...item,
-                                show_url: route(
-                                    "guru.inventaris.alat.show",
-                                    item.id,
-                                ),
-                            }))}
+                        <GuruEquipmentTable
+                            items={list}
                             pagination={equipment}
-                            itemType="alat"
-                            showBorrowCta={false}
                         />
                     )
                 ) : (

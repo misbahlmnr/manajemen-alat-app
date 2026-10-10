@@ -7,6 +7,7 @@ use App\Models\Loan;
 use App\Models\PracticumSchedule;
 use App\Models\User;
 use App\Services\Dashboard\Concerns\FormatsDashboardLoan;
+use App\Services\Loan\LoanRequestAvailabilityService;
 use App\Services\Loan\LoanWorkflowService;
 
 class SiswaDashboardDataService
@@ -15,6 +16,7 @@ class SiswaDashboardDataService
 
     public function __construct(
         private LoanWorkflowService $workflow,
+        private LoanRequestAvailabilityService $requestAvailability,
     ) {}
 
     public function forUser(User $user): array
@@ -41,20 +43,23 @@ class SiswaDashboardDataService
             ->alat()
             ->where('status', 'tersedia');
 
-        $tersediaCount = (clone $inventoryQuery)->where('available', '>', 0)->count();
-        $sedangDipinjamCount = (clone $inventoryQuery)->where('available', '<=', 0)->count();
-        $antreanAktifCount = Loan::query()
+        $requestableCount = (clone $inventoryQuery)->where('available', '>', 0)->count();
+        $emptyCount = (clone $inventoryQuery)->where('available', '<=', 0)->count();
+        $activeQueueCount = Loan::query()
             ->where('borrower_id', $user->id)
             ->where('status', 'antrian')
             ->count();
+
+        $slotContext = $this->requestAvailability->catalogSlotContext();
 
         $availableEquipment = $inventoryQuery
             ->orderByDesc('available')
             ->orderBy('name')
             ->limit(5)
             ->get()
-            ->map(function (Equipment $item) {
-                $queueOpen = $item->available <= 0;
+            ->map(function (Equipment $item) use ($slotContext) {
+                $requestable = $this->requestAvailability->remainingForSubmit($item, $slotContext);
+                $queueOpen = $requestable <= 0;
 
                 return [
                     'id' => $item->id,
@@ -62,13 +67,13 @@ class SiswaDashboardDataService
                     'name' => $item->name,
                     'category' => $item->category,
                     'itemType' => 'alat',
-                    'stock' => $item->stock,
-                    'available' => $item->available,
+                    'unit' => $item->unit ?? 'unit',
+                    'available' => $requestable,
                     'condition_breakdown' => $item->condition_breakdown,
                     'image_url' => $item->image_url,
                     'location' => $item->location ?? '—',
                     'description' => $item->description,
-                    'availability_label' => $item->availability_label,
+                    'availability_label' => $this->requestAvailability->availabilityLabel($item, $requestable),
                     'show_url' => route('siswa.equipment.show', $item),
                     'borrow_url' => route('siswa.loans.create', [
                         'type' => 'alat',
@@ -121,9 +126,9 @@ class SiswaDashboardDataService
             'loans' => $loans,
             'equipment' => $availableEquipment,
             'inventorySummary' => [
-                'tersedia' => $tersediaCount,
-                'sedang_dipinjam' => $sedangDipinjamCount,
-                'antrean_aktif' => $antreanAktifCount,
+                'requestableCount' => $requestableCount,
+                'emptyCount' => $emptyCount,
+                'activeQueueCount' => $activeQueueCount,
             ],
             'todaySchedules' => $todaySchedules,
             'hasPendingCompensation' => $compensationLoan !== null,

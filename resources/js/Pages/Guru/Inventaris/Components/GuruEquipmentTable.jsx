@@ -2,25 +2,32 @@ import DataTable from "@/Components/DataTable";
 import AvailabilityBadge from "@/Components/AvailabilityBadge";
 import ConditionBreakdown from "@/Components/ConditionBreakdown";
 import EquipmentImage from "@/Components/Equipment/EquipmentImage";
+import { Badge } from "@/Components/ui/badge";
 import { Button } from "@/Components/ui/button";
 import { Link } from "@inertiajs/react";
 import { Eye } from "lucide-react";
 
+function AvailabilityCell({ item }) {
+    const tersedia = Number(item.available ?? 0);
+    const total = Number(item.qty_baik ?? item.stock ?? 0);
+    const dipinjam = Math.max(0, total - tersedia);
+    const unit = item.unit || "unit";
+    const outOfStock = tersedia <= 0;
+
+    return (
+        <div className="space-y-1.5">
+            <Badge variant={outOfStock ? "destructive" : "success"}>
+                {outOfStock ? "Tidak tersedia" : "Tersedia"}
+            </Badge>
+            <p className="text-xs text-muted-foreground tabular-nums">
+                tersedia {tersedia} · dipinjam {dipinjam} · total {total} {unit}
+            </p>
+        </div>
+    );
+}
+
 export default function GuruEquipmentTable({ items, pagination }) {
     const columns = [
-        {
-            id: "preview",
-            header: "",
-            enableSorting: false,
-            cell: ({ row }) => (
-                <EquipmentImage
-                    imageUrl={row.original.image_url}
-                    name={row.original.name}
-                    className="h-10 w-10 rounded-lg border border-border/60"
-                    iconClassName="h-4 w-4"
-                />
-            ),
-        },
         {
             accessorKey: "code",
             header: "Kode",
@@ -35,15 +42,23 @@ export default function GuruEquipmentTable({ items, pagination }) {
             header: "Nama Alat",
             accessorFn: (row) => row.name,
             cell: ({ row }) => (
-                <div className="min-w-[160px] max-w-xs">
-                    <p className="font-medium text-foreground">
-                        {row.original.name}
-                    </p>
-                    {row.original.description && (
-                        <p className="line-clamp-2 text-xs text-muted-foreground">
-                            {row.original.description}
+                <div className="flex min-w-[160px] max-w-xs items-center gap-3">
+                    <EquipmentImage
+                        imageUrl={row.original.image_url}
+                        name={row.original.name}
+                        className="h-10 w-10 shrink-0 rounded-lg border border-border/60"
+                        iconClassName="h-4 w-4"
+                    />
+                    <div>
+                        <p className="font-medium text-foreground">
+                            {row.original.name}
                         </p>
-                    )}
+                        {row.original.description && (
+                            <p className="line-clamp-2 text-xs text-muted-foreground">
+                                {row.original.description}
+                            </p>
+                        )}
+                    </div>
                 </div>
             ),
         },
@@ -54,19 +69,9 @@ export default function GuruEquipmentTable({ items, pagination }) {
         },
         {
             id: "available",
-            header: "Stok Tersedia",
+            header: "Stok Lab",
             accessorFn: (row) => row.available,
-            cell: ({ row }) => (
-                <span className="tabular-nums" title="Unit di lab / total stok">
-                    <span className="font-medium text-foreground">
-                        {row.original.available}
-                    </span>
-                    <span className="text-muted-foreground">
-                        {" "}
-                        / {row.original.stock}
-                    </span>
-                </span>
-            ),
+            cell: ({ row }) => <AvailabilityCell item={row.original} />,
         },
         {
             id: "condition",
@@ -80,7 +85,7 @@ export default function GuruEquipmentTable({ items, pagination }) {
         },
         {
             id: "availability",
-            header: "Ketersediaan",
+            header: "Status",
             accessorFn: (row) => row.availability_label,
             enableSorting: false,
             cell: ({ row }) => (

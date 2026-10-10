@@ -60,11 +60,15 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
     Route::resource('supplies', SupplyController::class);
     Route::resource('schedules', PracticumScheduleController::class);
     Route::get('loans/pengajuan/{submission}', [LoanController::class, 'showSubmission'])->name('loans.submission');
+    Route::post('loans/pengajuan/{submission}/approve', [LoanController::class, 'approveSubmission'])->name('loans.submission.approve');
+    Route::post('loans/pengajuan/{submission}/reject', [LoanController::class, 'rejectSubmission'])->name('loans.submission.reject');
+    Route::post('loans/pengajuan/{submission}/mark-borrowed', [LoanController::class, 'markBorrowedSubmission'])->name('loans.submission.mark-borrowed');
     Route::resource('loans', LoanController::class)->except(['create', 'store', 'edit', 'update']);
     Route::post('loans/{loan}/approve', [LoanController::class, 'approve'])->name('loans.approve');
     Route::post('loans/{loan}/reject', [LoanController::class, 'reject'])->name('loans.reject');
     Route::post('loans/{loan}/mark-borrowed', [LoanController::class, 'markBorrowed'])->name('loans.mark-borrowed');
     Route::post('loans/{loan}/return', [LoanController::class, 'processReturn'])->name('loans.return');
+    Route::post('loans/{loan}/queue-priority', [LoanController::class, 'setQueuePriority'])->name('loans.queue-priority');
     Route::resource('collaterals', LoanCollateralController::class);
     Route::post('collaterals/{collateral}/hold', [LoanCollateralController::class, 'hold'])->name('collaterals.hold');
     Route::post('collaterals/{collateral}/return-card', [LoanCollateralController::class, 'returnCard'])->name('collaterals.return-card');

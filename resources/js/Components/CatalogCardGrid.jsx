@@ -64,9 +64,17 @@ export default function CatalogCardGrid({
                                         />
                                     )}
                                     {item.available != null && (
-                                        <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium tabular-nums">
-                                            Stok {item.available}
-                                            {item.unit ? ` ${item.unit}` : ""}
+                                        <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium tabular-nums text-muted-foreground">
+                                            {Number(
+                                                item.slot_remaining ??
+                                                    item.available,
+                                            )}{" "}
+                                            {item.unit || "unit"}
+                                            {itemType === "alat" &&
+                                            (item.qty_baik ?? item.stock) !=
+                                                null
+                                                ? ` dari ${item.qty_baik ?? item.stock}`
+                                                : ""}
                                         </span>
                                     )}
                                 </div>
