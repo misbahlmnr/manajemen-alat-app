@@ -68,6 +68,45 @@ class AdminLoanWorkflowTabsTest extends TestCase
             ->assertInertia(fn ($page) => $page->where('filters.scope', 'borrowed'));
     }
 
+    public function test_approval_tab_lists_oldest_submission_first(): void
+    {
+        $admin = $this->makeUser('admin', 'admin-fifo');
+        $siswa = $this->makeUser('siswa', 'siswa-fifo');
+        $guru = $this->makeUser('guru', 'guru-fifo');
+
+        $earlier = $this->makeSubmissionWithLoan($siswa, $guru, 'diminta', 'fifo-early');
+        $later = $this->makeSubmissionWithLoan($siswa, $guru, 'diminta', 'fifo-late');
+
+        $earlier->forceFill(['created_at' => now()->subHours(3)])->save();
+        $later->forceFill(['created_at' => now()->subHour()])->save();
+
+        Loan::query()->where('submission_id', $earlier->id)->update(['updated_at' => now()->subDay()]);
+        Loan::query()->where('submission_id', $later->id)->update(['updated_at' => now()]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.loans.index', ['scope' => 'approval']))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('loans.data.0.code', $earlier->code)
+                ->where('loans.data.1.code', $later->code)
+            );
+
+        $queuedEarly = $this->makeSubmissionWithLoan($siswa, $guru, 'antrian', 'q-early', queued: true);
+        $queuedLate = $this->makeSubmissionWithLoan($siswa, $guru, 'antrian', 'q-late', queued: true);
+        $queuedEarly->forceFill(['created_at' => now()->subHours(3)])->save();
+        $queuedLate->forceFill(['created_at' => now()->subHour()])->save();
+        Loan::query()->where('submission_id', $queuedEarly->id)->update(['updated_at' => now()->subDay()]);
+        Loan::query()->where('submission_id', $queuedLate->id)->update(['updated_at' => now()]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.loans.index', ['scope' => 'queue']))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('loans.data.0.code', $queuedLate->code)
+                ->where('loans.data.1.code', $queuedEarly->code)
+            );
+    }
+
     public function test_package_and_status_combinations_have_single_workflow_home(): void
     {
         $siswa = $this->makeUser('siswa', 'siswa-pkg');

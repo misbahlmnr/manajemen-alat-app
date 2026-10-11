@@ -88,6 +88,9 @@ class LoanController extends Controller
         $this->applyIndexScope($listQuery, $scope);
 
         match ($scope) {
+            'approval' => $listQuery
+                ->orderBy('submissions.created_at')
+                ->orderBy('submissions.id'),
             'borrowed' => $listQuery->orderByLatestBorrowedAt(),
             'all' => $listQuery->latest(),
             default => $listQuery->orderByLatestLoanActivity(),
